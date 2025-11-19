@@ -277,8 +277,11 @@ async function editParticipant(id) {
     const participant = participants.find(p => p.id === id);
     if (!participant) return;
     
+    // Show current info
+    alert(`Editing Participant #${participant.id}\n\nCurrent Info:\nName: ${participant.name}\nCompany: ${participant.company}\nVIP: ${participant.vip ? 'YES' : 'NO'}\nTable: ${participant.table || 'Not assigned'}`);
+    
     // Edit name
-    const name = prompt('Edit Name:', participant.name);
+    const name = prompt('Step 1/4: Edit full name:', participant.name);
     if (name === null) return; // User cancelled
     if (name.trim() === '') {
         alert('Name cannot be empty!');
@@ -286,16 +289,16 @@ async function editParticipant(id) {
     }
     
     // Edit company
-    const company = prompt('Edit Company/Organization:', participant.company);
+    const company = prompt('Step 2/4: Edit company/organization:', participant.company);
     if (company === null) return; // User cancelled
     
     // Edit VIP status
-    const isVIP = confirm(`Is ${name.trim()} a VIP?\n\nCurrent: ${participant.vip ? 'YES' : 'NO'}\n\nClick OK for YES, Cancel for NO`);
+    const isVIP = confirm(`Step 3/4: Is ${name.trim()} a VIP?\n\nCurrent: ${participant.vip ? 'YES' : 'NO'}\n\nClick OK for YES, Cancel for NO`);
     
     // Ask about table assignment
     let newTable = participant.table;
     if (tables.length > 0) {
-        const tableInput = prompt(`Assign to table number (1-${tables.length}):\n\nCurrent: ${participant.table || 'Not assigned'}\n\nLeave empty for no assignment:`, participant.table || '');
+        const tableInput = prompt(`Step 4/4: Assign to table number (1-${tables.length}):\n\nCurrent: ${participant.table || 'Not assigned'}\n\nLeave empty for no assignment:`, participant.table || '');
         if (tableInput !== null) {
             if (tableInput === '') {
                 newTable = null;
@@ -419,13 +422,19 @@ async function migrateToDatabase() {
 }
 
 async function addNewParticipant() {
-    const name = prompt('Enter participant name:');
+    // Step 1: Name
+    const name = prompt('Step 1/3: Enter participant full name:');
     if (!name || name.trim() === '') {
+        alert('Name is required!');
         return;
     }
     
-    const company = prompt('Enter company/organization:') || 'N/A';
-    const isVIP = confirm('Is this participant a VIP?');
+    // Step 2: Company
+    const company = prompt('Step 2/3: Enter company/organization:', 'N/A');
+    if (company === null) return; // User cancelled
+    
+    // Step 3: VIP Status
+    const isVIP = confirm(`Step 3/3: Is ${name.trim()} a VIP?\n\nClick OK for YES\nClick Cancel for NO`);
     
     // Check table capacity if tables exist
     if (tables.length > 0) {
