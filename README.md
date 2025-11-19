@@ -263,10 +263,10 @@ For issues or questions, please contact the development team.
 ---
 
 **Event Details:**
-- **Theme:** Above & Beyond
-- **Date:** 14 December 2025 (Saturday)
-- **Venue:** Royale Chulan Kuala Lumpur
-- **Time:** 7:00 PM
+- **Theme:** Dress to Kill
+- **Date:** Monday, 8th December 2025
+- **Venue:** DoubleTree by Hilton Putrajaya Lakeside
+- **Time:** 6:00 PM - 11:00 PM
 
 Enjoy the Todak Annual Dinner 2025! 🎉
 
