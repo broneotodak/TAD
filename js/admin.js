@@ -281,20 +281,40 @@ function autoAssignTables() {
 
 async function clearAllTables() {
     if (!confirm('⚠️ CLEAR ALL TABLE ASSIGNMENTS?\n\nThis will remove all participants from their tables.\n\nAre you sure?')) {
+        console.log('Clear cancelled by user');
         return;
     }
+    
+    console.log('Clearing all table assignments...');
+    showSyncStatus('Clearing tables...');
+    
+    // Count current assignments
+    const assignedCount = participants.filter(p => p.table !== null).length;
     
     // Clear locally
     participants.forEach(p => p.table = null);
     
     // Save to database
-    await saveData();
+    if (window.dbAPI) {
+        const result = await window.dbAPI.saveParticipants(participants, tables);
+        console.log('Clear result:', result);
+        
+        if (!result.success) {
+            alert('Failed to clear in database: ' + result.error);
+            return;
+        }
+    }
     
+    // Also save locally
+    localStorage.setItem('participants', JSON.stringify(participants));
+    
+    // Update UI
     renderTables();
     renderParticipantsTable();
     updateStats();
+    showSyncStatus('Tables cleared ✓');
     
-    alert('✓ All table assignments have been cleared!');
+    alert(`✓ All table assignments have been cleared!\n\n${assignedCount} participants were removed from tables.`);
 }
 
 async function resetAllCheckIns() {
