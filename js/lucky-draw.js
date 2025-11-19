@@ -4,12 +4,12 @@ let winners = [];
 let isDrawing = false;
 let drawInterval = null;
 
-// Load data from GitHub
-if (window.githubData) {
-    window.githubData.loadData().then(data => {
-        if (data && data.participants) {
-            participants = data.participants;
-            console.log(`✅ Loaded ${participants.length} participants`);
+// Load data from database
+if (window.dbAPI) {
+    window.dbAPI.getParticipants().then(result => {
+        if (result.success && result.data) {
+            participants = result.data.participants;
+            console.log(`✅ Loaded ${participants.length} participants from database`);
         } else {
             loadData();
         }

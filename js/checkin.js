@@ -2,12 +2,12 @@
 let participants = [];
 let selectedParticipant = null;
 
-// Load data from GitHub (shared for all users)
-if (window.githubData) {
-    window.githubData.loadData().then(data => {
-        if (data && data.participants) {
-            participants = data.participants;
-            console.log(`✅ Loaded ${participants.length} participants from GitHub`);
+// Load data from database
+if (window.dbAPI) {
+    window.dbAPI.getParticipants().then(result => {
+        if (result.success && result.data) {
+            participants = result.data.participants;
+            console.log(`✅ Loaded ${participants.length} participants from database`);
         } else {
             participants = [...attendanceData];
             console.log('⚠️ Using default data');
@@ -134,11 +134,22 @@ function showTablemates() {
     `).join('');
 }
 
-function confirmCheckin() {
+async function confirmCheckin() {
     if (!selectedParticipant) return;
     
-    // Update check-in status
+    // Update check-in status locally
     selectedParticipant.checkedIn = true;
+    selectedParticipant.checkedInAt = new Date().toISOString();
+    
+    // Save to database
+    if (window.dbAPI) {
+        const result = await window.dbAPI.checkinParticipant(selectedParticipant.id);
+        if (result.success) {
+            console.log('✅ Check-in saved to database');
+        }
+    }
+    
+    // Save locally as backup
     saveData();
     
     // Show success message

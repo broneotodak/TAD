@@ -307,14 +307,28 @@ function addNewParticipant() {
     alert(`✓ Participant "${name}" added successfully!`);
 }
 
-function saveData() {
-    // Save to localStorage
+async function saveData() {
+    // Save to localStorage as backup
     localStorage.setItem('participants', JSON.stringify(participants));
     localStorage.setItem('tables', JSON.stringify(tables));
     localStorage.setItem('lastSave', new Date().toISOString());
     
-    console.log('💾 Data saved locally');
-    showSyncStatus('Data saved ✓');
+    // Save to database
+    if (window.dbAPI) {
+        showSyncStatus('Saving to database...');
+        const result = await window.dbAPI.saveParticipants(participants, tables);
+        
+        if (result.success) {
+            console.log('✅ Data saved to database');
+            showSyncStatus('Saved to database ✓');
+        } else {
+            console.error('Failed to save to database:', result.error);
+            showSyncStatus('Saved locally only ⚠️');
+        }
+    } else {
+        console.log('💾 Data saved locally');
+        showSyncStatus('Saved locally ✓');
+    }
 }
 
 function showSyncStatus(message) {
