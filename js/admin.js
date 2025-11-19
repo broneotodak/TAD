@@ -173,19 +173,15 @@ function autoAssignTables() {
         return;
     }
     
-    if (!confirm(`This will automatically assign all ${totalParticipants} participants to ${tables.length} tables.\n\nVIPs will be assigned first.\n\nContinue?`)) {
-        return;
-    }
-    
     // Clear all assignments first
     participants.forEach(p => p.table = null);
     
-    // Sort: VIPs first, then by name
-    const sorted = [...participants].sort((a, b) => {
-        if (a.vip && !b.vip) return -1;
-        if (!a.vip && b.vip) return 1;
-        return a.name.localeCompare(b.name);
-    });
+    // Separate VIPs and non-VIPs, keep original order (by ID)
+    const vips = participants.filter(p => p.vip).sort((a, b) => a.id - b.id);
+    const nonVips = participants.filter(p => !p.vip).sort((a, b) => a.id - b.id);
+    
+    // Combine: VIPs first in their original order, then non-VIPs
+    const sorted = [...vips, ...nonVips];
     
     let currentTable = 0;
     let seatsInCurrentTable = 0;
@@ -197,8 +193,7 @@ function autoAssignTables() {
         }
         
         if (currentTable < tables.length) {
-            const originalParticipant = participants.find(p => p.id === participant.id);
-            originalParticipant.table = tables[currentTable].number;
+            participant.table = tables[currentTable].number;
             seatsInCurrentTable++;
         }
     });
@@ -207,7 +202,7 @@ function autoAssignTables() {
     renderTables();
     renderParticipantsTable();
     updateStats();
-    alert('✓ Table assignment completed successfully!');
+    alert(`✓ Table assignment completed!\n\nVIPs assigned to first ${Math.ceil(vips.length / tables[0].seats)} tables\nAll ${totalParticipants} participants assigned`);
 }
 
 function clearAllTables() {
@@ -280,16 +275,45 @@ async function editParticipant(id) {
     const participant = participants.find(p => p.id === id);
     if (!participant) return;
     
+    // Edit name
     const name = prompt('Edit Name:', participant.name);
-    if (!name || name.trim() === '') return;
+    if (name === null) return; // User cancelled
+    if (name.trim() === '') {
+        alert('Name cannot be empty!');
+        return;
+    }
     
-    const company = prompt('Edit Company:', participant.company);
-    const isVIP = confirm(`Is ${name} a VIP?`);
+    // Edit company
+    const company = prompt('Edit Company/Organization:', participant.company);
+    if (company === null) return; // User cancelled
+    
+    // Edit VIP status
+    const isVIP = confirm(`Is ${name.trim()} a VIP?\n\nCurrent: ${participant.vip ? 'YES' : 'NO'}\n\nClick OK for YES, Cancel for NO`);
+    
+    // Ask about table assignment
+    let newTable = participant.table;
+    if (tables.length > 0) {
+        const tableInput = prompt(`Assign to table number (1-${tables.length}):\n\nCurrent: ${participant.table || 'Not assigned'}\n\nLeave empty for no assignment:`, participant.table || '');
+        if (tableInput !== null) {
+            if (tableInput === '') {
+                newTable = null;
+            } else {
+                const tableNum = parseInt(tableInput);
+                if (tableNum >= 1 && tableNum <= tables.length) {
+                    newTable = tableNum;
+                } else {
+                    alert(`Invalid table number! Must be between 1 and ${tables.length}`);
+                    return;
+                }
+            }
+        }
+    }
     
     // Update locally
     participant.name = name.trim();
     participant.company = company ? company.trim() : participant.company;
     participant.vip = isVIP;
+    participant.table = newTable;
     
     // Save to database
     if (window.dbAPI) {
@@ -305,13 +329,17 @@ async function editParticipant(id) {
             showSyncStatus('Updated ✓');
         } else {
             alert('Failed to update in database: ' + result.error);
+            return;
         }
     }
     
     // Save locally and refresh
     saveData();
+    renderTables();
     renderParticipantsTable();
     updateStats();
+    
+    alert(`✓ Participant updated!\n\nName: ${participant.name}\nCompany: ${participant.company}\nVIP: ${participant.vip ? 'Yes' : 'No'}\nTable: ${participant.table || 'Not assigned'}`);
 }
 
 async function deleteParticipant(id) {
@@ -388,7 +416,7 @@ async function migrateToDatabase() {
     }
 }
 
-function addNewParticipant() {
+async function addNewParticipant() {
     const name = prompt('Enter participant name:');
     if (!name || name.trim() === '') {
         return;
@@ -396,6 +424,17 @@ function addNewParticipant() {
     
     const company = prompt('Enter company/organization:') || 'N/A';
     const isVIP = confirm('Is this participant a VIP?');
+    
+    // Check table capacity if tables exist
+    if (tables.length > 0) {
+        const totalCapacity = tables.reduce((sum, table) => sum + table.seats, 0);
+        const currentCount = participants.length;
+        const assignedCount = participants.filter(p => p.table !== null).length;
+        
+        if (assignedCount >= totalCapacity) {
+            alert(`⚠️ Warning: All tables are full!\n\nTotal Capacity: ${totalCapacity}\nCurrent Participants: ${currentCount}\n\nYou can still add this participant, but you'll need to add more tables or increase capacity.`);
+        }
+    }
     
     // Generate new ID
     const maxId = Math.max(...participants.map(p => p.id), 0);
@@ -409,12 +448,23 @@ function addNewParticipant() {
         checkedIn: false
     };
     
+    // Add to local array
     participants.push(newParticipant);
+    
+    // Save to database
+    if (window.dbAPI) {
+        const result = await window.dbAPI.saveParticipants(participants, tables);
+        if (result.success) {
+            console.log('✅ New participant saved to database');
+        }
+    }
+    
+    // Save locally and refresh
     saveData();
     renderParticipantsTable();
     updateStats();
     
-    alert(`✓ Participant "${name}" added successfully!`);
+    alert(`✓ Participant "${name}" added successfully!\n\nID: ${newParticipant.id}\nCompany: ${company}\nVIP: ${isVIP ? 'Yes' : 'No'}`);
 }
 
 async function saveData() {
