@@ -14,25 +14,36 @@ function initAudio() {
     return audioContext;
 }
 
-// Play drumroll sound
+// Play drumroll sound - more intense and rising
 function playDrumroll() {
     const ctx = initAudio();
+    let intensity = 0.1;
+    let speed = 150;
+    
     drumrollInterval = setInterval(() => {
-        const oscillator = ctx.createOscillator();
-        const gainNode = ctx.createGain();
+        // Create multiple oscillators for richer sound
+        [80, 120, 160].forEach((baseFreq, index) => {
+            const oscillator = ctx.createOscillator();
+            const gainNode = ctx.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(ctx.destination);
+            
+            oscillator.frequency.value = baseFreq + (Math.random() * 20);
+            oscillator.type = index === 0 ? 'sine' : 'triangle';
+            
+            const volume = intensity * (1 - index * 0.3);
+            gainNode.gain.setValueAtTime(volume, ctx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+            
+            oscillator.start(ctx.currentTime);
+            oscillator.stop(ctx.currentTime + 0.15);
+        });
         
-        oscillator.connect(gainNode);
-        gainNode.connect(ctx.destination);
-        
-        oscillator.frequency.value = 100;
-        oscillator.type = 'sine';
-        
-        gainNode.gain.setValueAtTime(0.1, ctx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-        
-        oscillator.start(ctx.currentTime);
-        oscillator.stop(ctx.currentTime + 0.1);
-    }, 100);
+        // Increase intensity over time for tension
+        intensity = Math.min(0.3, intensity + 0.002);
+        speed = Math.max(80, speed - 0.5);
+    }, speed);
 }
 
 // Stop drumroll
@@ -43,28 +54,80 @@ function stopDrumroll() {
     }
 }
 
-// Play celebration sound
+// Play tick sound for each name change
+function playTickSound() {
+    const ctx = initAudio();
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    
+    // Quick high-pitched tick
+    oscillator.frequency.value = 1200 + (Math.random() * 400);
+    oscillator.type = 'square';
+    
+    gainNode.gain.setValueAtTime(0.08, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+    
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + 0.05);
+}
+
+// Play celebration sound - triumphant fanfare!
 function playCelebration() {
     const ctx = initAudio();
     
-    // Play ascending notes
-    [523.25, 659.25, 783.99, 1046.50].forEach((freq, index) => {
-        const oscillator = ctx.createOscillator();
-        const gainNode = ctx.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(ctx.destination);
-        
-        oscillator.frequency.value = freq;
-        oscillator.type = 'sine';
-        
-        const startTime = ctx.currentTime + (index * 0.15);
-        gainNode.gain.setValueAtTime(0.2, startTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.3);
-        
-        oscillator.start(startTime);
-        oscillator.stop(startTime + 0.3);
+    // Fanfare: Play multiple ascending chord sequences
+    const fanfare = [
+        // First chord - triumphant start
+        { notes: [523.25, 659.25, 783.99], time: 0, duration: 0.3 },
+        // Second chord - higher
+        { notes: [659.25, 783.99, 987.77], time: 0.2, duration: 0.3 },
+        // Final chord - victory!
+        { notes: [783.99, 987.77, 1174.66, 1567.98], time: 0.4, duration: 0.6 }
+    ];
+    
+    fanfare.forEach(chord => {
+        chord.notes.forEach((freq, noteIndex) => {
+            const oscillator = ctx.createOscillator();
+            const gainNode = ctx.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(ctx.destination);
+            
+            oscillator.frequency.value = freq;
+            oscillator.type = noteIndex === chord.notes.length - 1 ? 'sine' : 'triangle';
+            
+            const startTime = ctx.currentTime + chord.time;
+            const volume = 0.15 + (noteIndex * 0.05);
+            gainNode.gain.setValueAtTime(volume, startTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + chord.duration);
+            
+            oscillator.start(startTime);
+            oscillator.stop(startTime + chord.duration);
+        });
     });
+    
+    // Add some sparkle sounds
+    for (let i = 0; i < 5; i++) {
+        setTimeout(() => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            
+            osc.frequency.value = 2000 + (Math.random() * 1000);
+            osc.type = 'sine';
+            
+            gain.gain.setValueAtTime(0.08, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+            
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.2);
+        }, i * 100);
+    }
 }
 
 // Load data from database
@@ -151,7 +214,7 @@ function startDraw() {
     // Start drumroll sound
     playDrumroll();
     
-    // Animate rolling names
+    // Animate rolling names with tick sounds
     let index = 0;
     drawInterval = setInterval(() => {
         const randomParticipant = eligible[Math.floor(Math.random() * eligible.length)];
@@ -161,6 +224,9 @@ function startDraw() {
                 <div class="company">${randomParticipant.company}</div>
             </div>
         `;
+        
+        // Play tick sound for each name change
+        playTickSound();
         index++;
     }, 100);
 }
