@@ -1,4 +1,4 @@
-// Attendance Data - All 311 participants
+// Attendance Data - All 313 participants (including 31 VIPs)
 const attendanceData = [
   {
     "id": 1,
@@ -12,6 +12,14 @@ const attendanceData = [
     "id": 2,
     "name": "Nur Hylen Shamirah Binti Nasharuddin",
     "company": "HSB",
+    "vip": true,
+    "table": null,
+    "checkedIn": false
+  },
+  {
+    "id": 3,
+    "name": "Bushinta",
+    "company": "PT TODAK",
     "vip": true,
     "table": null,
     "checkedIn": false
@@ -100,6 +108,14 @@ const attendanceData = [
     "id": 14,
     "name": "Ezril Ezrin Bin Ab Rahman",
     "company": "TRC",
+    "vip": true,
+    "table": null,
+    "checkedIn": false
+  },
+  {
+    "id": 15,
+    "name": "Muhammad Zaid Ariffuddin Bin Zainal Ariffin",
+    "company": "10CAMP",
     "vip": true,
     "table": null,
     "checkedIn": false
