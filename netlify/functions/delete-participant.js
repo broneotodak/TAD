@@ -2,12 +2,27 @@
 import { neon } from '@neondatabase/serverless';
 
 export default async (req, context) => {
+  const headers = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type'
+  };
+
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers });
+  }
+
   if (req.method !== 'DELETE' && req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 });
+    return new Response('Method not allowed', { status: 405, headers });
   }
 
   try {
-    const { id } = await req.json();
+    console.log('Delete request received');
+    const body = await req.text();
+    const { id } = JSON.parse(body);
+    console.log('Deleting participant ID:', id);
+    
     const sql = neon(process.env.NETLIFY_DATABASE_URL);
     
     if (!id) {
@@ -16,7 +31,7 @@ export default async (req, context) => {
         error: 'ID is required' 
       }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' }
+        headers
       });
     }
 
@@ -26,32 +41,37 @@ export default async (req, context) => {
       RETURNING id, name
     `;
 
+    console.log('Delete result:', result);
+
     if (result.length === 0) {
       return new Response(JSON.stringify({ 
         success: false, 
         error: 'Participant not found' 
       }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json' }
+        headers
       });
     }
+
+    console.log('Successfully deleted:', result[0]);
 
     return new Response(JSON.stringify({ 
       success: true,
       deleted: result[0]
     }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' }
+      headers
     });
 
   } catch (error) {
     console.error('Error deleting participant:', error);
     return new Response(JSON.stringify({ 
       success: false, 
-      error: error.message 
+      error: error.message,
+      stack: error.stack
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers
     });
   }
 };

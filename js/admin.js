@@ -349,29 +349,54 @@ async function editParticipant(id) {
 
 async function deleteParticipant(id) {
     const participant = participants.find(p => p.id === id);
-    if (!participant) return;
-    
-    if (!confirm(`Are you sure you want to delete:\n${participant.name}?`)) {
+    if (!participant) {
+        console.error('Participant not found:', id);
         return;
     }
     
-    // Delete from database
-    if (window.dbAPI) {
-        const result = await window.dbAPI.deleteParticipant(id);
-        if (result.success) {
-            // Remove from local array
-            const index = participants.findIndex(p => p.id === id);
-            if (index > -1) {
-                participants.splice(index, 1);
-            }
+    if (!confirm(`⚠️ DELETE PARTICIPANT?\n\nName: ${participant.name}\nCompany: ${participant.company}\nVIP: ${participant.vip ? 'YES' : 'NO'}\n\nThis action cannot be undone!`)) {
+        console.log('Delete cancelled by user');
+        return;
+    }
+    
+    console.log('Deleting participant:', id, participant.name);
+    
+    try {
+        // Delete from database
+        if (window.dbAPI) {
+            showSyncStatus('Deleting...');
+            const result = await window.dbAPI.deleteParticipant(id);
+            console.log('Delete result:', result);
             
-            saveData();
-            renderParticipantsTable();
-            updateStats();
-            showSyncStatus('Deleted ✓');
+            if (result.success) {
+                console.log('✅ Deleted from database');
+                
+                // Remove from local array
+                const index = participants.findIndex(p => p.id === id);
+                if (index > -1) {
+                    participants.splice(index, 1);
+                    console.log('Removed from local array');
+                }
+                
+                // Update UI
+                renderParticipantsTable();
+                renderTables();
+                updateStats();
+                showSyncStatus('Deleted ✓');
+                
+                alert(`✓ Participant deleted successfully!\n\n${participant.name} has been removed.`);
+            } else {
+                console.error('Delete failed:', result.error);
+                alert('Failed to delete: ' + result.error);
+                showSyncStatus('Delete failed ✗');
+            }
         } else {
-            alert('Failed to delete: ' + result.error);
+            alert('Database API not available');
         }
+    } catch (error) {
+        console.error('Delete exception:', error);
+        alert('Error deleting participant: ' + error.message);
+        showSyncStatus('Delete error ✗');
     }
 }
 
