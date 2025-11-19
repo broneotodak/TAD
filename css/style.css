@@ -618,14 +618,15 @@ body {
 .step-number {
     width: 40px;
     height: 40px;
-    background: var(--primary-color);
-    color: white;
+    background: #ffffff;
+    color: #000000;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: bold;
     flex-shrink: 0;
+    border: 2px solid #ffffff;
 }
 
 .step p {
@@ -1351,14 +1352,15 @@ body {
 .instruction-number {
     width: 50px;
     height: 50px;
-    background: var(--primary-color);
-    color: white;
+    background: #ffffff;
+    color: #000000;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.5rem;
     font-weight: bold;
+    border: 2px solid #ffffff;
 }
 
 .instruction-item p {
