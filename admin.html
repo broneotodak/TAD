@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Todak Annual Dinner 2025</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="index.html" class="back-btn">← Back to Home</a>
+            <h1>Admin Panel</h1>
+            <button onclick="logout()" class="logout-btn">Logout</button>
+        </div>
+
+        <div id="loginSection" class="login-section">
+            <div class="login-card">
+                <h2>Admin Login</h2>
+                <form onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="adminPassword" placeholder="Enter admin password" required>
+                    </div>
+                    <button type="submit" class="btn-primary">Login</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="adminContent" class="admin-content" style="display: none;">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Total Participants</h3>
+                    <p class="stat-number" id="totalParticipants">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>VIP Guests</h3>
+                    <p class="stat-number" id="vipCount">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Checked In</h3>
+                    <p class="stat-number" id="checkedInCount">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Tables</h3>
+                    <p class="stat-number" id="totalTables">0</p>
+                </div>
+            </div>
+
+            <div class="admin-section">
+                <div class="section-header">
+                    <h2>Table Setup</h2>
+                    <div class="table-config">
+                        <input type="number" id="numTables" placeholder="Number of tables" min="1">
+                        <input type="number" id="seatsPerTable" placeholder="Seats per table" min="1" value="10">
+                        <button onclick="generateTables()" class="btn-primary">Generate Tables</button>
+                    </div>
+                </div>
+                <div id="tablesContainer" class="tables-container"></div>
+            </div>
+
+            <div class="admin-section">
+                <h2>Participant Management</h2>
+                <div class="search-bar">
+                    <input type="text" id="searchParticipant" placeholder="Search by name or company..." onkeyup="filterParticipants()">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="filterVIP" onchange="filterParticipants()">
+                        Show VIP Only
+                    </label>
+                </div>
+                <div class="table-wrapper">
+                    <table class="participants-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Company</th>
+                                <th>VIP</th>
+                                <th>Table</th>
+                                <th>Checked In</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="participantsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="admin-section">
+                <h2>Quick Actions</h2>
+                <div class="actions-grid">
+                    <button onclick="autoAssignTables()" class="btn-secondary">Auto-Assign All Tables</button>
+                    <button onclick="clearAllTables()" class="btn-danger">Clear All Table Assignments</button>
+                    <button onclick="exportData()" class="btn-primary">Export Data (JSON)</button>
+                    <button onclick="generateQRCode()" class="btn-success">Generate Check-in QR</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>
+

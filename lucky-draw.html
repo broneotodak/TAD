@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lucky Draw - Todak Annual Dinner 2025</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="index.html" class="back-btn">← Back to Home</a>
+            <h1>Lucky Draw</h1>
+        </div>
+
+        <div class="lucky-draw-container">
+            <div class="draw-display">
+                <div class="draw-slot">
+                    <div id="rollingNames" class="rolling-names"></div>
+                    <div id="winnerDisplay" class="winner-display" style="display: none;">
+                        <div class="winner-badge">WINNER</div>
+                        <div class="winner-name" id="winnerName"></div>
+                        <div class="winner-company" id="winnerCompany"></div>
+                        <div class="winner-table">Table: <span id="winnerTable"></span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="draw-controls">
+                <div class="participants-info">
+                    <span>Eligible Participants: <strong id="eligibleCount">0</strong></span>
+                    <span>Already Won: <strong id="winnersCount">0</strong></span>
+                </div>
+                
+                <div class="control-buttons">
+                    <button id="startDrawBtn" onclick="startDraw()" class="btn-primary btn-large">
+                        <span class="btn-icon">🎰</span>
+                        Start Lucky Draw
+                    </button>
+                    <button id="stopDrawBtn" onclick="stopDraw()" class="btn-danger btn-large" style="display: none;">
+                        <span class="btn-icon">⏹</span>
+                        Stop & Reveal Winner
+                    </button>
+                </div>
+
+                <div class="draw-options">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="allowMultipleWins" onchange="updateEligibleCount()">
+                        Allow previous winners to win again
+                    </label>
+                    <button onclick="resetAllWinners()" class="btn-secondary">Reset All Winners</button>
+                </div>
+            </div>
+
+            <div class="winners-section">
+                <h2>Today's Winners</h2>
+                <div id="winnersList" class="winners-list">
+                    <p class="no-winners">No winners yet. Start the lucky draw!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/lucky-draw.js"></script>
+</body>
+</html>
+

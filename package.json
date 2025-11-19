@@ -1,0 +1,13 @@
+{
+  "name": "todak-annual-dinner",
+  "version": "1.0.0",
+  "description": "Todak Annual Dinner Event Management System",
+  "main": "index.html",
+  "scripts": {
+    "start": "python3 -m http.server 8000",
+    "dev": "live-server"
+  },
+  "keywords": ["event", "management", "todak"],
+  "author": "Neo Todak",
+  "license": "MIT"
+}

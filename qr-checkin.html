@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check-in QR Code - Todak Annual Dinner 2025</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="qr-display-page">
+            <div class="qr-header">
+                <div class="logo-small">TODAK</div>
+                <h1>Event Check-in</h1>
+                <p class="qr-subtitle">Scan this QR code to check in</p>
+            </div>
+
+            <div class="qr-code-container">
+                <div id="qrcode" class="qr-code-display"></div>
+            </div>
+
+            <div class="qr-instructions">
+                <div class="instruction-item">
+                    <span class="instruction-number">1</span>
+                    <p>Scan the QR code with your phone camera</p>
+                </div>
+                <div class="instruction-item">
+                    <span class="instruction-number">2</span>
+                    <p>Search and select your name</p>
+                </div>
+                <div class="instruction-item">
+                    <span class="instruction-number">3</span>
+                    <p>View your table assignment</p>
+                </div>
+            </div>
+
+            <div class="qr-url-display">
+                <p>Or visit directly:</p>
+                <a href="checkin.html" id="checkinUrl" class="url-link" target="_blank"></a>
+            </div>
+
+            <div class="qr-actions">
+                <button onclick="window.print()" class="btn-primary">Print QR Code</button>
+                <a href="index.html" class="btn-secondary">Back to Home</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Generate QR code on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            const checkinURL = window.location.origin + window.location.pathname.replace('qr-checkin.html', 'checkin.html');
+            
+            // Display URL
+            document.getElementById('checkinUrl').href = checkinURL;
+            document.getElementById('checkinUrl').textContent = checkinURL;
+            
+            // Generate QR Code
+            new QRCode(document.getElementById('qrcode'), {
+                text: checkinURL,
+                width: 400,
+                height: 400,
+                colorDark: "#0A0E27",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        });
+    </script>
+</body>
+</html>
+

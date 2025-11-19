@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Check-in - Todak Annual Dinner 2025</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="index.html" class="back-btn">← Back to Home</a>
+            <h1>Event Check-in</h1>
+        </div>
+
+        <div class="checkin-container">
+            <div class="checkin-card">
+                <div class="checkin-header">
+                    <h2>Welcome to Todak Annual Dinner 2025</h2>
+                    <p>Please search and select your name to check in</p>
+                </div>
+
+                <div class="search-section">
+                    <input type="text" 
+                           id="participantSearch" 
+                           class="search-input" 
+                           placeholder="Search by name or company..."
+                           onkeyup="searchParticipants()"
+                           autofocus>
+                </div>
+
+                <div id="searchResults" class="search-results"></div>
+
+                <div id="tableAssignment" class="table-assignment" style="display: none;">
+                    <div class="success-animation">✓</div>
+                    <h2>Welcome, <span id="participantName"></span>!</h2>
+                    <div class="table-info">
+                        <div class="table-number">
+                            <span class="label">Your Table</span>
+                            <span class="number" id="tableNumber">-</span>
+                        </div>
+                    </div>
+                    
+                    <div class="tablemates-section">
+                        <h3>Your Tablemates</h3>
+                        <div id="tablematesList" class="tablemates-list"></div>
+                    </div>
+
+                    <div class="checkin-actions">
+                        <button onclick="confirmCheckin()" class="btn-success">Confirm Check-in</button>
+                        <button onclick="resetCheckin()" class="btn-secondary">Search Again</button>
+                    </div>
+                </div>
+
+                <div id="checkinSuccess" class="checkin-success" style="display: none;">
+                    <div class="success-icon">🎉</div>
+                    <h2>Check-in Successful!</h2>
+                    <p>Enjoy the event!</p>
+                    <p class="success-note">You have been automatically entered into the lucky draw.</p>
+                    <button onclick="resetCheckin()" class="btn-primary">Check in Another Guest</button>
+                </div>
+            </div>
+
+            <div class="checkin-stats">
+                <div class="stat-item">
+                    <span class="stat-label">Total Guests</span>
+                    <span class="stat-value" id="totalGuests">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Checked In</span>
+                    <span class="stat-value" id="checkedInGuests">0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/checkin.js"></script>
+</body>
+</html>
+
