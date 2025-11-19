@@ -280,6 +280,9 @@ function autoAssignTables() {
 }
 
 async function clearAllTables() {
+    console.log('clearAllTables function called');
+    alert('Function called! Check console for details.');
+    
     if (!confirm('⚠️ CLEAR ALL TABLE ASSIGNMENTS?\n\nThis will remove all participants from their tables.\n\nAre you sure?')) {
         console.log('Clear cancelled by user');
         return;
