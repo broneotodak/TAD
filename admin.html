@@ -72,7 +72,11 @@
                     <input type="text" id="searchParticipant" placeholder="Search by name or company..." onkeyup="filterParticipants()">
                     <label class="checkbox-label">
                         <input type="checkbox" id="filterVIP" onchange="filterParticipants()">
-                        Show VIP Only
+                        VIP Only
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="filterCheckedIn" onchange="filterParticipants()">
+                        Checked In Only
                     </label>
                 </div>
                 <div class="table-wrapper">
@@ -83,7 +87,7 @@
                                 <th>Company</th>
                                 <th>VIP</th>
                                 <th>Table</th>
-                                <th>Checked In</th>
+                                <th>Status</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>

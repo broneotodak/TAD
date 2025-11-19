@@ -118,7 +118,7 @@ function renderParticipantsTable() {
                     `).join('')}
                 </select>
             </td>
-            <td>${p.checkedIn ? '<span class="badge-success">Yes</span>' : '<span class="badge-pending">No</span>'}</td>
+            <td>${p.checkedIn ? '<span class="badge-success">✓ Checked In</span>' : '<span class="badge-pending">Not Yet</span>'}</td>
             <td>
                 <button onclick="editParticipant(${p.id})" class="btn-small" title="Edit">✏️</button>
                 <button onclick="deleteParticipant(${p.id})" class="btn-small btn-danger" title="Delete">🗑️</button>
@@ -134,12 +134,14 @@ function filterParticipants() {
 function filterParticipantsList() {
     const search = document.getElementById('searchParticipant').value.toLowerCase();
     const vipOnly = document.getElementById('filterVIP').checked;
+    const checkedInOnly = document.getElementById('filterCheckedIn').checked;
     
     return participants.filter(p => {
         const matchesSearch = p.name.toLowerCase().includes(search) || 
                             p.company.toLowerCase().includes(search);
         const matchesVIP = !vipOnly || p.vip;
-        return matchesSearch && matchesVIP;
+        const matchesCheckedIn = !checkedInOnly || p.checkedIn;
+        return matchesSearch && matchesVIP && matchesCheckedIn;
     });
 }
 

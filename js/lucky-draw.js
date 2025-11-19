@@ -3,6 +3,69 @@ let participants = [];
 let winners = [];
 let isDrawing = false;
 let drawInterval = null;
+let audioContext = null;
+let drumrollInterval = null;
+
+// Initialize audio context
+function initAudio() {
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return audioContext;
+}
+
+// Play drumroll sound
+function playDrumroll() {
+    const ctx = initAudio();
+    drumrollInterval = setInterval(() => {
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        
+        oscillator.frequency.value = 100;
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(0.1, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+        
+        oscillator.start(ctx.currentTime);
+        oscillator.stop(ctx.currentTime + 0.1);
+    }, 100);
+}
+
+// Stop drumroll
+function stopDrumroll() {
+    if (drumrollInterval) {
+        clearInterval(drumrollInterval);
+        drumrollInterval = null;
+    }
+}
+
+// Play celebration sound
+function playCelebration() {
+    const ctx = initAudio();
+    
+    // Play ascending notes
+    [523.25, 659.25, 783.99, 1046.50].forEach((freq, index) => {
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        
+        oscillator.frequency.value = freq;
+        oscillator.type = 'sine';
+        
+        const startTime = ctx.currentTime + (index * 0.15);
+        gainNode.gain.setValueAtTime(0.2, startTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.3);
+        
+        oscillator.start(startTime);
+        oscillator.stop(startTime + 0.3);
+    });
+}
 
 // Load data from database
 if (window.dbAPI) {
@@ -85,6 +148,9 @@ function startDraw() {
     const rollingContainer = document.getElementById('rollingNames');
     rollingContainer.style.display = 'block';
     
+    // Start drumroll sound
+    playDrumroll();
+    
     // Animate rolling names
     let index = 0;
     drawInterval = setInterval(() => {
@@ -104,6 +170,9 @@ function stopDraw() {
     
     clearInterval(drawInterval);
     isDrawing = false;
+    
+    // Stop drumroll
+    stopDrumroll();
     
     const eligible = getEligibleParticipants();
     
@@ -132,6 +201,9 @@ function stopDraw() {
         document.getElementById('winnerName').textContent = winner.name;
         document.getElementById('winnerCompany').textContent = winner.company;
         document.getElementById('winnerTable').textContent = winner.table || 'Not Assigned';
+        
+        // Play celebration sound
+        playCelebration();
         
         // Celebration animation
         confetti();
