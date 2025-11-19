@@ -4,9 +4,24 @@ let winners = [];
 let isDrawing = false;
 let drawInterval = null;
 
-// Load data
-loadData();
-updateCounts();
+// Load data with cloud sync
+if (window.realtimeSync) {
+    window.realtimeSync.pullFromCloud().then(result => {
+        if (result.success && result.data) {
+            participants = result.data.participants;
+            console.log('✅ Loaded participants from cloud');
+        } else {
+            loadData();
+        }
+        updateCounts();
+    });
+    
+    // Enable auto-refresh
+    window.realtimeSync.enableAutoSync(30);
+} else {
+    loadData();
+    updateCounts();
+}
 
 function loadData() {
     const savedParticipants = localStorage.getItem('participants');

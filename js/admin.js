@@ -276,9 +276,44 @@ function addNewParticipant() {
     alert(`✓ Participant "${name}" added successfully!`);
 }
 
-function saveData() {
+async function saveData() {
+    // Save locally first
     localStorage.setItem('participants', JSON.stringify(participants));
     localStorage.setItem('tables', JSON.stringify(tables));
+    
+    // Push to cloud in background
+    if (window.realtimeSync) {
+        window.realtimeSync.pushToCloud(participants, tables).then(result => {
+            if (result.success) {
+                console.log('✅ Data synced to cloud');
+                showSyncStatus('Synced to cloud');
+            } else if (result.offline) {
+                console.log('📴 Saved locally (offline)');
+                showSyncStatus('Saved locally (offline)');
+            } else {
+                console.log('⚠️ Cloud sync failed, data saved locally');
+                showSyncStatus('Saved locally only');
+            }
+        });
+    }
+}
+
+function showSyncStatus(message) {
+    // Find or create status indicator
+    let statusEl = document.getElementById('syncStatus');
+    if (!statusEl) {
+        statusEl = document.createElement('div');
+        statusEl.id = 'syncStatus';
+        statusEl.style.cssText = 'position: fixed; top: 80px; right: 20px; background: var(--success-color); color: white; padding: 10px 20px; border-radius: 8px; z-index: 1000; font-size: 0.9rem; opacity: 0; transition: opacity 0.3s;';
+        document.body.appendChild(statusEl);
+    }
+    
+    statusEl.textContent = message;
+    statusEl.style.opacity = '1';
+    
+    setTimeout(() => {
+        statusEl.style.opacity = '0';
+    }, 3000);
 }
 
 function loadSavedData() {

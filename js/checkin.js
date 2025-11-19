@@ -2,10 +2,40 @@
 let participants = [];
 let selectedParticipant = null;
 
-// Load data from localStorage
-loadData();
-updateStats();
-updateConfigStatus();
+// Enable auto-sync for check-in stations
+if (window.realtimeSync) {
+    // Pull from cloud first
+    window.realtimeSync.pullFromCloud().then(result => {
+        if (result.success && result.data) {
+            participants = result.data.participants;
+            updateStats();
+            console.log('✅ Loaded data from cloud');
+        } else {
+            // Fall back to local data
+            loadData();
+        }
+        updateStats();
+        updateConfigStatus();
+    });
+    
+    // Enable auto-refresh every 30 seconds
+    window.realtimeSync.enableAutoSync(30);
+    
+    // Listen for sync updates
+    setInterval(() => {
+        const status = window.realtimeSync.getSyncStatus();
+        if (status.lastCloudSync !== 'Never') {
+            // Reload participants if data was updated
+            loadData();
+            updateStats();
+        }
+    }, 5000);
+} else {
+    // No cloud sync available, use local data
+    loadData();
+    updateStats();
+    updateConfigStatus();
+}
 
 function loadData() {
     const savedParticipants = localStorage.getItem('participants');
