@@ -183,19 +183,22 @@ function removeWinner(index) {
 }
 
 function resetAllWinners() {
-    if (confirm('Are you sure you want to reset all winners? This cannot be undone.')) {
-        winners = [];
-        saveWinners();
-        displayWinners();
-        updateCounts();
+    if (!confirm('Are you sure you want to reset all winners? This cannot be undone.')) {
+        return;
     }
+    
+    winners = [];
+    localStorage.setItem('luckyDrawWinners', JSON.stringify(winners));
+    displayWinners();
+    updateCounts();
+    alert('✓ All winners have been reset!');
 }
 
 // Simple confetti effect
 function confetti() {
     const duration = 3000;
     const animationEnd = Date.now() + duration;
-    const colors = ['#FF6B35', '#F8961E', '#06D6A0', '#EF476F', '#4ECDC4'];
+    const colors = ['#000000', '#333333', '#666666', '#999999', '#cccccc'];
     
     const interval = setInterval(() => {
         const timeLeft = animationEnd - Date.now();
