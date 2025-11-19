@@ -281,18 +281,17 @@ function autoAssignTables() {
 
 async function clearAllTables() {
     console.log('clearAllTables function called');
-    alert('Function called! Check console for details.');
-    
-    if (!confirm('⚠️ CLEAR ALL TABLE ASSIGNMENTS?\n\nThis will remove all participants from their tables.\n\nAre you sure?')) {
-        console.log('Clear cancelled by user');
-        return;
-    }
-    
-    console.log('Clearing all table assignments...');
-    showSyncStatus('Clearing tables...');
     
     // Count current assignments
     const assignedCount = participants.filter(p => p.table !== null).length;
+    
+    if (assignedCount === 0) {
+        alert('No table assignments to clear.');
+        return;
+    }
+    
+    console.log(`Clearing ${assignedCount} table assignments...`);
+    showSyncStatus('Clearing tables...');
     
     // Clear locally
     participants.forEach(p => p.table = null);
@@ -321,11 +320,17 @@ async function clearAllTables() {
 }
 
 async function resetAllCheckIns() {
-    if (!confirm('⚠️ RESET ALL CHECK-INS?\n\nThis will mark all participants as NOT checked in.\n\nUseful for testing or resetting before the event.\n\nAre you sure?')) {
+    console.log('resetAllCheckIns function called');
+    
+    const checkedInCount = participants.filter(p => p.checkedIn).length;
+    
+    if (checkedInCount === 0) {
+        alert('No check-ins to reset.');
         return;
     }
     
-    const checkedInCount = participants.filter(p => p.checkedIn).length;
+    console.log(`Resetting ${checkedInCount} check-ins...`);
+    showSyncStatus('Resetting check-ins...');
     
     // Clear all check-ins
     participants.forEach(p => {
@@ -334,10 +339,22 @@ async function resetAllCheckIns() {
     });
     
     // Save to database
-    await saveData();
+    if (window.dbAPI) {
+        const result = await window.dbAPI.saveParticipants(participants, tables);
+        console.log('Reset result:', result);
+        
+        if (!result.success) {
+            alert('Failed to reset in database: ' + result.error);
+            return;
+        }
+    }
+    
+    // Also save locally
+    localStorage.setItem('participants', JSON.stringify(participants));
     
     renderParticipantsTable();
     updateStats();
+    showSyncStatus('Check-ins reset ✓');
     
     alert(`✓ All check-ins have been reset!\n\n${checkedInCount} participants were marked as not checked in.`);
 }
