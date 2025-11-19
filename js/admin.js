@@ -118,7 +118,8 @@ function renderParticipantsTable() {
             </td>
             <td>${p.checkedIn ? '<span class="badge-success">Yes</span>' : '<span class="badge-pending">No</span>'}</td>
             <td>
-                <button onclick="viewParticipant(${p.id})" class="btn-small">View</button>
+                <button onclick="editParticipant(${p.id})" class="btn-small" title="Edit">✏️</button>
+                <button onclick="deleteParticipant(${p.id})" class="btn-small btn-danger" title="Delete">🗑️</button>
             </td>
         </tr>
     `).join('');
@@ -272,9 +273,100 @@ function closeQRModal() {
 }
 
 function viewParticipant(id) {
+    editParticipant(id);
+}
+
+async function editParticipant(id) {
     const participant = participants.find(p => p.id === id);
-    if (participant) {
-        alert(`Name: ${participant.name}\nCompany: ${participant.company}\nVIP: ${participant.vip ? 'Yes' : 'No'}\nTable: ${participant.table || 'Not Assigned'}\nChecked In: ${participant.checkedIn ? 'Yes' : 'No'}`);
+    if (!participant) return;
+    
+    const name = prompt('Edit Name:', participant.name);
+    if (!name || name.trim() === '') return;
+    
+    const company = prompt('Edit Company:', participant.company);
+    const isVIP = confirm(`Is ${name} a VIP?`);
+    
+    // Update locally
+    participant.name = name.trim();
+    participant.company = company ? company.trim() : participant.company;
+    participant.vip = isVIP;
+    
+    // Save to database
+    if (window.dbAPI) {
+        const result = await window.dbAPI.updateParticipant(
+            participant.id,
+            participant.name,
+            participant.company,
+            participant.vip,
+            participant.table
+        );
+        
+        if (result.success) {
+            showSyncStatus('Updated ✓');
+        } else {
+            alert('Failed to update in database: ' + result.error);
+        }
+    }
+    
+    // Save locally and refresh
+    saveData();
+    renderParticipantsTable();
+    updateStats();
+}
+
+async function deleteParticipant(id) {
+    const participant = participants.find(p => p.id === id);
+    if (!participant) return;
+    
+    if (!confirm(`Are you sure you want to delete:\n${participant.name}?`)) {
+        return;
+    }
+    
+    // Delete from database
+    if (window.dbAPI) {
+        const result = await window.dbAPI.deleteParticipant(id);
+        if (result.success) {
+            // Remove from local array
+            const index = participants.findIndex(p => p.id === id);
+            if (index > -1) {
+                participants.splice(index, 1);
+            }
+            
+            saveData();
+            renderParticipantsTable();
+            updateStats();
+            showSyncStatus('Deleted ✓');
+        } else {
+            alert('Failed to delete: ' + result.error);
+        }
+    }
+}
+
+async function migrateToDatabase() {
+    if (!window.dbAPI) {
+        alert('Database API not available');
+        return;
+    }
+    
+    if (!confirm(`This will migrate all ${attendanceData.length} participants to the database.\n\nContinue?`)) {
+        return;
+    }
+    
+    showSyncStatus('Migrating data...');
+    const result = await window.dbAPI.migrateData(attendanceData);
+    
+    if (result.success) {
+        alert(`✅ Migration Complete!\n\nMigrated: ${result.migrated}\nSkipped: ${result.skipped}\nTotal: ${result.total}`);
+        
+        // Reload from database
+        const data = await window.dbAPI.getParticipants(false);
+        if (data.success) {
+            participants = data.data.participants;
+            renderParticipantsTable();
+            updateStats();
+        }
+    } else {
+        alert('Migration failed: ' + result.error);
     }
 }
 

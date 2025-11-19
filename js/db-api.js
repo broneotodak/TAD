@@ -97,6 +97,80 @@ class DatabaseAPI {
         }
     }
 
+    // Migrate initial data to database
+    async migrateData(participants) {
+        try {
+            console.log('🔄 Migrating data to database...');
+            const response = await fetch(`${this.baseURL}/migrate-data`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ participants })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                console.log(`✅ Migration complete: ${result.migrated} migrated, ${result.skipped} skipped`);
+                this.cache = null;
+            }
+            
+            return result;
+        } catch (error) {
+            console.error('Failed to migrate data:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    // Update a participant
+    async updateParticipant(id, name, company, vip, table) {
+        try {
+            const response = await fetch(`${this.baseURL}/update-participant`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ id, name, company, vip, table })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                this.cache = null;
+            }
+            
+            return result;
+        } catch (error) {
+            console.error('Failed to update participant:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    // Delete a participant
+    async deleteParticipant(id) {
+        try {
+            const response = await fetch(`${this.baseURL}/delete-participant`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ id })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                this.cache = null;
+            }
+            
+            return result;
+        } catch (error) {
+            console.error('Failed to delete participant:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
     // Clear cache
     clearCache() {
         this.cache = null;
