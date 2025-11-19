@@ -343,30 +343,52 @@ async function deleteParticipant(id) {
 }
 
 async function migrateToDatabase() {
+    console.log('🔄 Starting migration process...');
+    
     if (!window.dbAPI) {
+        console.error('Database API not available');
         alert('Database API not available');
         return;
     }
     
+    console.log(`Total participants to migrate: ${attendanceData.length}`);
+    
     if (!confirm(`This will migrate all ${attendanceData.length} participants to the database.\n\nContinue?`)) {
+        console.log('Migration cancelled by user');
         return;
     }
     
-    showSyncStatus('Migrating data...');
-    const result = await window.dbAPI.migrateData(attendanceData);
-    
-    if (result.success) {
-        alert(`✅ Migration Complete!\n\nMigrated: ${result.migrated}\nSkipped: ${result.skipped}\nTotal: ${result.total}`);
+    try {
+        showSyncStatus('Migrating data...');
+        console.log('Calling migrateData API...');
         
-        // Reload from database
-        const data = await window.dbAPI.getParticipants(false);
-        if (data.success) {
-            participants = data.data.participants;
-            renderParticipantsTable();
-            updateStats();
+        const result = await window.dbAPI.migrateData(attendanceData);
+        console.log('Migration result:', result);
+        
+        if (result.success) {
+            console.log('✅ Migration successful');
+            alert(`✅ Migration Complete!\n\nMigrated: ${result.migrated}\nSkipped: ${result.skipped}\nTotal: ${result.total}`);
+            
+            // Reload from database
+            console.log('Reloading data from database...');
+            const data = await window.dbAPI.getParticipants(false);
+            console.log('Reload result:', data);
+            
+            if (data.success) {
+                participants = data.data.participants;
+                renderParticipantsTable();
+                updateStats();
+                showSyncStatus('Migration complete ✓');
+            }
+        } else {
+            console.error('Migration failed:', result.error);
+            alert('Migration failed: ' + (result.error || 'Unknown error'));
+            showSyncStatus('Migration failed ✗');
         }
-    } else {
-        alert('Migration failed: ' + result.error);
+    } catch (error) {
+        console.error('Migration exception:', error);
+        alert('Migration error: ' + error.message);
+        showSyncStatus('Migration error ✗');
     }
 }
 

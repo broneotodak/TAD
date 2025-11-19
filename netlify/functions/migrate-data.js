@@ -11,11 +11,41 @@ const attendanceData = [
 ];
 
 export default async (req, context) => {
+  // Add CORS headers
+  const headers = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type'
+  };
+
+  // Handle OPTIONS request for CORS
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers });
+  }
+
   try {
+    console.log('Starting migration...');
+    
+    if (!process.env.NETLIFY_DATABASE_URL) {
+      console.error('Database URL not found in environment');
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'Database URL not configured' 
+      }), {
+        status: 500,
+        headers
+      });
+    }
+
     const sql = neon(process.env.NETLIFY_DATABASE_URL);
+    console.log('Database connection established');
     
     // Get participant data from request body (sent from frontend)
-    const { participants } = await req.json();
+    const body = await req.text();
+    console.log('Request body received, length:', body.length);
+    
+    const { participants } = JSON.parse(body);
     
     if (!participants || !Array.isArray(participants)) {
       return new Response(JSON.stringify({ 
@@ -45,6 +75,8 @@ export default async (req, context) => {
       }
     }
 
+    console.log(`Migration complete: ${migrated} migrated, ${skipped} skipped`);
+
     return new Response(JSON.stringify({ 
       success: true,
       message: 'Data migration completed',
@@ -53,17 +85,18 @@ export default async (req, context) => {
       total: participants.length
     }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' }
+      headers
     });
 
   } catch (error) {
     console.error('Migration error:', error);
     return new Response(JSON.stringify({ 
       success: false, 
-      error: error.message 
+      error: error.message,
+      stack: error.stack
     }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers
     });
   }
 };
