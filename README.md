@@ -263,9 +263,10 @@ For issues or questions, please contact the development team.
 ---
 
 **Event Details:**
-- Date: December 2025
-- Venue: Grand Ballroom
-- Time: 7:00 PM
+- **Theme:** Above & Beyond
+- **Date:** 14 December 2025 (Saturday)
+- **Venue:** Royale Chulan Kuala Lumpur
+- **Time:** 7:00 PM
 
 Enjoy the Todak Annual Dinner 2025! 🎉
 

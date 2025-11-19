@@ -279,16 +279,44 @@ function autoAssignTables() {
     alert(`✓ Table assignment completed!\n\nVIPs assigned to first ${Math.ceil(vips.length / tables[0].seats)} tables\nAll ${totalParticipants} participants assigned`);
 }
 
-function clearAllTables() {
-    if (!confirm('Are you sure you want to clear all table assignments?')) {
+async function clearAllTables() {
+    if (!confirm('⚠️ CLEAR ALL TABLE ASSIGNMENTS?\n\nThis will remove all participants from their tables.\n\nAre you sure?')) {
         return;
     }
     
+    // Clear locally
     participants.forEach(p => p.table = null);
-    saveData();
+    
+    // Save to database
+    await saveData();
+    
     renderTables();
     renderParticipantsTable();
     updateStats();
+    
+    alert('✓ All table assignments have been cleared!');
+}
+
+async function resetAllCheckIns() {
+    if (!confirm('⚠️ RESET ALL CHECK-INS?\n\nThis will mark all participants as NOT checked in.\n\nUseful for testing or resetting before the event.\n\nAre you sure?')) {
+        return;
+    }
+    
+    const checkedInCount = participants.filter(p => p.checkedIn).length;
+    
+    // Clear all check-ins
+    participants.forEach(p => {
+        p.checkedIn = false;
+        p.checkedInAt = null;
+    });
+    
+    // Save to database
+    await saveData();
+    
+    renderParticipantsTable();
+    updateStats();
+    
+    alert(`✓ All check-ins have been reset!\n\n${checkedInCount} participants were marked as not checked in.`);
 }
 
 function exportData() {
