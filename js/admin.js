@@ -81,22 +81,92 @@ function renderTables() {
         const assignedParticipants = participants.filter(p => p.table === table.number);
         const tableCard = document.createElement('div');
         tableCard.className = 'table-card';
+        tableCard.dataset.tableNumber = table.number;
+        
         tableCard.innerHTML = `
             <div class="table-header">
                 <h3>Table ${table.number}</h3>
                 <span class="table-capacity">${assignedParticipants.length} / ${table.seats}</span>
             </div>
-            <div class="table-participants">
+            <div class="table-participants" data-table="${table.number}">
                 ${assignedParticipants.map(p => `
-                    <div class="participant-chip ${p.vip ? 'vip' : ''}">
+                    <div class="participant-chip ${p.vip ? 'vip' : ''}" 
+                         draggable="true" 
+                         data-participant-id="${p.id}"
+                         ondragstart="handleDragStart(event)"
+                         ondragend="handleDragEnd(event)">
                         ${p.name}
                         <button onclick="removeFromTable(${p.id})" class="remove-btn">×</button>
                     </div>
                 `).join('') || '<p class="empty-table">No participants assigned</p>'}
             </div>
         `;
+        
+        // Add drop zone listeners
+        const participantsContainer = tableCard.querySelector('.table-participants');
+        participantsContainer.addEventListener('dragover', handleDragOver);
+        participantsContainer.addEventListener('drop', handleDrop);
+        participantsContainer.addEventListener('dragenter', handleDragEnter);
+        participantsContainer.addEventListener('dragleave', handleDragLeave);
+        
         container.appendChild(tableCard);
     });
+}
+
+// Drag and Drop handlers
+function handleDragStart(e) {
+    e.target.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('participantId', e.target.dataset.participantId);
+}
+
+function handleDragEnd(e) {
+    e.target.classList.remove('dragging');
+}
+
+function handleDragOver(e) {
+    if (e.preventDefault) {
+        e.preventDefault();
+    }
+    e.dataTransfer.dropEffect = 'move';
+    return false;
+}
+
+function handleDragEnter(e) {
+    const tableCard = e.currentTarget.closest('.table-card');
+    if (tableCard) {
+        tableCard.classList.add('drag-over');
+    }
+}
+
+function handleDragLeave(e) {
+    const tableCard = e.currentTarget.closest('.table-card');
+    if (tableCard && !tableCard.contains(e.relatedTarget)) {
+        tableCard.classList.remove('drag-over');
+    }
+}
+
+function handleDrop(e) {
+    if (e.stopPropagation) {
+        e.stopPropagation();
+    }
+    e.preventDefault();
+    
+    const participantId = parseInt(e.dataTransfer.getData('participantId'));
+    const newTableNumber = parseInt(e.currentTarget.dataset.table);
+    
+    // Remove drag-over class
+    document.querySelectorAll('.table-card').forEach(card => {
+        card.classList.remove('drag-over');
+    });
+    
+    // Assign to new table
+    if (participantId && newTableNumber) {
+        console.log(`Moving participant ${participantId} to table ${newTableNumber}`);
+        assignTable(participantId, newTableNumber);
+    }
+    
+    return false;
 }
 
 function renderParticipantsTable() {

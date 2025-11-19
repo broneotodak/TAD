@@ -373,6 +373,13 @@ body {
     border: 2px solid var(--border-color);
     border-radius: 12px;
     padding: 20px;
+    transition: all 0.3s ease;
+}
+
+.table-card.drag-over {
+    border-color: #ffffff;
+    background: #1a1a1a;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
 }
 
 .table-header {
@@ -409,11 +416,22 @@ body {
     justify-content: space-between;
     align-items: center;
     font-size: 0.9rem;
+    cursor: grab;
+    transition: all 0.3s ease;
+}
+
+.participant-chip:active {
+    cursor: grabbing;
+}
+
+.participant-chip.dragging {
+    opacity: 0.5;
+    transform: scale(0.95);
 }
 
 .participant-chip.vip {
-    background: linear-gradient(135deg, rgba(255, 107, 53, 0.2), rgba(248, 150, 30, 0.2));
-    border: 1px solid var(--primary-color);
+    background: #2a2a2a;
+    border: 2px solid #ffffff;
 }
 
 .remove-btn {
@@ -527,18 +545,21 @@ body {
 }
 
 .badge-vip {
-    background: var(--primary-color);
-    color: white;
+    background: #ffffff;
+    color: #000000;
+    border: 1px solid #ffffff;
 }
 
 .badge-success {
-    background: var(--success-color);
-    color: white;
+    background: #ffffff;
+    color: #000000;
+    border: 1px solid #ffffff;
 }
 
 .badge-pending {
-    background: var(--border-color);
-    color: var(--text-secondary);
+    background: #333333;
+    color: #999999;
+    border: 1px solid #555555;
 }
 
 /* Actions Grid */
@@ -777,18 +798,21 @@ body {
 }
 
 .badge-vip-small {
-    background: var(--primary-color);
-    color: white;
+    background: #ffffff;
+    color: #000000;
+    border: 1px solid #ffffff;
 }
 
 .badge-checked {
-    background: var(--success-color);
-    color: white;
+    background: #ffffff;
+    color: #000000;
+    border: 1px solid #ffffff;
 }
 
 .badge-checked-small {
-    background: var(--success-color);
-    color: white;
+    background: #ffffff;
+    color: #000000;
+    border: 1px solid #ffffff;
     padding: 2px 6px;
 }
 
