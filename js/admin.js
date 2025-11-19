@@ -222,13 +222,22 @@ function clearAllTables() {
 }
 
 function exportData() {
-    const dataStr = JSON.stringify(participants, null, 2);
+    const data = {
+        participants: participants,
+        tables: tables,
+        exportedAt: new Date().toISOString(),
+        version: Date.now()
+    };
+    
+    const dataStr = JSON.stringify(data, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `todak-dinner-data-${new Date().toISOString().split('T')[0]}.json`;
+    link.download = `todak-event-config-${new Date().toISOString().split('T')[0]}.json`;
     link.click();
+    
+    alert(`✓ Configuration exported!\n\nNext steps:\n1. Transfer this file to check-in devices\n2. On check-in page, click "Import Config"\n3. Upload this file\n\nAll devices will then have the latest table assignments.`);
 }
 
 function generateQRCode() {
@@ -276,26 +285,14 @@ function addNewParticipant() {
     alert(`✓ Participant "${name}" added successfully!`);
 }
 
-async function saveData() {
-    // Save locally first
+function saveData() {
+    // Save to localStorage
     localStorage.setItem('participants', JSON.stringify(participants));
     localStorage.setItem('tables', JSON.stringify(tables));
+    localStorage.setItem('lastSave', new Date().toISOString());
     
-    // Push to cloud in background
-    if (window.realtimeSync) {
-        window.realtimeSync.pushToCloud(participants, tables).then(result => {
-            if (result.success) {
-                console.log('✅ Data synced to cloud');
-                showSyncStatus('Synced to cloud');
-            } else if (result.offline) {
-                console.log('📴 Saved locally (offline)');
-                showSyncStatus('Saved locally (offline)');
-            } else {
-                console.log('⚠️ Cloud sync failed, data saved locally');
-                showSyncStatus('Saved locally only');
-            }
-        });
-    }
+    console.log('💾 Data saved locally');
+    showSyncStatus('Data saved ✓');
 }
 
 function showSyncStatus(message) {
