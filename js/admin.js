@@ -353,11 +353,7 @@ async function migrateToDatabase() {
     
     console.log(`Total participants to migrate: ${attendanceData.length}`);
     
-    if (!confirm(`This will migrate all ${attendanceData.length} participants to the database.\n\nContinue?`)) {
-        console.log('Migration cancelled by user');
-        return;
-    }
-    
+    // Remove confirmation - just start migration immediately
     try {
         showSyncStatus('Migrating data...');
         console.log('Calling migrateData API...');
