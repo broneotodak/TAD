@@ -167,17 +167,18 @@ body {
 
 .back-btn, .logout-btn {
     padding: 10px 20px;
-    background: var(--secondary-color);
-    color: white;
-    border: none;
+    background: #ffffff;
+    color: #000000;
+    border: 2px solid #ffffff;
     border-radius: 8px;
     cursor: pointer;
     text-decoration: none;
     transition: all 0.3s ease;
+    font-weight: 500;
 }
 
 .back-btn:hover, .logout-btn:hover {
-    background: var(--primary-color);
+    background: #cccccc;
 }
 
 /* Login Section */
@@ -239,40 +240,44 @@ body {
 }
 
 .btn-primary {
-    background: var(--primary-color);
-    color: white;
+    background: #ffffff;
+    color: #000000;
+    border: 2px solid #ffffff;
 }
 
 .btn-primary:hover {
-    background: var(--accent-color);
+    background: #cccccc;
     transform: translateY(-2px);
 }
 
 .btn-secondary {
-    background: var(--secondary-color);
-    color: white;
+    background: #666666;
+    color: #ffffff;
+    border: 2px solid #666666;
 }
 
 .btn-secondary:hover {
-    background: #006663;
+    background: #888888;
 }
 
 .btn-danger {
-    background: var(--danger-color);
-    color: white;
+    background: #ff4444;
+    color: #ffffff;
+    border: 2px solid #ff4444;
 }
 
 .btn-danger:hover {
-    background: #d63860;
+    background: #ff6666;
 }
 
 .btn-success {
-    background: var(--success-color);
-    color: white;
+    background: #ffffff;
+    color: #000000;
+    border: 2px solid #ffffff;
 }
 
 .btn-success:hover {
-    background: #05c090;
+    background: #cccccc;
 }
 
 .btn-large {

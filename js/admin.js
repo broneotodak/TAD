@@ -533,7 +533,7 @@ function showSyncStatus(message) {
     if (!statusEl) {
         statusEl = document.createElement('div');
         statusEl.id = 'syncStatus';
-        statusEl.style.cssText = 'position: fixed; top: 80px; right: 20px; background: var(--success-color); color: white; padding: 10px 20px; border-radius: 8px; z-index: 1000; font-size: 0.9rem; opacity: 0; transition: opacity 0.3s;';
+        statusEl.style.cssText = 'position: fixed; top: 80px; right: 20px; background: #ffffff; color: #000000; padding: 12px 24px; border-radius: 8px; z-index: 1000; font-size: 0.9rem; font-weight: 600; opacity: 0; transition: opacity 0.3s; box-shadow: 0 4px 12px rgba(255,255,255,0.3);';
         document.body.appendChild(statusEl);
     }
     
