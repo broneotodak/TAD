@@ -51,7 +51,11 @@
     <script>
         // Generate QR code on page load
         window.addEventListener('DOMContentLoaded', function() {
-            const checkinURL = window.location.origin + window.location.pathname.replace('qr-checkin.html', 'checkin.html');
+            // Build the check-in URL
+            const baseURL = window.location.origin;
+            const pathParts = window.location.pathname.split('/');
+            pathParts[pathParts.length - 1] = 'checkin.html';
+            const checkinURL = baseURL + pathParts.join('/');
             
             // Display URL
             document.getElementById('checkinUrl').href = checkinURL;
@@ -66,6 +70,8 @@
                 colorLight: "#ffffff",
                 correctLevel: QRCode.CorrectLevel.H
             });
+            
+            console.log('QR Code generated for:', checkinURL);
         });
     </script>
 </body>
