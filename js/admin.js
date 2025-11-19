@@ -161,7 +161,18 @@ function autoAssignTables() {
         return;
     }
     
-    if (!confirm('This will automatically assign all unassigned participants to tables. Continue?')) {
+    // Calculate total capacity
+    const totalCapacity = tables.reduce((sum, table) => sum + table.seats, 0);
+    const totalParticipants = participants.length;
+    
+    // Check if tables are sufficient
+    if (totalCapacity < totalParticipants) {
+        const shortage = totalParticipants - totalCapacity;
+        alert(`⚠️ Warning: Not enough table capacity!\n\nTotal Participants: ${totalParticipants}\nTotal Capacity: ${totalCapacity}\nShortage: ${shortage} seats\n\nPlease add more tables or increase seats per table.`);
+        return;
+    }
+    
+    if (!confirm(`This will automatically assign all ${totalParticipants} participants to ${tables.length} tables.\n\nVIPs will be assigned first.\n\nContinue?`)) {
         return;
     }
     
@@ -185,7 +196,8 @@ function autoAssignTables() {
         }
         
         if (currentTable < tables.length) {
-            participant.table = tables[currentTable].number;
+            const originalParticipant = participants.find(p => p.id === participant.id);
+            originalParticipant.table = tables[currentTable].number;
             seatsInCurrentTable++;
         }
     });
@@ -194,7 +206,7 @@ function autoAssignTables() {
     renderTables();
     renderParticipantsTable();
     updateStats();
-    alert('Table assignment completed!');
+    alert('✓ Table assignment completed successfully!');
 }
 
 function clearAllTables() {
@@ -233,6 +245,35 @@ function viewParticipant(id) {
     if (participant) {
         alert(`Name: ${participant.name}\nCompany: ${participant.company}\nVIP: ${participant.vip ? 'Yes' : 'No'}\nTable: ${participant.table || 'Not Assigned'}\nChecked In: ${participant.checkedIn ? 'Yes' : 'No'}`);
     }
+}
+
+function addNewParticipant() {
+    const name = prompt('Enter participant name:');
+    if (!name || name.trim() === '') {
+        return;
+    }
+    
+    const company = prompt('Enter company/organization:') || 'N/A';
+    const isVIP = confirm('Is this participant a VIP?');
+    
+    // Generate new ID
+    const maxId = Math.max(...participants.map(p => p.id), 0);
+    
+    const newParticipant = {
+        id: maxId + 1,
+        name: name.trim(),
+        company: company.trim(),
+        vip: isVIP,
+        table: null,
+        checkedIn: false
+    };
+    
+    participants.push(newParticipant);
+    saveData();
+    renderParticipantsTable();
+    updateStats();
+    
+    alert(`✓ Participant "${name}" added successfully!`);
 }
 
 function saveData() {

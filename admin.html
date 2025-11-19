@@ -61,7 +61,10 @@
             </div>
 
             <div class="admin-section">
-                <h2>Participant Management</h2>
+                <div class="section-header">
+                    <h2>Participant Management</h2>
+                    <button onclick="addNewParticipant()" class="btn-success">+ Add Participant</button>
+                </div>
                 <div class="search-bar">
                     <input type="text" id="searchParticipant" placeholder="Search by name or company..." onkeyup="filterParticipants()">
                     <label class="checkbox-label">
