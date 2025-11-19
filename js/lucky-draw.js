@@ -4,9 +4,21 @@ let winners = [];
 let isDrawing = false;
 let drawInterval = null;
 
-// Load data
-loadData();
-updateCounts();
+// Load data from GitHub
+if (window.githubData) {
+    window.githubData.loadData().then(data => {
+        if (data && data.participants) {
+            participants = data.participants;
+            console.log(`✅ Loaded ${participants.length} participants`);
+        } else {
+            loadData();
+        }
+        updateCounts();
+    });
+} else {
+    loadData();
+    updateCounts();
+}
 
 function loadData() {
     const savedParticipants = localStorage.getItem('participants');

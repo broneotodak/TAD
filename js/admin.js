@@ -225,7 +225,7 @@ function exportData() {
     const data = {
         participants: participants,
         tables: tables,
-        exportedAt: new Date().toISOString(),
+        lastUpdated: new Date().toISOString(),
         version: Date.now()
     };
     
@@ -234,10 +234,32 @@ function exportData() {
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `todak-event-config-${new Date().toISOString().split('T')[0]}.json`;
+    link.download = `event-data.json`;
     link.click();
     
-    alert(`✓ Configuration exported!\n\nNext steps:\n1. Transfer this file to check-in devices\n2. On check-in page, click "Import Config"\n3. Upload this file\n\nAll devices will then have the latest table assignments.`);
+    // Show publish instructions
+    setTimeout(() => {
+        alert(`✓ File downloaded: event-data.json
+
+🚀 IMPORTANT: Publish to make it live for all users!
+
+Option 1 - GitHub Web (Easiest):
+1. Go to: https://github.com/broneotodak/TAD
+2. Navigate to 'data' folder
+3. Click 'event-data.json'
+4. Click pencil icon (Edit)
+5. Delete all content and paste the new data
+6. Scroll down → Commit changes
+7. Done! All users will see updates within 10 seconds
+
+Option 2 - Local Git:
+1. Replace data/event-data.json with downloaded file
+2. Run: git add data/event-data.json
+3. Run: git commit -m "Update event data"
+4. Run: git push
+
+⚠️ Users scan QR → They read from GitHub → They see your table assignments!`);
+    }, 500);
 }
 
 function generateQRCode() {

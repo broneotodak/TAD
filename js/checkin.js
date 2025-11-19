@@ -2,10 +2,29 @@
 let participants = [];
 let selectedParticipant = null;
 
-// Load data from localStorage
-loadData();
-updateStats();
-updateConfigStatus();
+// Load data from GitHub (shared for all users)
+if (window.githubData) {
+    window.githubData.loadData().then(data => {
+        if (data && data.participants) {
+            participants = data.participants;
+            console.log(`✅ Loaded ${participants.length} participants from GitHub`);
+        } else {
+            participants = [...attendanceData];
+            console.log('⚠️ Using default data');
+        }
+        updateStats();
+        updateConfigStatus();
+    }).catch(error => {
+        console.error('Failed to load data:', error);
+        participants = [...attendanceData];
+        updateStats();
+        updateConfigStatus();
+    });
+} else {
+    loadData();
+    updateStats();
+    updateConfigStatus();
+}
 
 function loadData() {
     const savedParticipants = localStorage.getItem('participants');
