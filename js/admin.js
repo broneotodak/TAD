@@ -39,12 +39,12 @@ function showAdminContent() {
 function updateStats() {
     const checkedIn = participants.filter(p => p.checkedIn).length;
     const vipCount = participants.filter(p => p.vip).length;
-    const assignedTables = new Set(participants.filter(p => p.table).map(p => p.table)).size;
+    const totalTablesCount = tables.length; // Use tables array length instead
     
     document.getElementById('totalParticipants').textContent = participants.length;
     document.getElementById('vipCount').textContent = vipCount;
     document.getElementById('checkedInCount').textContent = checkedIn;
-    document.getElementById('totalTables').textContent = assignedTables;
+    document.getElementById('totalTables').textContent = totalTablesCount;
 }
 
 function generateTables() {
@@ -66,6 +66,8 @@ function generateTables() {
     }
     
     renderTables();
+    renderParticipantsTable(); // Re-render participants table to show dropdowns
+    updateStats(); // Update stats to show table count
     saveData();
 }
 
@@ -144,6 +146,7 @@ function assignTable(participantId, tableNumber) {
         participant.table = tableNumber ? parseInt(tableNumber) : null;
         saveData();
         renderTables();
+        renderParticipantsTable(); // Re-render to update the dropdown selection
         updateStats();
     }
 }
