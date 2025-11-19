@@ -3,11 +3,15 @@
   "version": "1.0.0",
   "description": "Todak Annual Dinner Event Management System",
   "main": "index.html",
+  "type": "module",
   "scripts": {
     "start": "python3 -m http.server 8000",
     "dev": "live-server"
   },
   "keywords": ["event", "management", "todak"],
   "author": "Neo Todak",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@neondatabase/serverless": "^0.10.1"
+  }
 }
