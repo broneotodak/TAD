@@ -6,6 +6,7 @@ let participants = [...attendanceData];
 // Check if already logged in
 if (localStorage.getItem('adminLoggedIn') === 'true') {
     showAdminContent();
+    loadFromDatabase(); // Load from database on page load
 }
 
 // Load saved data
@@ -34,6 +35,7 @@ function showAdminContent() {
     document.getElementById('adminContent').style.display = 'block';
     updateStats();
     renderParticipantsTable();
+    loadFromDatabase(); // Always load from database when showing admin content
 }
 
 function updateStats() {
@@ -507,6 +509,40 @@ function showSyncStatus(message) {
     setTimeout(() => {
         statusEl.style.opacity = '0';
     }, 3000);
+}
+
+async function loadFromDatabase() {
+    if (!window.dbAPI) {
+        console.log('Database API not available, using localStorage');
+        loadSavedData();
+        return;
+    }
+    
+    try {
+        console.log('📥 Loading data from database...');
+        const result = await window.dbAPI.getParticipants(false); // Don't use cache
+        
+        if (result.success && result.data) {
+            participants = result.data.participants || [];
+            tables = result.data.tables || [];
+            
+            console.log(`✅ Loaded from database: ${participants.length} participants, ${tables.length} tables`);
+            
+            // Update UI
+            renderParticipantsTable();
+            if (tables.length > 0) {
+                renderTables();
+            }
+            updateStats();
+            showSyncStatus('Data loaded from database ✓');
+        } else {
+            console.log('⚠️ No data in database, using local');
+            loadSavedData();
+        }
+    } catch (error) {
+        console.error('Failed to load from database:', error);
+        loadSavedData();
+    }
 }
 
 function loadSavedData() {

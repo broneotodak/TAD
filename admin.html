@@ -12,7 +12,10 @@
         <div class="header">
             <a href="index.html" class="back-btn">← Back to Home</a>
             <h1>Admin Panel</h1>
-            <button onclick="logout()" class="logout-btn">Logout</button>
+            <div class="header-actions">
+                <button onclick="loadFromDatabase()" class="btn-secondary btn-small">🔄 Refresh from DB</button>
+                <button onclick="logout()" class="logout-btn">Logout</button>
+            </div>
         </div>
 
         <div id="loginSection" class="login-section">
