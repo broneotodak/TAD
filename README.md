@@ -205,28 +205,29 @@ Update the participant list in `js/data.js`
 
 ## Deployment
 
+### GitHub Repository
+The project is hosted at: https://github.com/broneotodak/TAD
+
 ### Netlify Deployment via GitHub:
 
-1. **Create GitHub Repository**
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit - Todak Annual Dinner System"
-   git branch -M main
-   git remote add origin <your-github-repo-url>
-   git push -u origin main
-   ```
-
-2. **Deploy to Netlify**
+1. **Deploy to Netlify**
    - Go to [Netlify](https://netlify.com)
    - Click "New site from Git"
-   - Choose GitHub and select your repository
+   - Choose GitHub and select the `broneotodak/TAD` repository
    - Build settings: None needed (static site)
    - Click "Deploy site"
 
-3. **Custom Domain (Optional)**
+2. **Custom Domain (Optional)**
    - In Netlify dashboard, go to Domain settings
    - Add your custom domain
+
+3. **Update Changes**
+   ```bash
+   git add .
+   git commit -m "Your update message"
+   git push origin main
+   ```
+   Netlify will automatically redeploy!
 
 ## Project Structure
 
