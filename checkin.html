@@ -10,13 +10,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <a href="index.html" class="back-btn">← Back to Home</a>
             <h1>Event Check-in</h1>
-            <div class="header-actions">
-                <input type="file" id="importData" accept=".json" style="display: none;" onchange="importConfiguration(event)">
-                <button onclick="document.getElementById('importData').click()" class="btn-secondary btn-small">Import Config</button>
-                <button onclick="showSetupModal()" class="btn-secondary btn-small">⚙️ Setup</button>
-            </div>
         </div>
 
         <div class="checkin-container">
@@ -61,9 +55,18 @@
                 <div id="checkinSuccess" class="checkin-success" style="display: none;">
                     <div class="success-icon">🎉</div>
                     <h2>Check-in Successful!</h2>
-                    <p>Enjoy the event!</p>
-                    <p class="success-note">You have been automatically entered into the lucky draw.</p>
-                    <button onclick="resetCheckin()" class="btn-primary">Check in Another Guest</button>
+                    <div class="final-table-display">
+                        <div class="table-number-large">
+                            <span class="label">Your Table</span>
+                            <span class="number" id="finalTableNumber">-</span>
+                        </div>
+                    </div>
+                    <div class="final-tablemates">
+                        <h3>Your Tablemates</h3>
+                        <div id="finalTablematesList"></div>
+                    </div>
+                    <p class="success-note">✨ You have been entered into the lucky draw!</p>
+                    <p class="screenshot-hint">📸 Take a screenshot for your reference</p>
                 </div>
             </div>
 
@@ -79,36 +82,6 @@
             </div>
         </div>
 
-        <!-- Setup Modal -->
-        <div id="setupModal" class="modal" style="display: none;">
-            <div class="modal-content">
-                <span class="close" onclick="closeSetupModal()">&times;</span>
-                <h2>Check-in Station Setup</h2>
-                <p class="modal-desc">To ensure check-in station has the latest table assignments, import the configuration file from the admin panel.</p>
-                
-                <div class="setup-steps">
-                    <div class="step">
-                        <span class="step-number">1</span>
-                        <p>Go to Admin Panel → Export Data (JSON)</p>
-                    </div>
-                    <div class="step">
-                        <span class="step-number">2</span>
-                        <p>Click "Import Config" button above and select the exported file</p>
-                    </div>
-                    <div class="step">
-                        <span class="step-number">3</span>
-                        <p>Configuration will sync across all check-in stations</p>
-                    </div>
-                </div>
-
-                <div class="config-status">
-                    <p><strong>Last Import:</strong> <span id="lastImport">Never</span></p>
-                    <p><strong>Data Status:</strong> <span id="dataStatus">Using default data</span></p>
-                </div>
-
-                <button onclick="closeSetupModal()" class="btn-primary">Got it!</button>
-            </div>
-        </div>
     </div>
 
     <script src="js/data.js"></script>

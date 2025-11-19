@@ -152,16 +152,40 @@ async function confirmCheckin() {
     // Save locally as backup
     saveData();
     
-    // Show success message
+    // Show success message with table info
     document.getElementById('tableAssignment').style.display = 'none';
-    document.getElementById('checkinSuccess').style.display = 'block';
+    const successSection = document.getElementById('checkinSuccess');
+    successSection.style.display = 'block';
+    
+    // Update final display
+    document.getElementById('finalTableNumber').textContent = selectedParticipant.table || 'Not Assigned';
+    
+    // Show tablemates on success screen
+    const finalTablematesList = document.getElementById('finalTablematesList');
+    if (!selectedParticipant.table) {
+        finalTablematesList.innerHTML = '<p class="no-tablemates">No table assigned yet</p>';
+    } else {
+        const tablemates = participants.filter(p => 
+            p.table === selectedParticipant.table && p.id !== selectedParticipant.id
+        );
+        
+        if (tablemates.length === 0) {
+            finalTablematesList.innerHTML = '<p class="no-tablemates">You are the first one at this table!</p>';
+        } else {
+            finalTablematesList.innerHTML = tablemates.map(p => `
+                <div class="tablemate-item ${p.vip ? 'vip' : ''}">
+                    <span>${p.name}</span>
+                    ${p.vip ? '<span class="badge-vip-small">VIP</span>' : ''}
+                    ${p.checkedIn ? '<span class="badge-checked-small">✓</span>' : ''}
+                </div>
+            `).join('');
+        }
+    }
     
     updateStats();
     
-    // Auto reset after 5 seconds
-    setTimeout(() => {
-        resetCheckin();
-    }, 5000);
+    // DON'T auto-reset - let user keep the screen for screenshot
+    // Remove the auto-reset timeout
 }
 
 function resetCheckin() {
@@ -186,75 +210,8 @@ function resetCheckin() {
     document.getElementById('participantSearch').focus();
 }
 
-// Import configuration from admin
-function importConfiguration(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const importedData = JSON.parse(e.target.result);
-            
-            // Validate data structure
-            if (!Array.isArray(importedData) || importedData.length === 0) {
-                alert('Invalid configuration file format');
-                return;
-            }
-            
-            // Save to localStorage
-            localStorage.setItem('participants', JSON.stringify(importedData));
-            localStorage.setItem('configImportTime', new Date().toISOString());
-            
-            // Reload data
-            loadData();
-            updateStats();
-            updateConfigStatus();
-            
-            alert(`✓ Configuration imported successfully!\n${importedData.length} participants loaded.`);
-        } catch (error) {
-            alert('Error reading configuration file: ' + error.message);
-        }
-    };
-    reader.readAsText(file);
-}
-
-// Show setup modal
-function showSetupModal() {
-    document.getElementById('setupModal').style.display = 'block';
-    updateConfigStatus();
-}
-
-// Close setup modal
-function closeSetupModal() {
-    document.getElementById('setupModal').style.display = 'none';
-}
-
-// Update configuration status display
+// Config status (no longer needed with database, but keep for compatibility)
 function updateConfigStatus() {
-    const importTime = localStorage.getItem('configImportTime');
-    const lastImportEl = document.getElementById('lastImport');
-    const dataStatusEl = document.getElementById('dataStatus');
-    
-    if (!lastImportEl || !dataStatusEl) return; // Elements may not exist on other pages
-    
-    if (importTime) {
-        const date = new Date(importTime);
-        lastImportEl.textContent = date.toLocaleString();
-        dataStatusEl.textContent = 'Synced with admin';
-        dataStatusEl.style.color = 'var(--success-color)';
-    } else {
-        lastImportEl.textContent = 'Never';
-        dataStatusEl.textContent = 'Using default data (no table assignments)';
-        dataStatusEl.style.color = 'var(--danger-color)';
-    }
-}
-
-// Close modal when clicking outside
-window.onclick = function(event) {
-    const modal = document.getElementById('setupModal');
-    if (event.target === modal) {
-        modal.style.display = 'none';
-    }
+    // No-op - using database now
 }
 
