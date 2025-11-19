@@ -5,6 +5,7 @@ let selectedParticipant = null;
 // Load data from localStorage
 loadData();
 updateStats();
+updateConfigStatus();
 
 function loadData() {
     const savedParticipants = localStorage.getItem('participants');
@@ -153,5 +154,77 @@ function resetCheckin() {
     
     // Focus on search input
     document.getElementById('participantSearch').focus();
+}
+
+// Import configuration from admin
+function importConfiguration(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const importedData = JSON.parse(e.target.result);
+            
+            // Validate data structure
+            if (!Array.isArray(importedData) || importedData.length === 0) {
+                alert('Invalid configuration file format');
+                return;
+            }
+            
+            // Save to localStorage
+            localStorage.setItem('participants', JSON.stringify(importedData));
+            localStorage.setItem('configImportTime', new Date().toISOString());
+            
+            // Reload data
+            loadData();
+            updateStats();
+            updateConfigStatus();
+            
+            alert(`✓ Configuration imported successfully!\n${importedData.length} participants loaded.`);
+        } catch (error) {
+            alert('Error reading configuration file: ' + error.message);
+        }
+    };
+    reader.readAsText(file);
+}
+
+// Show setup modal
+function showSetupModal() {
+    document.getElementById('setupModal').style.display = 'block';
+    updateConfigStatus();
+}
+
+// Close setup modal
+function closeSetupModal() {
+    document.getElementById('setupModal').style.display = 'none';
+}
+
+// Update configuration status display
+function updateConfigStatus() {
+    const importTime = localStorage.getItem('configImportTime');
+    const lastImportEl = document.getElementById('lastImport');
+    const dataStatusEl = document.getElementById('dataStatus');
+    
+    if (!lastImportEl || !dataStatusEl) return; // Elements may not exist on other pages
+    
+    if (importTime) {
+        const date = new Date(importTime);
+        lastImportEl.textContent = date.toLocaleString();
+        dataStatusEl.textContent = 'Synced with admin';
+        dataStatusEl.style.color = 'var(--success-color)';
+    } else {
+        lastImportEl.textContent = 'Never';
+        dataStatusEl.textContent = 'Using default data (no table assignments)';
+        dataStatusEl.style.color = 'var(--danger-color)';
+    }
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('setupModal');
+    if (event.target === modal) {
+        modal.style.display = 'none';
+    }
 }
 

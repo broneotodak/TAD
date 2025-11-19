@@ -12,6 +12,11 @@
         <div class="header">
             <a href="index.html" class="back-btn">← Back to Home</a>
             <h1>Event Check-in</h1>
+            <div class="header-actions">
+                <input type="file" id="importData" accept=".json" style="display: none;" onchange="importConfiguration(event)">
+                <button onclick="document.getElementById('importData').click()" class="btn-secondary btn-small">Import Config</button>
+                <button onclick="showSetupModal()" class="btn-secondary btn-small">⚙️ Setup</button>
+            </div>
         </div>
 
         <div class="checkin-container">
@@ -71,6 +76,37 @@
                     <span class="stat-label">Checked In</span>
                     <span class="stat-value" id="checkedInGuests">0</span>
                 </div>
+            </div>
+        </div>
+
+        <!-- Setup Modal -->
+        <div id="setupModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <span class="close" onclick="closeSetupModal()">&times;</span>
+                <h2>Check-in Station Setup</h2>
+                <p class="modal-desc">To ensure check-in station has the latest table assignments, import the configuration file from the admin panel.</p>
+                
+                <div class="setup-steps">
+                    <div class="step">
+                        <span class="step-number">1</span>
+                        <p>Go to Admin Panel → Export Data (JSON)</p>
+                    </div>
+                    <div class="step">
+                        <span class="step-number">2</span>
+                        <p>Click "Import Config" button above and select the exported file</p>
+                    </div>
+                    <div class="step">
+                        <span class="step-number">3</span>
+                        <p>Configuration will sync across all check-in stations</p>
+                    </div>
+                </div>
+
+                <div class="config-status">
+                    <p><strong>Last Import:</strong> <span id="lastImport">Never</span></p>
+                    <p><strong>Data Status:</strong> <span id="dataStatus">Using default data</span></p>
+                </div>
+
+                <button onclick="closeSetupModal()" class="btn-primary">Got it!</button>
             </div>
         </div>
     </div>
