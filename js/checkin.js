@@ -54,12 +54,13 @@ if (window.dbAPI) {
 function showCheckedInView(participant) {
     selectedParticipant = participant;
     
-    // Hide search interface
+    // Hide ALL other sections
     document.getElementById('searchResults').style.display = 'none';
     document.getElementById('participantSearch').style.display = 'none';
     document.querySelector('.checkin-header').style.display = 'none';
+    document.getElementById('tableAssignment').style.display = 'none'; // Hide preview screen
     
-    // Show checked-in success view
+    // Show ONLY checked-in success view
     const successSection = document.getElementById('checkinSuccess');
     successSection.style.display = 'block';
     
@@ -200,6 +201,8 @@ function showTablemates() {
 async function confirmCheckin() {
     if (!selectedParticipant) return;
     
+    console.log('Confirming check-in for:', selectedParticipant.name);
+    
     // Update check-in status locally
     selectedParticipant.checkedIn = true;
     selectedParticipant.checkedInAt = new Date().toISOString();
@@ -218,11 +221,10 @@ async function confirmCheckin() {
     
     // Save locally as backup
     saveData();
-    
-    // Show the checked-in view
-    showCheckedInView(selectedParticipant);
-    
     updateStats();
+    
+    // Show the persistent checked-in view
+    showCheckedInView(selectedParticipant);
 }
 
 function resetCheckin() {
