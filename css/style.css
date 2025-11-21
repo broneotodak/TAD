@@ -382,17 +382,44 @@ body {
 
 /* Tables Container */
 .tables-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 20px;
+    display: flex;
+    gap: 15px;
+    overflow-x: auto;
+    overflow-y: visible;
+    padding: 10px 0 20px 0;
+    scroll-behavior: smooth;
+}
+
+.tables-container::-webkit-scrollbar {
+    height: 10px;
+}
+
+.tables-container::-webkit-scrollbar-track {
+    background: var(--dark-bg);
+    border-radius: 10px;
+}
+
+.tables-container::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 10px;
+}
+
+.tables-container::-webkit-scrollbar-thumb:hover {
+    background: #555555;
 }
 
 .table-card {
     background: var(--dark-bg);
     border: 2px solid var(--border-color);
     border-radius: 12px;
-    padding: 20px;
+    padding: 15px;
     transition: all 0.3s ease;
+    min-width: 280px;
+    max-width: 280px;
+    flex-shrink: 0;
+    max-height: 500px;
+    display: flex;
+    flex-direction: column;
 }
 
 .table-card.drag-over {
@@ -425,18 +452,41 @@ body {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    overflow-y: auto;
+    flex: 1;
+    padding-right: 5px;
+}
+
+.table-participants::-webkit-scrollbar {
+    width: 6px;
+}
+
+.table-participants::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.table-participants::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+
+.table-participants::-webkit-scrollbar-thumb:hover {
+    background: #555555;
 }
 
 .participant-chip {
     background: var(--border-color);
-    padding: 10px 15px;
+    padding: 8px 12px;
     border-radius: 8px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     cursor: grab;
     transition: all 0.3s ease;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .participant-chip:active {
@@ -451,6 +501,7 @@ body {
 .participant-chip.vip {
     background: #2a2a2a;
     border: 2px solid #ffffff;
+    font-weight: 600;
 }
 
 .remove-btn {
