@@ -291,3 +291,12 @@ function updateConfigStatus() {
     // No-op - using database now
 }
 
+// Clear user session and return to search
+function clearUserSession() {
+    console.log('Clearing user session');
+    localStorage.removeItem('userCheckedInId');
+    
+    // Reload page to show search interface
+    window.location.reload();
+}
+
