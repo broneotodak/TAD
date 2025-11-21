@@ -36,6 +36,7 @@ function showAdminContent() {
     updateStats();
     renderParticipantsTable();
     loadFromDatabase(); // Always load from database when showing admin content
+    loadEventInfo(); // Load event information
 }
 
 function updateStats() {
@@ -737,6 +738,63 @@ function loadSavedData() {
         if (tables.length > 0) {
             renderTables();
         }
+    }
+}
+
+// Load event information
+async function loadEventInfo() {
+    try {
+        const response = await fetch('/api/get-event-info');
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+            document.getElementById('eventSchedule').value = result.data.schedule || '';
+            document.getElementById('eventMenu').value = result.data.menu || '';
+            document.getElementById('eventAnnouncements').value = result.data.announcements || '';
+            console.log('✅ Event info loaded');
+        }
+    } catch (error) {
+        console.error('Failed to load event info:', error);
+    }
+}
+
+// Save event information
+async function saveEventInfo() {
+    const schedule = document.getElementById('eventSchedule').value;
+    const menu = document.getElementById('eventMenu').value;
+    const announcements = document.getElementById('eventAnnouncements').value;
+    
+    showSyncStatus('Saving event info...');
+    
+    try {
+        // Save each setting
+        const saves = [
+            fetch('/api/save-event-info', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ key: 'schedule', value: schedule })
+            }),
+            fetch('/api/save-event-info', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ key: 'menu', value: menu })
+            }),
+            fetch('/api/save-event-info', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ key: 'announcements', value: announcements })
+            })
+        ];
+        
+        await Promise.all(saves);
+        
+        showSyncStatus('Event info saved ✓');
+        alert('✓ Event information saved!\n\nGuests will see this information after checking in.');
+        
+    } catch (error) {
+        console.error('Failed to save event info:', error);
+        alert('Failed to save: ' + error.message);
+        showSyncStatus('Save failed ✗');
     }
 }
 

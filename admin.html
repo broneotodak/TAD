@@ -97,6 +97,25 @@
             </div>
 
             <div class="admin-section">
+                <h2>Event Information (Shown to Guests)</h2>
+                <div class="event-info-editor">
+                    <div class="form-group">
+                        <label>📋 Event Schedule/Tentative</label>
+                        <textarea id="eventSchedule" rows="6" placeholder="Enter event schedule (e.g., 6:00 PM - Registration, 7:00 PM - Dinner, etc.)"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>🍽️ Menu</label>
+                        <textarea id="eventMenu" rows="6" placeholder="Enter menu items"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>📢 Announcements</label>
+                        <textarea id="eventAnnouncements" rows="4" placeholder="Enter important announcements for guests"></textarea>
+                    </div>
+                    <button onclick="saveEventInfo()" class="btn-success">💾 Save Event Info</button>
+                </div>
+            </div>
+
+            <div class="admin-section">
                 <h2>Quick Actions</h2>
                 <div class="actions-grid">
                     <button onclick="autoAssignTables()" class="btn-success">🎯 Auto-Assign All Tables</button>

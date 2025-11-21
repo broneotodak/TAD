@@ -51,7 +51,7 @@ if (window.dbAPI) {
 }
 
 // Show persistent checked-in view
-function showCheckedInView(participant) {
+async function showCheckedInView(participant) {
     selectedParticipant = participant;
     
     // Hide ALL other sections
@@ -87,6 +87,43 @@ function showCheckedInView(participant) {
                 </div>
             `).join('');
         }
+    }
+    
+    // Load and display event information
+    await loadAndDisplayEventInfo();
+}
+
+// Load event information from database
+async function loadAndDisplayEventInfo() {
+    try {
+        const response = await fetch('/api/get-event-info');
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+            const info = result.data;
+            
+            // Display schedule if available
+            if (info.schedule && info.schedule.trim()) {
+                document.getElementById('eventScheduleSection').style.display = 'block';
+                document.getElementById('eventScheduleContent').textContent = info.schedule;
+            }
+            
+            // Display menu if available
+            if (info.menu && info.menu.trim()) {
+                document.getElementById('eventMenuSection').style.display = 'block';
+                document.getElementById('eventMenuContent').textContent = info.menu;
+            }
+            
+            // Display announcements if available
+            if (info.announcements && info.announcements.trim()) {
+                document.getElementById('eventAnnouncementsSection').style.display = 'block';
+                document.getElementById('eventAnnouncementsContent').textContent = info.announcements;
+            }
+            
+            console.log('✅ Event info displayed');
+        }
+    } catch (error) {
+        console.error('Failed to load event info:', error);
     }
 }
 
