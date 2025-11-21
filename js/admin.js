@@ -748,14 +748,64 @@ async function loadEventInfo() {
         const result = await response.json();
         
         if (result.success && result.data) {
-            document.getElementById('eventSchedule').value = result.data.schedule || '';
-            document.getElementById('eventMenu').value = result.data.menu || '';
-            document.getElementById('eventAnnouncements').value = result.data.announcements || '';
+            document.getElementById('eventSchedule').value = result.data.schedule || getDefaultSchedule();
+            document.getElementById('eventMenu').value = result.data.menu || getDefaultMenu();
+            document.getElementById('eventAnnouncements').value = result.data.announcements || getDefaultAnnouncements();
             console.log('✅ Event info loaded');
+        } else {
+            // Set defaults if no data
+            document.getElementById('eventSchedule').value = getDefaultSchedule();
+            document.getElementById('eventMenu').value = getDefaultMenu();
+            document.getElementById('eventAnnouncements').value = getDefaultAnnouncements();
         }
     } catch (error) {
         console.error('Failed to load event info:', error);
+        // Set defaults on error
+        document.getElementById('eventSchedule').value = getDefaultSchedule();
+        document.getElementById('eventMenu').value = getDefaultMenu();
+        document.getElementById('eventAnnouncements').value = getDefaultAnnouncements();
     }
+}
+
+// Default placeholders
+function getDefaultSchedule() {
+    return `6:00 PM - Registration & Welcome Drinks
+7:00 PM - Dinner Begins
+8:00 PM - Opening Speech
+8:30 PM - Awards & Recognition
+9:00 PM - Lucky Draw Session
+10:00 PM - Entertainment
+11:00 PM - Event Ends`;
+}
+
+function getDefaultMenu() {
+    return `Appetizer:
+- Garden Fresh Salad
+
+Main Course:
+- Grilled Chicken / Beef
+- Steamed Rice
+- Seasonal Vegetables
+
+Dessert:
+- Assorted Pastries
+- Fresh Fruits
+
+Beverages:
+- Soft Drinks
+- Coffee & Tea`;
+}
+
+function getDefaultAnnouncements() {
+    return `📍 Parking is available at the hotel basement
+
+📸 Photo booth is open until 10:00 PM
+
+🎁 Lucky draw prizes will be announced during the event
+
+👔 Dress code: Formal attire (Dress to Kill!)
+
+📱 Stay connected - Free WiFi available`;
 }
 
 // Save event information
