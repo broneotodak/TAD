@@ -2,12 +2,36 @@
 let participants = [];
 let selectedParticipant = null;
 
+// Check if user already checked in (restore session)
+function checkExistingSession() {
+    const sessionId = localStorage.getItem('userCheckedInId');
+    if (sessionId) {
+        console.log('Found existing check-in session:', sessionId);
+        return parseInt(sessionId);
+    }
+    return null;
+}
+
 // Load data from database
 if (window.dbAPI) {
     window.dbAPI.getParticipants().then(result => {
         if (result.success && result.data) {
             participants = result.data.participants;
             console.log(`✅ Loaded ${participants.length} participants from database`);
+            
+            // Check for existing session
+            const sessionId = checkExistingSession();
+            if (sessionId) {
+                const participant = participants.find(p => p.id === sessionId);
+                if (participant && participant.checkedIn) {
+                    console.log('Restoring session for:', participant.name);
+                    showCheckedInView(participant);
+                    return;
+                } else {
+                    // Session invalid, clear it
+                    localStorage.removeItem('userCheckedInId');
+                }
+            }
         } else {
             participants = [...attendanceData];
             console.log('⚠️ Using default data');
@@ -24,6 +48,45 @@ if (window.dbAPI) {
     loadData();
     updateStats();
     updateConfigStatus();
+}
+
+// Show persistent checked-in view
+function showCheckedInView(participant) {
+    selectedParticipant = participant;
+    
+    // Hide search interface
+    document.getElementById('searchResults').style.display = 'none';
+    document.getElementById('participantSearch').style.display = 'none';
+    document.querySelector('.checkin-header').style.display = 'none';
+    
+    // Show checked-in success view
+    const successSection = document.getElementById('checkinSuccess');
+    successSection.style.display = 'block';
+    
+    // Update final display
+    document.getElementById('finalTableNumber').textContent = participant.table || 'Not Assigned';
+    
+    // Show tablemates
+    const finalTablematesList = document.getElementById('finalTablematesList');
+    if (!participant.table) {
+        finalTablematesList.innerHTML = '<p class="no-tablemates">No table assigned yet</p>';
+    } else {
+        const tablemates = participants.filter(p => 
+            p.table === participant.table && p.id !== participant.id
+        );
+        
+        if (tablemates.length === 0) {
+            finalTablematesList.innerHTML = '<p class="no-tablemates">You are the first one at this table!</p>';
+        } else {
+            finalTablematesList.innerHTML = tablemates.map(p => `
+                <div class="tablemate-item ${p.vip ? 'vip' : ''}">
+                    <span>${p.name}</span>
+                    ${p.vip ? '<span class="badge-vip-small">VIP</span>' : ''}
+                    ${p.checkedIn ? '<span class="badge-checked-small">✓</span>' : ''}
+                </div>
+            `).join('');
+        }
+    }
 }
 
 function loadData() {
@@ -149,43 +212,17 @@ async function confirmCheckin() {
         }
     }
     
+    // Save user session to remember they checked in
+    localStorage.setItem('userCheckedInId', selectedParticipant.id.toString());
+    console.log('Session saved for user:', selectedParticipant.id);
+    
     // Save locally as backup
     saveData();
     
-    // Show success message with table info
-    document.getElementById('tableAssignment').style.display = 'none';
-    const successSection = document.getElementById('checkinSuccess');
-    successSection.style.display = 'block';
-    
-    // Update final display
-    document.getElementById('finalTableNumber').textContent = selectedParticipant.table || 'Not Assigned';
-    
-    // Show tablemates on success screen
-    const finalTablematesList = document.getElementById('finalTablematesList');
-    if (!selectedParticipant.table) {
-        finalTablematesList.innerHTML = '<p class="no-tablemates">No table assigned yet</p>';
-    } else {
-        const tablemates = participants.filter(p => 
-            p.table === selectedParticipant.table && p.id !== selectedParticipant.id
-        );
-        
-        if (tablemates.length === 0) {
-            finalTablematesList.innerHTML = '<p class="no-tablemates">You are the first one at this table!</p>';
-        } else {
-            finalTablematesList.innerHTML = tablemates.map(p => `
-                <div class="tablemate-item ${p.vip ? 'vip' : ''}">
-                    <span>${p.name}</span>
-                    ${p.vip ? '<span class="badge-vip-small">VIP</span>' : ''}
-                    ${p.checkedIn ? '<span class="badge-checked-small">✓</span>' : ''}
-                </div>
-            `).join('');
-        }
-    }
+    // Show the checked-in view
+    showCheckedInView(selectedParticipant);
     
     updateStats();
-    
-    // DON'T auto-reset - let user keep the screen for screenshot
-    // Remove the auto-reset timeout
 }
 
 function resetCheckin() {
