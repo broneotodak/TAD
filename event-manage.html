@@ -108,10 +108,28 @@
                         Checked In Only
                     </label>
                 </div>
+                
+                <!-- Bulk Actions Bar -->
+                <div id="bulkActionsBar" style="display: none; background: var(--card-bg); border: 2px solid var(--primary-color); border-radius: 8px; padding: 15px; margin: 15px 0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <span id="selectedCount" style="font-weight: 600;">0 selected</span>
+                        </div>
+                        <div>
+                            <button onclick="selectAll()" class="btn-secondary btn-small">Select All</button>
+                            <button onclick="deselectAll()" class="btn-secondary btn-small">Deselect All</button>
+                            <button onclick="deleteSelected()" class="btn-danger btn-small">🗑️ Delete Selected</button>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="table-wrapper">
                     <table class="participants-table">
                         <thead>
                             <tr>
+                                <th style="width: 40px;">
+                                    <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()">
+                                </th>
                                 <th>Name</th>
                                 <th>Company</th>
                                 <th id="vipHeader">VIP</th>
@@ -166,6 +184,7 @@
         let participants = [];
         let tables = [];
         let luckyDrawWinners = [];
+        let selectedParticipants = new Set();
         const ADMIN_PASSWORD = 'todak1q2w3e';
 
         // Initialize on load
@@ -306,6 +325,11 @@
             // Always available export
             actionsHTML += '<button onclick="exportData()" class="btn-info">💾 Export Data</button>';
             
+            // Danger zone - delete all (only show if there are participants)
+            if (participants.length > 0) {
+                actionsHTML += '<button onclick="deleteAllParticipants()" class="btn-danger" style="margin-left: 20px;">⚠️ Delete All Participants</button>';
+            }
+            
             container.innerHTML = actionsHTML || '<p style="color: var(--text-secondary);">No actions available for this event configuration</p>';
         }
 
@@ -395,7 +419,12 @@
             });
 
             tbody.innerHTML = filtered.map(p => `
-                <tr>
+                <tr data-participant-id="${p.id}">
+                    <td>
+                        <input type="checkbox" class="participant-checkbox" value="${p.id}" 
+                               onchange="toggleParticipantSelection(${p.id})"
+                               ${selectedParticipants.has(p.id) ? 'checked' : ''}>
+                    </td>
                     <td>${p.name}</td>
                     <td>${p.company}</td>
                     <td>${p.vip ? '⭐ VIP' : ''}</td>
@@ -422,6 +451,8 @@
                     </td>
                 </tr>
             `).join('');
+            
+            updateBulkActionsBar();
         }
 
         // Filter participants
@@ -831,6 +862,145 @@
                 }
             });
         }
+        
+        // Bulk selection functions
+        function toggleParticipantSelection(id) {
+            if (selectedParticipants.has(id)) {
+                selectedParticipants.delete(id);
+            } else {
+                selectedParticipants.add(id);
+            }
+            updateBulkActionsBar();
+        }
+        
+        function toggleSelectAll() {
+            const checkbox = document.getElementById('selectAllCheckbox');
+            if (checkbox.checked) {
+                selectAll();
+            } else {
+                deselectAll();
+            }
+        }
+        
+        function selectAll() {
+            // Get all visible participant IDs
+            const checkboxes = document.querySelectorAll('.participant-checkbox');
+            checkboxes.forEach(cb => {
+                const id = parseInt(cb.value);
+                selectedParticipants.add(id);
+                cb.checked = true;
+            });
+            document.getElementById('selectAllCheckbox').checked = true;
+            updateBulkActionsBar();
+        }
+        
+        function deselectAll() {
+            selectedParticipants.clear();
+            const checkboxes = document.querySelectorAll('.participant-checkbox');
+            checkboxes.forEach(cb => cb.checked = false);
+            document.getElementById('selectAllCheckbox').checked = false;
+            updateBulkActionsBar();
+        }
+        
+        function updateBulkActionsBar() {
+            const bar = document.getElementById('bulkActionsBar');
+            const count = selectedParticipants.size;
+            
+            if (count > 0) {
+                bar.style.display = 'block';
+                document.getElementById('selectedCount').textContent = `${count} selected`;
+            } else {
+                bar.style.display = 'none';
+            }
+            
+            // Update select all checkbox state
+            const allCheckboxes = document.querySelectorAll('.participant-checkbox');
+            const checkedCheckboxes = document.querySelectorAll('.participant-checkbox:checked');
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            
+            if (allCheckboxes.length > 0 && allCheckboxes.length === checkedCheckboxes.length) {
+                selectAllCheckbox.checked = true;
+                selectAllCheckbox.indeterminate = false;
+            } else if (checkedCheckboxes.length > 0) {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = true;
+            } else {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = false;
+            }
+        }
+        
+        // Delete selected participants
+        async function deleteSelected() {
+            const count = selectedParticipants.size;
+            if (count === 0) return;
+            
+            if (!confirm(`Are you sure you want to delete ${count} participant${count > 1 ? 's' : ''}? This action cannot be undone.`)) {
+                return;
+            }
+            
+            // Show loading state
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = 'Deleting...';
+            btn.disabled = true;
+            
+            try {
+                // Delete each selected participant
+                const deletePromises = Array.from(selectedParticipants).map(async (id) => {
+                    const response = await fetch('/api/delete-participant', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ id })
+                    });
+                    return response.json();
+                });
+                
+                const results = await Promise.all(deletePromises);
+                const successCount = results.filter(r => r.success).length;
+                
+                if (successCount > 0) {
+                    selectedParticipants.clear();
+                    await loadFromDatabase();
+                    alert(`✅ Successfully deleted ${successCount} participant${successCount > 1 ? 's' : ''}!`);
+                } else {
+                    alert('Failed to delete participants. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error deleting participants:', error);
+                alert('Failed to delete participants: ' + error.message);
+            } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        }
+        
+        // Quick delete all (with strong confirmation)
+        async function deleteAllParticipants() {
+            const total = participants.length;
+            if (total === 0) {
+                alert('No participants to delete');
+                return;
+            }
+            
+            // Triple confirmation for safety
+            if (!confirm(`⚠️ WARNING: This will delete ALL ${total} participants from this event!`)) return;
+            if (!confirm(`Are you ABSOLUTELY sure? This action cannot be undone!`)) return;
+            
+            const confirmText = prompt(`Type "DELETE ALL" to confirm deletion of ${total} participants:`);
+            if (confirmText !== 'DELETE ALL') {
+                alert('Deletion cancelled');
+                return;
+            }
+            
+            // Select all participants
+            participants.forEach(p => selectedParticipants.add(p.id));
+            
+            // Use the delete selected function
+            await deleteSelected();
+        }
     </script>
 
     <style>
@@ -861,12 +1031,23 @@
         }
 
         .btn-danger {
-            background: var(--danger-color);
+            background: #EF476F;
             color: white;
+            border: none;
         }
 
         .btn-danger:hover {
-            opacity: 0.8;
+            background: #d63654;
+        }
+        
+        .participant-checkbox {
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+        }
+        
+        #selectAllCheckbox {
+            cursor: pointer;
         }
 
         .badge-success {
