@@ -138,7 +138,7 @@ async function showCheckedInView(participant) {
     successSection.style.display = 'block';
     
     // Check if tables feature is enabled for this event
-    const hasTablesFeature = currentEvent?.features?.tables !== false;
+    const hasTablesFeature = currentEvent?.features?.tables === true;
     const finalTableDisplay = document.getElementById('finalTableDisplay');
     
     if (hasTablesFeature && participant.table) {
@@ -157,7 +157,9 @@ async function showCheckedInView(participant) {
     // Show lucky draw message only if lucky draw feature is enabled
     const luckyDrawMessage = document.getElementById('luckyDrawMessage');
     if (luckyDrawMessage) {
-        const hasLuckyDraw = currentEvent?.features?.lucky_draw !== false;
+        // Check both formats (API might return either luckyDraw or lucky_draw)
+        const hasLuckyDraw = currentEvent?.features?.luckyDraw === true || 
+                            currentEvent?.features?.lucky_draw === true;
         luckyDrawMessage.style.display = hasLuckyDraw ? 'block' : 'none';
     }
     
@@ -264,7 +266,7 @@ function searchParticipants() {
     }
     
     // Check if tables feature is enabled for this event
-    const hasTablesFeature = currentEvent?.features?.tables !== false;
+    const hasTablesFeature = currentEvent?.features?.tables === true;
     
     resultsContainer.innerHTML = filtered.map(p => `
         <div class="result-item ${p.vip ? 'vip' : ''} ${p.checkedIn ? 'checked-in' : ''}" 
@@ -308,7 +310,7 @@ function selectParticipant(id) {
     document.getElementById('participantName').textContent = selectedParticipant.name;
     
     // Check if tables feature is enabled for this event
-    const hasTablesFeature = currentEvent?.features?.tables !== false;
+    const hasTablesFeature = currentEvent?.features?.tables === true;
     const tableInfoSection = document.getElementById('tableInfoSection');
     
     if (hasTablesFeature && selectedParticipant.table) {
