@@ -1,8 +1,21 @@
-# Todak Annual Dinner 2025 - Event Management System
+# Event Management System
 
-A comprehensive web-based event management system for the Todak Annual Dinner 2025, featuring table management, check-in system, and lucky draw functionality.
+A comprehensive web-based multi-event management platform featuring AI-powered participant upload, table management, check-in system, and lucky draw functionality. Built for organizations that need to manage multiple events efficiently.
 
-## Features
+## 🌟 Key Features
+
+### 🎯 Multi-Event Management
+- **Event Dashboard**: Manage unlimited events from a central dashboard
+- **Event Creation Wizard**: 4-step guided process for creating new events
+- **Event-Specific Features**: Toggle attendance, tables, and lucky draw per event
+- **Event Statistics**: Real-time participant counts, check-ins, and table assignments
+- **Theme Support**: Dark and light mode with preference saving
+
+### 🤖 AI-Powered Participant Upload
+- **Intelligent Extraction**: Upload PDF, CSV, or Excel files
+- **Auto-Detection**: AI automatically identifies names, companies, VIP status, and tables
+- **No Format Required**: Works with any document structure
+- **Bulk Import**: Add hundreds of participants in seconds
 
 ### 🏠 Landing Page
 - Clean, modern interface with navigation to all sections
