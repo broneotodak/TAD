@@ -54,7 +54,18 @@ exports.handler = async (event) => {
         }
 
         // Connect to database
-        const sql = neon(process.env.DATABASE_URL);
+        const sql = neon(process.env.NETLIFY_DATABASE_URL || process.env.DATABASE_URL);
+
+        // Parse time into start and end if provided as a range
+        let timeStart = null;
+        let timeEnd = null;
+        if (time && time.includes(' - ')) {
+            const [start, end] = time.split(' - ');
+            timeStart = start.trim();
+            timeEnd = end.trim();
+        } else if (time) {
+            timeStart = time;
+        }
 
         // Update event details
         const result = await sql`
@@ -62,7 +73,8 @@ exports.handler = async (event) => {
             SET 
                 name = ${name},
                 date = ${date},
-                time = ${time},
+                time_start = ${timeStart},
+                time_end = ${timeEnd},
                 venue = ${venue},
                 theme = ${theme},
                 tentative = ${tentative},
