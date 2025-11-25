@@ -99,11 +99,11 @@
                 </div>
                 <div class="search-bar">
                     <input type="text" id="searchParticipant" placeholder="Search by name or company..." onkeyup="filterParticipants()">
-                    <label class="checkbox-label">
+                    <label class="checkbox-label" id="vipFilterLabel">
                         <input type="checkbox" id="filterVIP" onchange="filterParticipants()">
                         VIP Only
                     </label>
-                    <label class="checkbox-label">
+                    <label class="checkbox-label" id="checkedInFilterLabel">
                         <input type="checkbox" id="filterCheckedIn" onchange="filterParticipants()">
                         Checked In Only
                     </label>
@@ -128,12 +128,8 @@
             <!-- Quick Actions Section -->
             <div class="admin-section">
                 <h2>Quick Actions</h2>
-                <div class="action-buttons">
-                    <button onclick="autoAssignTables()" class="btn-primary">🔄 Auto-Assign All Tables</button>
-                    <button onclick="clearAllTables()" class="btn-secondary">🗑️ Clear All Table Assignments</button>
-                    <button onclick="generateQRCode()" class="btn-success">📱 Generate Check-in QR</button>
-                    <button onclick="exportData()" class="btn-info">💾 Export Data</button>
-                    <button onclick="viewLuckyDraw()" class="btn-warning">🎰 Lucky Draw</button>
+                <div class="action-buttons" id="quickActionsContainer">
+                    <!-- Actions will be populated based on event features -->
                 </div>
             </div>
 
@@ -271,11 +267,46 @@
             document.getElementById('eventTime').textContent = timeText;
 
             // Show/hide features based on event settings
-            if (currentEvent.features) {
-                if (!currentEvent.features.tables) {
-                    document.getElementById('tableSection').style.display = 'none';
-                }
+            const features = currentEvent.features || { attendance: true, tables: true, luckyDraw: true };
+            
+            // Hide table section if tables feature is disabled
+            if (!features.tables) {
+                document.getElementById('tableSection').style.display = 'none';
+            } else {
+                document.getElementById('tableSection').style.display = 'block';
             }
+            
+            // Update quick actions based on features
+            updateQuickActions(features);
+        }
+        
+        // Update quick actions based on event features
+        function updateQuickActions(features) {
+            const container = document.getElementById('quickActionsContainer');
+            if (!container) return;
+            
+            let actionsHTML = '';
+            
+            // Always available actions
+            if (features.attendance !== false) {
+                actionsHTML += '<button onclick="generateQRCode()" class="btn-success">📱 Generate Check-in QR</button>';
+            }
+            
+            // Table-related actions
+            if (features.tables) {
+                actionsHTML += '<button onclick="autoAssignTables()" class="btn-primary">🔄 Auto-Assign All Tables</button>';
+                actionsHTML += '<button onclick="clearAllTables()" class="btn-secondary">🗑️ Clear All Table Assignments</button>';
+            }
+            
+            // Lucky draw action
+            if (features.luckyDraw) {
+                actionsHTML += '<button onclick="viewLuckyDraw()" class="btn-warning">🎰 Lucky Draw</button>';
+            }
+            
+            // Always available export
+            actionsHTML += '<button onclick="exportData()" class="btn-info">💾 Export Data</button>';
+            
+            container.innerHTML = actionsHTML || '<p style="color: var(--text-secondary);">No actions available for this event configuration</p>';
         }
 
         // Load participants from database
