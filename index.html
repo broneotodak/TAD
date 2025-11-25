@@ -1,53 +1,317 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Todak Annual Dinner 2025</title>
+    <title>Event Management System</title>
     <link rel="stylesheet" href="css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .event-selector {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .selector-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .selector-header h1 {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .selector-header p {
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+        }
+
+        .admin-link {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .admin-link a {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 30px;
+            background: #ffffff;
+            color: #000000;
+            border: 2px solid #ffffff;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .admin-link a:hover {
+            background: #cccccc;
+            transform: translateY(-2px);
+        }
+
+        .events-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .event-card {
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .event-card:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .event-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .event-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .event-tagline {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+        }
+
+        .event-details {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 30px;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .event-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .event-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: block;
+            text-align: center;
+        }
+
+        .btn-primary-action {
+            background: #ffffff;
+            color: #000000;
+            border: 2px solid #ffffff;
+        }
+
+        .btn-primary-action:hover {
+            background: #cccccc;
+        }
+
+        .btn-secondary-action {
+            background: transparent;
+            color: var(--text-primary);
+            border: 2px solid var(--border-color);
+        }
+
+        .btn-secondary-action:hover {
+            border-color: var(--primary-color);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            border: 3px solid var(--border-color);
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
 </head>
+
 <body>
-    <div class="container">
-        <div class="landing-page">
-            <div class="logo-section">
-                <img src="images/todak-logo.png" alt="TODAK" class="logo-image">
-                <h1>Annual Dinner 2025</h1>
-                <p class="tagline">Dress to Kill</p>
-            </div>
-            
-            <div class="navigation-buttons">
-                <a href="admin.html" class="nav-button admin-btn">
-                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                        <path d="M2 17l10 5 10-5"/>
-                        <path d="M2 12l10 5 10-5"/>
-                    </svg>
-                    <span>Admin Panel</span>
-                    <p class="desc">Manage tables and participants</p>
-                </a>
-                
-                <a href="qr-checkin.html" class="nav-button checkin-btn">
-                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/>
-                    </svg>
-                    <span>Check-in QR Code</span>
-                    <p class="desc">Display QR for guests to scan</p>
-                </a>
-                
-                <a href="lucky-draw.html" class="nav-button lucky-btn">
-                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/>
-                    </svg>
-                    <span>Lucky Draw</span>
-                    <p class="desc">Prize draw for attendees</p>
-                </a>
-            </div>
-            
-            <div class="event-info">
-                <p>📅 Monday, 8 December 2025 | 📍 DoubleTree by Hilton Putrajaya Lakeside | ⏰ 6:00 PM - 11:00 PM</p>
+    <div class="container event-selector">
+        <div class="selector-header">
+            <h1>Event Management System</h1>
+            <p>Select an event to continue</p>
+        </div>
+
+        <div class="admin-link">
+            <a href="admin-dashboard.html">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                    <path d="M2 17l10 5 10-5" />
+                    <path d="M2 12l10 5 10-5" />
+                </svg>
+                Admin Dashboard
+            </a>
+        </div>
+
+        <div id="eventsContainer">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Loading events...</p>
             </div>
         </div>
     </div>
+
+    <script>
+        // Load theme
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+
+        // Load active events
+        async function loadEvents() {
+            try {
+                const response = await fetch('/api/get-events');
+                const result = await response.json();
+
+                if (result.success) {
+                    const activeEvents = result.events.filter(e => e.isActive);
+
+                    if (activeEvents.length === 0) {
+                        showNoEvents();
+                    } else if (activeEvents.length === 1) {
+                        // If only one active event, show it prominently
+                        displaySingleEvent(activeEvents[0]);
+                    } else {
+                        // Multiple events, show grid
+                        displayMultipleEvents(activeEvents);
+                    }
+                } else {
+                    showError();
+                }
+            } catch (error) {
+                console.error('Error loading events:', error);
+                showError();
+            }
+        }
+
+        function displaySingleEvent(event) {
+            const container = document.getElementById('eventsContainer');
+            container.innerHTML = `
+                <div class="events-grid">
+                    <div class="event-card">
+                        <div class="event-icon">🎉</div>
+                        <div class="event-title">${event.name}</div>
+                        <div class="event-tagline">${event.theme || 'Welcome to our event'}</div>
+                        <div class="event-details">
+                            <div>📅 ${formatDate(event.date)}</div>
+                            ${event.venue ? `<div>📍 ${event.venue}</div>` : ''}
+                            ${event.timeStart ? `<div>⏰ ${formatTime(event.timeStart)} - ${formatTime(event.timeEnd)}</div>` : ''}
+                        </div>
+                        <div class="event-actions">
+                            <a href="checkin.html?event=${event.id}" class="event-btn btn-primary-action">Check-in</a>
+                            <a href="lucky-draw.html?event=${event.id}" class="event-btn btn-secondary-action">Lucky Draw</a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function displayMultipleEvents(events) {
+            const container = document.getElementById('eventsContainer');
+            const eventsHTML = events.map(event => `
+                <div class="event-card">
+                    <div class="event-icon">🎉</div>
+                    <div class="event-title">${event.name}</div>
+                    <div class="event-tagline">${event.theme || 'Welcome to our event'}</div>
+                    <div class="event-details">
+                        <div>📅 ${formatDate(event.date)}</div>
+                        ${event.venue ? `<div>📍 ${event.venue}</div>` : ''}
+                    </div>
+                    <div class="event-actions">
+                        <a href="checkin.html?event=${event.id}" class="event-btn btn-primary-action">Check-in</a>
+                        <a href="lucky-draw.html?event=${event.id}" class="event-btn btn-secondary-action">Lucky Draw</a>
+                    </div>
+                </div>
+            `).join('');
+
+            container.innerHTML = `<div class="events-grid">${eventsHTML}</div>`;
+        }
+
+        function showNoEvents() {
+            const container = document.getElementById('eventsContainer');
+            container.innerHTML = `
+                <div class="loading">
+                    <div style="font-size: 4rem; margin-bottom: 20px;">📅</div>
+                    <p>No active events at the moment</p>
+                    <p style="margin-top: 20px;">
+                        <a href="admin-dashboard.html" style="color: var(--primary-color);">Go to Admin Dashboard</a>
+                    </p>
+                </div>
+            `;
+        }
+
+        function showError() {
+            const container = document.getElementById('eventsContainer');
+            container.innerHTML = `
+                <div class="loading">
+                    <div style="font-size: 4rem; margin-bottom: 20px;">⚠️</div>
+                    <p>Failed to load events</p>
+                    <p style="margin-top: 20px;">
+                        <a href="admin-dashboard.html" style="color: var(--primary-color);">Go to Admin Dashboard</a>
+                    </p>
+                </div>
+            `;
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'Date TBA';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+        function formatTime(timeString) {
+            if (!timeString) return '';
+            return timeString.substring(0, 5);
+        }
+
+        // Load events on page load
+        loadEvents();
+    </script>
 </body>
+
 </html>
