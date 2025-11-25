@@ -48,6 +48,14 @@ export default async (req, context) => {
             });
         }
 
+        // Normalize features to use snake_case
+        if (event.features) {
+            if ('luckyDraw' in event.features) {
+                event.features.lucky_draw = event.features.luckyDraw;
+                delete event.features.luckyDraw;
+            }
+        }
+
         return new Response(JSON.stringify({
             success: true,
             event

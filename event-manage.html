@@ -321,7 +321,7 @@
             }
 
             // Show/hide features based on event settings
-            const features = currentEvent.features || { attendance: true, tables: true, luckyDraw: true };
+            const features = currentEvent.features || { attendance: true, tables: true, lucky_draw: true };
             
             // Hide table section if tables feature is disabled
             if (!features.tables) {
@@ -353,8 +353,8 @@
                 actionsHTML += '<button onclick="clearAllTables()" class="btn-secondary">🗑️ Clear All Table Assignments</button>';
             }
             
-            // Lucky draw action
-            if (features.luckyDraw) {
+            // Lucky draw action - check both formats for compatibility
+            if (features.lucky_draw || features.luckyDraw) {
                 actionsHTML += '<button onclick="viewLuckyDraw()" class="btn-warning">🎰 Lucky Draw</button>';
             }
             
@@ -1285,9 +1285,10 @@ Beverages: Coffee, Tea, Soft Drinks"></textarea>
             document.getElementById('editEventTentative').value = currentEvent.tentative || '';
             document.getElementById('editEventMenu').value = currentEvent.menu || '';
             
-            // Set checkboxes based on features
-            document.getElementById('editFeatureTables').checked = currentEvent.features?.tables !== false;
-            document.getElementById('editFeatureLuckyDraw').checked = currentEvent.features?.lucky_draw !== false;
+            // Set checkboxes based on features - check both camelCase and snake_case
+            document.getElementById('editFeatureTables').checked = currentEvent.features?.tables === true;
+            document.getElementById('editFeatureLuckyDraw').checked = 
+                currentEvent.features?.lucky_draw === true || currentEvent.features?.luckyDraw === true;
             
             // Show/hide menu field based on context
             toggleMenuField();

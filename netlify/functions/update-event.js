@@ -39,6 +39,19 @@ exports.handler = async (event) => {
             features 
         } = JSON.parse(event.body);
 
+        // Normalize features to use snake_case
+        if (features) {
+            // Ensure we use snake_case keys
+            if ('luckyDraw' in features) {
+                features.lucky_draw = features.luckyDraw;
+                delete features.luckyDraw;
+            }
+            // Set defaults if not specified
+            if (!('attendance' in features)) {
+                features.attendance = true;
+            }
+        }
+
         if (!eventId) {
             return {
                 statusCode: 400,
