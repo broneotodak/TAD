@@ -251,6 +251,9 @@ function searchParticipants() {
         return;
     }
     
+    // Check if tables feature is enabled for this event
+    const hasTablesFeature = currentEvent?.features?.tables !== false;
+    
     resultsContainer.innerHTML = filtered.map(p => `
         <div class="result-item ${p.vip ? 'vip' : ''} ${p.checkedIn ? 'checked-in' : ''}" 
              onclick="selectParticipant(${p.id})">
@@ -262,9 +265,11 @@ function searchParticipants() {
                 </div>
                 <div class="result-company">${p.company}</div>
             </div>
-            <div class="result-table">
-                ${p.table ? `Table ${p.table}` : 'No table assigned'}
-            </div>
+            ${hasTablesFeature ? `
+                <div class="result-table">
+                    ${p.table ? `Table ${p.table}` : 'No table assigned'}
+                </div>
+            ` : ''}
         </div>
     `).join('');
 }
