@@ -683,9 +683,12 @@
                 const fileContent = await readFileContent(file);
                 console.log('File content read successfully, length:', fileContent.length);
 
-                // Call AI extraction API
-                console.log('Calling AI extraction API...');
-                const response = await fetch('/api/upload-participants-ai', {
+                // Determine which API to use based on file type
+                const isCSV = file.name.toLowerCase().endsWith('.csv');
+                const apiEndpoint = isCSV ? '/api/parse-csv-participants' : '/api/upload-participants-ai';
+                
+                console.log(`Calling ${isCSV ? 'CSV parser' : 'AI extraction'} API...`);
+                const response = await fetch(apiEndpoint, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -698,7 +701,19 @@
                 });
 
                 console.log('API Response status:', response.status);
-                const result = await response.json();
+                
+                // Handle response
+                let result;
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    result = await response.json();
+                } else {
+                    // If not JSON, probably an error page
+                    const text = await response.text();
+                    console.error('Non-JSON response:', text.substring(0, 200));
+                    throw new Error('Server returned an error. Please try again.');
+                }
+                
                 console.log('API Result:', result);
 
                 if (result.success && result.participants && result.participants.length > 0) {

@@ -19,7 +19,26 @@ export default async (req, context) => {
             });
         }
 
-        // Call OpenAI API to extract participant data
+        // Check if OpenAI API key is configured
+        if (!process.env.OPENAI_API_KEY) {
+            console.error('OpenAI API key not configured');
+            return new Response(JSON.stringify({
+                success: false,
+                error: 'OpenAI API key not configured. Please set OPENAI_API_KEY in Netlify environment variables.'
+            }), {
+                status: 500,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+
+        // Limit content size to prevent timeout (take first 10000 characters)
+        const contentToProcess = fileContent.substring(0, 10000);
+        console.log('Processing content length:', contentToProcess.length);
+
+        // Call OpenAI API to extract participant data with timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+
         const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -27,7 +46,7 @@ export default async (req, context) => {
                 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
             },
             body: JSON.stringify({
-                model: 'gpt-4o-mini',
+                model: 'gpt-3.5-turbo', // Using faster model to avoid timeout
                 messages: [
                     {
                         role: 'system',
@@ -35,17 +54,26 @@ export default async (req, context) => {
                     },
                     {
                         role: 'user',
-                        content: `Extract participant data from this ${fileName || 'document'}:\n\n${fileContent}`
+                        content: `Extract participant data from this ${fileName || 'document'}:\n\n${contentToProcess}`
                     }
                 ],
                 temperature: 0.3,
-                max_tokens: 4000
-            })
+                max_tokens: 2000 // Reduced to speed up response
+            }),
+            signal: controller.signal
+        }).catch(error => {
+            if (error.name === 'AbortError') {
+                throw new Error('OpenAI API request timed out');
+            }
+            throw error;
         });
 
+        clearTimeout(timeoutId);
+
         if (!openaiResponse.ok) {
-            const error = await openaiResponse.json();
-            throw new Error(`OpenAI API error: ${error.error?.message || 'Unknown error'}`);
+            const errorText = await openaiResponse.text();
+            console.error('OpenAI API error response:', errorText);
+            throw new Error(`OpenAI API error: ${openaiResponse.status} - ${errorText}`);
         }
 
         const aiResult = await openaiResponse.json();
