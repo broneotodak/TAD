@@ -33,7 +33,9 @@ export default async (req, context) => {
         menu,
         features,
         is_active as "isActive",
-        created_at as "createdAt"
+        created_at as "createdAt",
+        card_icon_url as "cardIconUrl",
+        card_background_url as "cardBackgroundUrl"
       FROM events
       WHERE id = ${eventId}
     `;

@@ -646,13 +646,13 @@ body {
 
 .badge-vip {
     background: #ffffff;
-    color: #000000;
+    color: #000000 !important;
     border: 1px solid #ffffff;
 }
 
 .badge-success {
     background: #ffffff;
-    color: #000000;
+    color: #000000 !important;
     border: 1px solid #ffffff;
 }
 
@@ -900,19 +900,19 @@ body {
 
 .badge-vip-small {
     background: #ffffff;
-    color: #000000;
+    color: #000000 !important;
     border: 1px solid #ffffff;
 }
 
 .badge-checked {
     background: #ffffff;
-    color: #000000;
+    color: #000000 !important;
     border: 1px solid #ffffff;
 }
 
 .badge-checked-small {
     background: #ffffff;
-    color: #000000;
+    color: #000000 !important;
     border: 1px solid #ffffff;
     padding: 2px 6px;
 }
@@ -1546,4 +1546,109 @@ body {
         box-shadow: none;
         border: 2px solid #000;
     }
+}
+
+/* ========================================
+   Dark Theme - Light Background Text Fix
+   Ensures dark text on any white/light bg
+   ======================================== */
+
+/* Primary buttons with white background in dark mode */
+[data-theme="dark"] .btn-primary,
+[data-theme="dark"] .btn-success {
+    color: #000000 !important;
+}
+
+[data-theme="dark"] .btn-primary:hover,
+[data-theme="dark"] .btn-success:hover {
+    color: #000000 !important;
+}
+
+/* Back button and logout button */
+[data-theme="dark"] .back-btn,
+[data-theme="dark"] .logout-btn {
+    color: #000000 !important;
+}
+
+/* Step numbers */
+[data-theme="dark"] .step-number,
+[data-theme="dark"] .instruction-number {
+    color: #000000 !important;
+}
+
+/* QR code container - ensure visibility */
+.qr-code-container {
+    background: white;
+    color: #000000;
+}
+
+/* All white background badges */
+[data-theme="dark"] .badge-vip,
+[data-theme="dark"] .badge-success,
+[data-theme="dark"] .badge-vip-small,
+[data-theme="dark"] .badge-checked,
+[data-theme="dark"] .badge-checked-small {
+    color: #000000 !important;
+}
+
+/* Winner badge gradient background */
+[data-theme="dark"] .winner-badge {
+    color: white !important;
+}
+
+/* Form inputs in modals - ensure readable */
+[data-theme="dark"] input[type="text"],
+[data-theme="dark"] input[type="password"],
+[data-theme="dark"] input[type="number"],
+[data-theme="dark"] input[type="date"],
+[data-theme="dark"] input[type="time"],
+[data-theme="dark"] input[type="email"],
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+    background: var(--dark-bg);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+/* Light theme specific overrides */
+[data-theme="light"] .btn-primary,
+[data-theme="light"] .btn-success {
+    background: #000000;
+    color: #ffffff !important;
+    border-color: #000000;
+}
+
+[data-theme="light"] .btn-primary:hover,
+[data-theme="light"] .btn-success:hover {
+    background: #333333;
+    border-color: #333333;
+}
+
+[data-theme="light"] .back-btn,
+[data-theme="light"] .logout-btn {
+    background: #000000;
+    color: #ffffff !important;
+    border-color: #000000;
+}
+
+[data-theme="light"] .back-btn:hover,
+[data-theme="light"] .logout-btn:hover {
+    background: #333333;
+}
+
+[data-theme="light"] .step-number,
+[data-theme="light"] .instruction-number {
+    background: #000000;
+    color: #ffffff !important;
+    border-color: #000000;
+}
+
+[data-theme="light"] .badge-vip,
+[data-theme="light"] .badge-success,
+[data-theme="light"] .badge-vip-small,
+[data-theme="light"] .badge-checked,
+[data-theme="light"] .badge-checked-small {
+    background: #000000;
+    color: #ffffff !important;
+    border-color: #000000;
 }

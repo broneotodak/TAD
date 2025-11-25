@@ -36,7 +36,9 @@ exports.handler = async (event) => {
             theme, 
             tentative, 
             menu, 
-            features 
+            features,
+            cardIconUrl,
+            cardBackgroundUrl
         } = JSON.parse(event.body);
 
         // Normalize features to use snake_case
@@ -93,6 +95,8 @@ exports.handler = async (event) => {
                 tentative = ${tentative},
                 menu = ${menu},
                 features = ${JSON.stringify(features)},
+                card_icon_url = ${cardIconUrl || null},
+                card_background_url = ${cardBackgroundUrl || null},
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = ${eventId}
             RETURNING *

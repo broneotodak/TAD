@@ -19,6 +19,8 @@ export default async (req, context) => {
         e.features,
         e.is_active as "isActive",
         e.created_at as "createdAt",
+        e.card_icon_url as "cardIconUrl",
+        e.card_background_url as "cardBackgroundUrl",
         COUNT(DISTINCT p.id) as "participantCount",
         COUNT(DISTINCT CASE WHEN p.checked_in = true THEN p.id END) as "checkedInCount",
         COUNT(DISTINCT t.id) as "tableCount"

@@ -1224,6 +1224,35 @@
                 
                 <hr style="margin: 25px 0; border: 1px solid var(--border-color);">
                 
+                <h3 style="margin-bottom: 15px;">Card Appearance</h3>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 20px;">Customize how this event appears on the main page</p>
+                
+                <div class="form-group">
+                    <label for="editCardIconUrl">
+                        Card Icon/Image URL
+                        <span style="color: var(--text-secondary); font-size: 0.85rem;">(Replaces the 🎉 emoji)</span>
+                    </label>
+                    <input type="url" id="editCardIconUrl" placeholder="https://example.com/icon.png">
+                    <div id="iconPreview" style="margin-top: 10px; display: none;">
+                        <span style="color: var(--text-secondary); font-size: 0.85rem;">Preview:</span>
+                        <img id="iconPreviewImg" style="max-width: 80px; max-height: 80px; border-radius: 8px; margin-left: 10px; vertical-align: middle;">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editCardBackgroundUrl">
+                        Card Background Image URL
+                        <span style="color: var(--text-secondary); font-size: 0.85rem;">(Optional background image)</span>
+                    </label>
+                    <input type="url" id="editCardBackgroundUrl" placeholder="https://example.com/background.jpg">
+                    <div id="bgPreview" style="margin-top: 10px; display: none;">
+                        <span style="color: var(--text-secondary); font-size: 0.85rem;">Preview:</span>
+                        <img id="bgPreviewImg" style="max-width: 200px; max-height: 100px; border-radius: 8px; margin-left: 10px; vertical-align: middle; object-fit: cover;">
+                    </div>
+                </div>
+                
+                <hr style="margin: 25px 0; border: 1px solid var(--border-color);">
+                
                 <h3 style="margin-bottom: 15px;">Event Features</h3>
                 <div class="checkbox-group" style="display: flex; gap: 30px; margin-bottom: 25px;">
                     <label style="display: flex; align-items: center; gap: 10px;">
@@ -1285,6 +1314,14 @@ Beverages: Coffee, Tea, Soft Drinks"></textarea>
             document.getElementById('editEventTentative').value = currentEvent.tentative || '';
             document.getElementById('editEventMenu').value = currentEvent.menu || '';
             
+            // Card appearance fields
+            document.getElementById('editCardIconUrl').value = currentEvent.cardIconUrl || '';
+            document.getElementById('editCardBackgroundUrl').value = currentEvent.cardBackgroundUrl || '';
+            
+            // Update previews
+            updateIconPreview();
+            updateBgPreview();
+            
             // Set checkboxes based on features - check both camelCase and snake_case
             document.getElementById('editFeatureTables').checked = currentEvent.features?.tables === true;
             document.getElementById('editFeatureLuckyDraw').checked = 
@@ -1296,6 +1333,50 @@ Beverages: Coffee, Tea, Soft Drinks"></textarea>
             // Show modal
             document.getElementById('editEventModal').style.display = 'flex';
         }
+        
+        // Preview functions for card appearance
+        function updateIconPreview() {
+            const url = document.getElementById('editCardIconUrl').value;
+            const preview = document.getElementById('iconPreview');
+            const img = document.getElementById('iconPreviewImg');
+            
+            if (url) {
+                img.src = url;
+                img.onerror = () => { preview.style.display = 'none'; };
+                img.onload = () => { preview.style.display = 'block'; };
+            } else {
+                preview.style.display = 'none';
+            }
+        }
+        
+        function updateBgPreview() {
+            const url = document.getElementById('editCardBackgroundUrl').value;
+            const preview = document.getElementById('bgPreview');
+            const img = document.getElementById('bgPreviewImg');
+            
+            if (url) {
+                img.src = url;
+                img.onerror = () => { preview.style.display = 'none'; };
+                img.onload = () => { preview.style.display = 'block'; };
+            } else {
+                preview.style.display = 'none';
+            }
+        }
+        
+        // Add event listeners for live preview
+        document.addEventListener('DOMContentLoaded', function() {
+            const iconInput = document.getElementById('editCardIconUrl');
+            const bgInput = document.getElementById('editCardBackgroundUrl');
+            
+            if (iconInput) {
+                iconInput.addEventListener('input', updateIconPreview);
+                iconInput.addEventListener('change', updateIconPreview);
+            }
+            if (bgInput) {
+                bgInput.addEventListener('input', updateBgPreview);
+                bgInput.addEventListener('change', updateBgPreview);
+            }
+        });
         
         function closeEditEventModal() {
             document.getElementById('editEventModal').style.display = 'none';
@@ -1325,6 +1406,8 @@ Beverages: Coffee, Tea, Soft Drinks"></textarea>
                     theme: document.getElementById('editEventTheme').value || null,
                     tentative: document.getElementById('editEventTentative').value || null,
                     menu: document.getElementById('editEventMenu').value || null,
+                    cardIconUrl: document.getElementById('editCardIconUrl').value || null,
+                    cardBackgroundUrl: document.getElementById('editCardBackgroundUrl').value || null,
                     features: {
                         tables: document.getElementById('editFeatureTables').checked,
                         lucky_draw: document.getElementById('editFeatureLuckyDraw').checked
@@ -1342,8 +1425,8 @@ Beverages: Coffee, Tea, Soft Drinks"></textarea>
                 if (result.success) {
                     alert('Event details updated successfully!');
                     closeEditEventModal();
-                    // Reload the page to show updated data
-                    loadFromDatabase();
+                    // Reload event data to reflect changes
+                    await loadEventData();
                 } else {
                     throw new Error(result.message || 'Failed to update event');
                 }
