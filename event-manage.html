@@ -667,16 +667,24 @@
 
             closeUploadModal();
 
-            // Show processing message
-            const btn = event.target.closest('.section-header').querySelector('button');
-            const originalText = btn.textContent;
-            btn.textContent = '⏳ Processing...';
-            btn.disabled = true;
+            // Show processing message (find the upload button in the participant section)
+            const uploadBtn = document.querySelector('.section-header button[onclick*="showUploadModal"]');
+            let originalText = '📤 Upload List';
+            let processingBtn = uploadBtn;
+            
+            if (uploadBtn) {
+                originalText = uploadBtn.textContent;
+                uploadBtn.textContent = '⏳ Processing...';
+                uploadBtn.disabled = true;
+                processingBtn = uploadBtn;
+            }
 
             try {
                 const fileContent = await readFileContent(file);
+                console.log('File content read successfully, length:', fileContent.length);
 
                 // Call AI extraction API
+                console.log('Calling AI extraction API...');
                 const response = await fetch('/api/upload-participants-ai', {
                     method: 'POST',
                     headers: {
@@ -689,7 +697,9 @@
                     })
                 });
 
+                console.log('API Response status:', response.status);
                 const result = await response.json();
+                console.log('API Result:', result);
 
                 if (result.success && result.participants && result.participants.length > 0) {
                     // Add participants to database
@@ -719,8 +729,10 @@
                 console.error('Error processing file:', error);
                 alert('Failed to process file: ' + error.message);
             } finally {
-                btn.textContent = originalText;
-                btn.disabled = false;
+                if (processingBtn) {
+                    processingBtn.textContent = originalText;
+                    processingBtn.disabled = false;
+                }
                 event.target.value = ''; // Reset file input
             }
         }
