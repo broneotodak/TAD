@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Event - Admin Panel</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="admin-dashboard.html" class="back-btn">← Back to Dashboard</a>
+            <h1 id="eventTitle">Loading Event...</h1>
+            <div class="header-actions">
+                <button onclick="toggleTheme()" class="theme-toggle" title="Toggle theme">🌓</button>
+                <button onclick="loadFromDatabase()" class="btn-secondary btn-small">🔄 Refresh</button>
+                <button onclick="logout()" class="logout-btn">Logout</button>
+            </div>
+        </div>
+
+        <div id="loginSection" class="login-section">
+            <div class="login-card">
+                <h2>Admin Login</h2>
+                <form onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="adminPassword" placeholder="Enter admin password" required>
+                    </div>
+                    <button type="submit" class="btn-primary">Login</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="adminContent" class="admin-content" style="display: none;">
+            <!-- Event Details Card -->
+            <div class="event-details-card" style="background: var(--card-bg); border: 2px solid var(--border-color); border-radius: 15px; padding: 30px; margin-bottom: 30px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                    <div>
+                        <label style="color: var(--text-secondary); font-size: 0.9rem;">Event Type</label>
+                        <p id="eventType" style="font-size: 1.1rem; margin-top: 5px;">-</p>
+                    </div>
+                    <div>
+                        <label style="color: var(--text-secondary); font-size: 0.9rem;">Date</label>
+                        <p id="eventDate" style="font-size: 1.1rem; margin-top: 5px;">-</p>
+                    </div>
+                    <div>
+                        <label style="color: var(--text-secondary); font-size: 0.9rem;">Venue</label>
+                        <p id="eventVenue" style="font-size: 1.1rem; margin-top: 5px;">-</p>
+                    </div>
+                    <div>
+                        <label style="color: var(--text-secondary); font-size: 0.9rem;">Time</label>
+                        <p id="eventTime" style="font-size: 1.1rem; margin-top: 5px;">-</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Total Participants</h3>
+                    <p class="stat-number" id="totalParticipants">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>VIP Guests</h3>
+                    <p class="stat-number" id="vipCount">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Checked In</h3>
+                    <p class="stat-number" id="checkedInCount">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Tables</h3>
+                    <p class="stat-number" id="totalTables">0</p>
+                </div>
+            </div>
+
+            <!-- Table Setup Section -->
+            <div class="admin-section" id="tableSection">
+                <div class="section-header">
+                    <h2>Table Setup</h2>
+                    <div class="table-config">
+                        <input type="number" id="numTables" placeholder="Number of tables" min="1">
+                        <input type="number" id="seatsPerTable" placeholder="Seats per table" min="1" value="10">
+                        <button onclick="generateTables()" class="btn-primary">Generate Tables</button>
+                    </div>
+                </div>
+                <div id="tablesContainer" class="tables-container"></div>
+            </div>
+
+            <!-- Participant Management Section -->
+            <div class="admin-section">
+                <div class="section-header">
+                    <h2>Participant Management</h2>
+                    <div>
+                        <button onclick="showUploadModal()" class="btn-primary" style="margin-right: 10px;">📤 Upload List</button>
+                        <button onclick="addNewParticipant()" class="btn-success">+ Add Participant</button>
+                    </div>
+                </div>
+                <div class="search-bar">
+                    <input type="text" id="searchParticipant" placeholder="Search by name or company..." onkeyup="filterParticipants()">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="filterVIP" onchange="filterParticipants()">
+                        VIP Only
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="filterCheckedIn" onchange="filterParticipants()">
+                        Checked In Only
+                    </label>
+                </div>
+                <div class="table-wrapper">
+                    <table class="participants-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Company</th>
+                                <th>VIP</th>
+                                <th>Table</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="participantsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Quick Actions Section -->
+            <div class="admin-section">
+                <h2>Quick Actions</h2>
+                <div class="action-buttons">
+                    <button onclick="autoAssignTables()" class="btn-primary">🔄 Auto-Assign All Tables</button>
+                    <button onclick="clearAllTables()" class="btn-secondary">🗑️ Clear All Table Assignments</button>
+                    <button onclick="generateQRCode()" class="btn-success">📱 Generate Check-in QR</button>
+                    <button onclick="exportData()" class="btn-info">💾 Export Data</button>
+                    <button onclick="viewLuckyDraw()" class="btn-warning">🎰 Lucky Draw</button>
+                </div>
+            </div>
+
+            <!-- QR Code Display -->
+            <div id="qrDisplay" style="display: none; text-align: center; padding: 30px;">
+                <div id="qrcode"></div>
+                <p style="margin-top: 20px;">Scan this QR code to access the check-in page</p>
+                <button onclick="printQR()" class="btn-primary">🖨️ Print QR Code</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Modal -->
+    <div id="uploadModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 1000;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--card-bg); border: 2px solid var(--border-color); border-radius: 15px; padding: 30px; max-width: 500px; width: 90%;">
+            <h2 style="margin-bottom: 20px;">Upload Participant List</h2>
+            <div style="border: 2px dashed var(--border-color); border-radius: 10px; padding: 40px; text-align: center; cursor: pointer;" onclick="document.getElementById('fileInput').click()">
+                <p style="font-size: 2rem; margin-bottom: 10px;">📤</p>
+                <p>Click to browse or drag & drop</p>
+                <p style="color: var(--text-secondary); font-size: 0.9rem;">PDF, CSV, Excel supported</p>
+            </div>
+            <input type="file" id="fileInput" style="display: none;" accept=".pdf,.csv,.xlsx,.xls" onchange="handleFileUpload(event)">
+            <div style="margin-top: 20px; text-align: right;">
+                <button onclick="closeUploadModal()" class="btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        // Global variables
+        let currentEventId = null;
+        let currentEvent = null;
+        let participants = [];
+        let tables = [];
+        let luckyDrawWinners = [];
+        const ADMIN_PASSWORD = 'todak1q2w3e';
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Get event ID from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            currentEventId = urlParams.get('id');
+
+            if (!currentEventId) {
+                alert('No event ID provided');
+                window.location.href = 'admin-dashboard.html';
+                return;
+            }
+
+            // Check login status
+            const isLoggedIn = localStorage.getItem('adminLoggedIn') === 'true';
+            if (isLoggedIn) {
+                showAdminContent();
+                await loadEventData();
+            }
+
+            // Load theme
+            loadTheme();
+        });
+
+        // Load theme
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        }
+
+        // Toggle theme
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+
+        // Login handling
+        function handleLogin(event) {
+            event.preventDefault();
+            const password = document.getElementById('adminPassword').value;
+
+            if (password === ADMIN_PASSWORD) {
+                localStorage.setItem('adminLoggedIn', 'true');
+                showAdminContent();
+                loadEventData();
+            } else {
+                alert('Incorrect password');
+            }
+        }
+
+        function showAdminContent() {
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('adminContent').style.display = 'block';
+        }
+
+        function logout() {
+            localStorage.removeItem('adminLoggedIn');
+            window.location.reload();
+        }
+
+        // Load event data
+        async function loadEventData() {
+            try {
+                // Load event details
+                const eventResponse = await fetch(`/api/get-event?id=${currentEventId}`);
+                const eventResult = await eventResponse.json();
+
+                if (!eventResult.success) {
+                    throw new Error('Failed to load event');
+                }
+
+                currentEvent = eventResult.event;
+                displayEventDetails();
+
+                // Load participants
+                await loadFromDatabase();
+
+            } catch (error) {
+                console.error('Error loading event:', error);
+                alert('Failed to load event data');
+            }
+        }
+
+        // Display event details
+        function displayEventDetails() {
+            if (!currentEvent) return;
+
+            document.getElementById('eventTitle').textContent = currentEvent.name || 'Event';
+            document.getElementById('eventType').textContent = currentEvent.eventType || '-';
+            document.getElementById('eventDate').textContent = currentEvent.date ? new Date(currentEvent.date).toLocaleDateString() : '-';
+            document.getElementById('eventVenue').textContent = currentEvent.venue || '-';
+            
+            const timeStart = currentEvent.timeStart || '';
+            const timeEnd = currentEvent.timeEnd || '';
+            const timeText = timeStart && timeEnd ? `${timeStart} - ${timeEnd}` : timeStart || timeEnd || '-';
+            document.getElementById('eventTime').textContent = timeText;
+
+            // Show/hide features based on event settings
+            if (currentEvent.features) {
+                if (!currentEvent.features.tables) {
+                    document.getElementById('tableSection').style.display = 'none';
+                }
+            }
+        }
+
+        // Load participants from database
+        async function loadFromDatabase() {
+            try {
+                const response = await fetch(`/api/get-participants?eventId=${currentEventId}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    participants = result.participants || [];
+                    tables = result.tables || [];
+                    updateUI();
+                }
+            } catch (error) {
+                console.error('Error loading from database:', error);
+                alert('Failed to load data from database');
+            }
+        }
+
+        // Save to database
+        async function saveToDatabase() {
+            try {
+                const response = await fetch('/api/save-participants', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        eventId: currentEventId,
+                        participants: participants,
+                        tables: tables
+                    })
+                });
+
+                const result = await response.json();
+                if (!result.success) {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                console.error('Error saving to database:', error);
+                alert('Failed to save to database');
+            }
+        }
+
+        // Update UI
+        function updateUI() {
+            updateStats();
+            displayParticipants();
+            displayTables();
+        }
+
+        // Update statistics
+        function updateStats() {
+            document.getElementById('totalParticipants').textContent = participants.length;
+            document.getElementById('vipCount').textContent = participants.filter(p => p.vip).length;
+            document.getElementById('checkedInCount').textContent = participants.filter(p => p.checkedIn).length;
+            document.getElementById('totalTables').textContent = tables.length;
+        }
+
+        // Display participants
+        function displayParticipants() {
+            const tbody = document.getElementById('participantsTableBody');
+            const searchTerm = document.getElementById('searchParticipant').value.toLowerCase();
+            const filterVIP = document.getElementById('filterVIP').checked;
+            const filterCheckedIn = document.getElementById('filterCheckedIn').checked;
+
+            let filtered = participants.filter(p => {
+                const matchesSearch = p.name.toLowerCase().includes(searchTerm) || 
+                                     p.company.toLowerCase().includes(searchTerm);
+                const matchesVIP = !filterVIP || p.vip;
+                const matchesCheckedIn = !filterCheckedIn || p.checkedIn;
+                return matchesSearch && matchesVIP && matchesCheckedIn;
+            });
+
+            tbody.innerHTML = filtered.map(p => `
+                <tr>
+                    <td>${p.name}</td>
+                    <td>${p.company}</td>
+                    <td>${p.vip ? '⭐ VIP' : ''}</td>
+                    <td>
+                        <select onchange="updateParticipantTable(${p.id}, this.value)">
+                            <option value="">No Table</option>
+                            ${tables.map(t => `
+                                <option value="${t.number}" ${p.table === t.number ? 'selected' : ''}>
+                                    Table ${t.number}
+                                </option>
+                            `).join('')}
+                        </select>
+                    </td>
+                    <td>
+                        <span class="${p.checkedIn ? 'badge-success' : 'badge-secondary'}">
+                            ${p.checkedIn ? '✓ Checked In' : 'Not Checked In'}
+                        </span>
+                    </td>
+                    <td>
+                        <button onclick="editParticipant(${p.id})" class="btn-small">Edit</button>
+                        <button onclick="deleteParticipant(${p.id})" class="btn-small btn-danger">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Filter participants
+        function filterParticipants() {
+            displayParticipants();
+        }
+
+        // Generate tables
+        function generateTables() {
+            const numTables = parseInt(document.getElementById('numTables').value);
+            const seatsPerTable = parseInt(document.getElementById('seatsPerTable').value) || 10;
+
+            if (!numTables || numTables < 1) {
+                alert('Please enter a valid number of tables');
+                return;
+            }
+
+            tables = [];
+            for (let i = 1; i <= numTables; i++) {
+                tables.push({
+                    number: i,
+                    seats: seatsPerTable
+                });
+            }
+
+            saveToDatabase();
+            updateUI();
+        }
+
+        // Display tables
+        function displayTables() {
+            const container = document.getElementById('tablesContainer');
+            if (tables.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">No tables configured yet</p>';
+                return;
+            }
+
+            container.innerHTML = tables.map(table => {
+                const tableParticipants = participants.filter(p => p.table === table.number);
+                const vipCount = tableParticipants.filter(p => p.vip).length;
+
+                return `
+                    <div class="table-card">
+                        <div class="table-header">
+                            <h3>Table ${table.number}</h3>
+                            <span class="table-capacity">${tableParticipants.length}/${table.seats} seats</span>
+                        </div>
+                        ${vipCount > 0 ? `<div class="vip-badge">⭐ ${vipCount} VIP${vipCount > 1 ? 's' : ''}</div>` : ''}
+                        <div class="table-participants">
+                            ${tableParticipants.length > 0 ? 
+                                tableParticipants.map(p => `
+                                    <div class="participant-chip ${p.vip ? 'vip' : ''}">
+                                        ${p.vip ? '⭐ ' : ''}${p.name}
+                                    </div>
+                                `).join('') : 
+                                '<p style="color: var(--text-secondary);">No participants assigned</p>'
+                            }
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Update participant table
+        async function updateParticipantTable(participantId, tableNumber) {
+            const participant = participants.find(p => p.id === participantId);
+            if (participant) {
+                participant.table = tableNumber ? parseInt(tableNumber) : null;
+                await saveToDatabase();
+                updateUI();
+            }
+        }
+
+        // Auto-assign tables
+        async function autoAssignTables() {
+            if (tables.length === 0) {
+                alert('Please generate tables first');
+                return;
+            }
+
+            // Sort participants: VIPs first
+            const sortedParticipants = [...participants].sort((a, b) => {
+                if (a.vip && !b.vip) return -1;
+                if (!a.vip && b.vip) return 1;
+                return 0;
+            });
+
+            let tableIndex = 0;
+            let seatCount = 0;
+
+            sortedParticipants.forEach(participant => {
+                if (seatCount >= tables[tableIndex].seats) {
+                    tableIndex++;
+                    seatCount = 0;
+                }
+
+                if (tableIndex < tables.length) {
+                    participant.table = tables[tableIndex].number;
+                    seatCount++;
+                }
+            });
+
+            await saveToDatabase();
+            updateUI();
+            alert('Tables auto-assigned successfully!');
+        }
+
+        // Clear all table assignments
+        async function clearAllTables() {
+            if (confirm('Are you sure you want to clear all table assignments?')) {
+                participants.forEach(p => p.table = null);
+                await saveToDatabase();
+                updateUI();
+            }
+        }
+
+        // Add new participant
+        async function addNewParticipant() {
+            const name = prompt('Enter participant name:');
+            if (!name) return;
+
+            const company = prompt('Enter company name:');
+            const isVIP = confirm('Is this a VIP guest?');
+
+            const newParticipant = {
+                id: Date.now(),
+                name: name.trim(),
+                company: company?.trim() || '',
+                vip: isVIP,
+                table: null,
+                checkedIn: false
+            };
+
+            try {
+                const response = await fetch('/api/add-participants-bulk', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        eventId: currentEventId,
+                        participants: [newParticipant]
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    await loadFromDatabase();
+                    alert('Participant added successfully!');
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                console.error('Error adding participant:', error);
+                alert('Failed to add participant');
+            }
+        }
+
+        // Edit participant
+        async function editParticipant(id) {
+            const participant = participants.find(p => p.id === id);
+            if (!participant) return;
+
+            const name = prompt('Enter participant name:', participant.name);
+            if (!name) return;
+
+            const company = prompt('Enter company name:', participant.company);
+            const isVIP = confirm(`Is this a VIP guest? (Currently: ${participant.vip ? 'Yes' : 'No'})`);
+
+            try {
+                const response = await fetch('/api/update-participant', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        id: id,
+                        name: name.trim(),
+                        company: company?.trim() || '',
+                        vip: isVIP,
+                        table: participant.table
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    await loadFromDatabase();
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                console.error('Error updating participant:', error);
+                alert('Failed to update participant');
+            }
+        }
+
+        // Delete participant
+        async function deleteParticipant(id) {
+            if (!confirm('Are you sure you want to delete this participant?')) return;
+
+            try {
+                const response = await fetch('/api/delete-participant', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ id })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    await loadFromDatabase();
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                console.error('Error deleting participant:', error);
+                alert('Failed to delete participant');
+            }
+        }
+
+        // Generate QR Code
+        function generateQRCode() {
+            const qrDisplay = document.getElementById('qrDisplay');
+            const qrcodeDiv = document.getElementById('qrcode');
+            
+            // Clear previous QR code
+            qrcodeDiv.innerHTML = '';
+            
+            // Generate check-in URL
+            const checkinUrl = `${window.location.origin}/checkin.html?event=${currentEventId}&qr=true`;
+            
+            // Generate QR code
+            new QRCode(qrcodeDiv, {
+                text: checkinUrl,
+                width: 256,
+                height: 256,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.H
+            });
+            
+            qrDisplay.style.display = 'block';
+        }
+
+        // Print QR Code
+        function printQR() {
+            window.print();
+        }
+
+        // View lucky draw
+        function viewLuckyDraw() {
+            window.open(`lucky-draw.html?event=${currentEventId}`, '_blank');
+        }
+
+        // Export data
+        function exportData() {
+            const data = {
+                event: currentEvent,
+                participants: participants,
+                tables: tables,
+                exportDate: new Date().toISOString()
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `event-${currentEventId}-data.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Upload modal functions
+        function showUploadModal() {
+            document.getElementById('uploadModal').style.display = 'block';
+        }
+
+        function closeUploadModal() {
+            document.getElementById('uploadModal').style.display = 'none';
+        }
+
+        // Handle file upload
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            closeUploadModal();
+
+            // Show processing message
+            const btn = event.target.closest('.section-header').querySelector('button');
+            const originalText = btn.textContent;
+            btn.textContent = '⏳ Processing...';
+            btn.disabled = true;
+
+            try {
+                const fileContent = await readFileContent(file);
+
+                // Call AI extraction API
+                const response = await fetch('/api/upload-participants-ai', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        eventId: currentEventId,
+                        fileContent: fileContent,
+                        fileName: file.name
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success && result.participants && result.participants.length > 0) {
+                    // Add participants to database
+                    const addResponse = await fetch('/api/add-participants-bulk', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            eventId: currentEventId,
+                            participants: result.participants
+                        })
+                    });
+
+                    const addResult = await addResponse.json();
+                    
+                    if (addResult.success) {
+                        await loadFromDatabase();
+                        alert(`✅ Successfully added ${result.participants.length} participants!`);
+                    } else {
+                        throw new Error(addResult.error);
+                    }
+                } else {
+                    alert('No participants were extracted from the file. Please check the file format.');
+                }
+            } catch (error) {
+                console.error('Error processing file:', error);
+                alert('Failed to process file: ' + error.message);
+            } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
+                event.target.value = ''; // Reset file input
+            }
+        }
+
+        // Read file content
+        function readFileContent(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+
+                reader.onload = (e) => {
+                    if (file.type === 'application/pdf') {
+                        // For PDF, send base64 content
+                        resolve(e.target.result);
+                    } else {
+                        // For CSV/Excel, send as text
+                        resolve(e.target.result);
+                    }
+                };
+
+                reader.onerror = reject;
+
+                if (file.type === 'application/pdf') {
+                    reader.readAsDataURL(file);
+                } else {
+                    reader.readAsText(file);
+                }
+            });
+        }
+    </script>
+
+    <style>
+        .event-details-card label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .checkbox-label {
+            display: inline-flex;
+            align-items: center;
+            margin-left: 15px;
+            cursor: pointer;
+        }
+
+        .checkbox-label input {
+            margin-right: 5px;
+        }
+
+        .btn-small {
+            padding: 5px 10px;
+            font-size: 0.9rem;
+            margin: 0 2px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        .btn-danger {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            opacity: 0.8;
+        }
+
+        .badge-success {
+            background: var(--success-color);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+
+        .badge-secondary {
+            background: var(--border-color);
+            color: var(--text-primary);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .action-buttons button {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            
+            #qrDisplay, #qrDisplay * {
+                visibility: visible;
+            }
+            
+            #qrDisplay {
+                position: absolute;
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%);
+            }
+        }
+    </style>
+</body>
+</html>
