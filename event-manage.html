@@ -295,13 +295,15 @@
                 document.getElementById('eventThemeContainer').style.display = 'none';
             }
             
-            // Show tentative if available
+            // Show tentative if available, or show a reminder to add it
             if (currentEvent.tentative) {
                 document.getElementById('eventInfoSection').style.display = 'block';
                 document.getElementById('tentativeSection').style.display = 'block';
                 document.getElementById('eventTentativeDisplay').textContent = currentEvent.tentative;
             } else {
-                document.getElementById('tentativeSection').style.display = 'none';
+                document.getElementById('eventInfoSection').style.display = 'block';
+                document.getElementById('tentativeSection').style.display = 'block';
+                document.getElementById('eventTentativeDisplay').innerHTML = '<span style="color: var(--warning-color, #ff9800); font-style: italic;">No program/tentative added yet. Click "✏️ Edit Event" to add one.</span>';
             }
             
             // Show menu if available
