@@ -153,11 +153,20 @@ async function showCheckedInView(participant) {
         if (simpleSuccessSection) simpleSuccessSection.style.display = 'block';
     }
     
-    // Show tablemates (only if we have table feature and final tablemates list exists)
+    // Show lucky draw message only if lucky draw feature is enabled
+    const luckyDrawMessage = document.getElementById('luckyDrawMessage');
+    if (luckyDrawMessage) {
+        const hasLuckyDraw = currentEvent?.features?.lucky_draw !== false;
+        luckyDrawMessage.style.display = hasLuckyDraw ? 'block' : 'none';
+    }
+    
+    // Show tablemates section only if tables feature is enabled
+    const finalTablematesSection = document.getElementById('finalTablematesSection');
     const finalTablematesList = document.getElementById('finalTablematesList');
-    if (!participant.table) {
-        finalTablematesList.innerHTML = '<p class="no-tablemates">No table assigned yet</p>';
-    } else {
+    
+    if (hasTablesFeature && participant.table && finalTablematesSection) {
+        finalTablematesSection.style.display = 'block';
+        
         const tablemates = participants.filter(p => 
             p.table === participant.table && p.id !== participant.id
         );
@@ -173,41 +182,43 @@ async function showCheckedInView(participant) {
                 </div>
             `).join('');
         }
+    } else if (finalTablematesSection) {
+        finalTablematesSection.style.display = 'none';
     }
     
     // Load and display event information
     await loadAndDisplayEventInfo();
 }
 
-// Load event information from database
+// Load event information from current event data
 async function loadAndDisplayEventInfo() {
     try {
-        const response = await fetch('/api/get-event-info');
-        const result = await response.json();
-        
-        if (result.success && result.data) {
-            const info = result.data;
-            
-            // Display schedule if available
-            if (info.schedule && info.schedule.trim()) {
-                document.getElementById('eventScheduleSection').style.display = 'block';
-                document.getElementById('eventScheduleContent').textContent = info.schedule;
-            }
-            
-            // Display menu if available
-            if (info.menu && info.menu.trim()) {
-                document.getElementById('eventMenuSection').style.display = 'block';
-                document.getElementById('eventMenuContent').textContent = info.menu;
-            }
-            
-            // Display announcements if available
-            if (info.announcements && info.announcements.trim()) {
-                document.getElementById('eventAnnouncementsSection').style.display = 'block';
-                document.getElementById('eventAnnouncementsContent').textContent = info.announcements;
-            }
-            
-            console.log('✅ Event info displayed');
+        // Use the currentEvent data that we already have
+        if (!currentEvent) {
+            console.log('No current event data available');
+            return;
         }
+        
+        // Display tentative/schedule if available
+        if (currentEvent.tentative && currentEvent.tentative.trim()) {
+            document.getElementById('eventScheduleSection').style.display = 'block';
+            document.getElementById('eventScheduleContent').innerHTML = currentEvent.tentative.replace(/\n/g, '<br>');
+        } else {
+            document.getElementById('eventScheduleSection').style.display = 'none';
+        }
+        
+        // Display menu if available
+        if (currentEvent.menu && currentEvent.menu.trim()) {
+            document.getElementById('eventMenuSection').style.display = 'block';
+            document.getElementById('eventMenuContent').innerHTML = currentEvent.menu.replace(/\n/g, '<br>');
+        } else {
+            document.getElementById('eventMenuSection').style.display = 'none';
+        }
+        
+        // Hide announcements section since we don't have that field in the database
+        document.getElementById('eventAnnouncementsSection').style.display = 'none';
+        
+        console.log('✅ Event info displayed from current event data');
     } catch (error) {
         console.error('Failed to load event info:', error);
     }
