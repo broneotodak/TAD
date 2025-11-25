@@ -1,96 +1,131 @@
-// Update an existing event
-import { neon } from '@neondatabase/serverless';
+const { neon } = require('@neondatabase/serverless');
 
-export default async (req, context) => {
-    if (req.method !== 'POST') {
-        return new Response('Method not allowed', { status: 405 });
+exports.handler = async (event) => {
+    // Only allow POST
+    if (event.httpMethod !== 'POST') {
+        return {
+            statusCode: 405,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'Content-Type'
+            },
+            body: JSON.stringify({ error: 'Method not allowed' })
+        };
+    }
+
+    // Handle CORS preflight
+    if (event.httpMethod === 'OPTIONS') {
+        return {
+            statusCode: 200,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Methods': 'POST, OPTIONS'
+            },
+            body: ''
+        };
     }
 
     try {
-        const {
-            id,
-            name,
-            eventType,
-            date,
-            venue,
-            theme,
-            timeStart,
-            timeEnd,
-            features,
-            isActive
-        } = await req.json();
+        const { 
+            eventId, 
+            name, 
+            date, 
+            time, 
+            venue, 
+            theme, 
+            tentative, 
+            menu, 
+            features 
+        } = JSON.parse(event.body);
 
-        if (!id) {
-            return new Response(JSON.stringify({
-                success: false,
-                error: 'Event ID is required'
-            }), {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' }
-            });
+        if (!eventId) {
+            return {
+                statusCode: 400,
+                headers: {
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Headers': 'Content-Type'
+                },
+                body: JSON.stringify({ 
+                    success: false, 
+                    message: 'Event ID is required' 
+                })
+            };
         }
 
-        const sql = neon(process.env.NETLIFY_DATABASE_URL);
+        // Connect to database
+        const sql = neon(process.env.DATABASE_URL);
 
-        const [updatedEvent] = await sql`
-      UPDATE events
-      SET
-        name = COALESCE(${name}, name),
-        event_type = COALESCE(${eventType}, event_type),
-        date = COALESCE(${date}, date),
-        venue = COALESCE(${venue}, venue),
-        theme = COALESCE(${theme}, theme),
-        time_start = COALESCE(${timeStart}, time_start),
-        time_end = COALESCE(${timeEnd}, time_end),
-        features = COALESCE(${features ? JSON.stringify(features) : null}, features),
-        is_active = COALESCE(${isActive}, is_active),
-        updated_at = CURRENT_TIMESTAMP
-      WHERE id = ${id}
-      RETURNING *
-    `;
+        // Update event details
+        const result = await sql`
+            UPDATE events
+            SET 
+                name = ${name},
+                date = ${date},
+                time = ${time},
+                venue = ${venue},
+                theme = ${theme},
+                tentative = ${tentative},
+                menu = ${menu},
+                features = ${JSON.stringify(features)},
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ${eventId}
+            RETURNING *
+        `;
 
-        if (!updatedEvent) {
-            return new Response(JSON.stringify({
-                success: false,
-                error: 'Event not found'
-            }), {
-                status: 404,
-                headers: { 'Content-Type': 'application/json' }
-            });
+        if (result.length === 0) {
+            return {
+                statusCode: 404,
+                headers: {
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Headers': 'Content-Type'
+                },
+                body: JSON.stringify({ 
+                    success: false, 
+                    message: 'Event not found' 
+                })
+            };
         }
 
-        return new Response(JSON.stringify({
-            success: true,
-            message: 'Event updated successfully',
-            event: {
-                id: updatedEvent.id,
-                name: updatedEvent.name,
-                eventType: updatedEvent.event_type,
-                date: updatedEvent.date,
-                venue: updatedEvent.venue,
-                theme: updatedEvent.theme,
-                timeStart: updatedEvent.time_start,
-                timeEnd: updatedEvent.time_end,
-                features: updatedEvent.features,
-                isActive: updatedEvent.is_active
-            }
-        }), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        // If tables feature is being disabled, optionally clear table assignments
+        if (features && features.tables === false) {
+            // Clear all table assignments for this event
+            await sql`
+                UPDATE participants
+                SET table_number = NULL
+                WHERE event_id = ${eventId}
+            `;
+            
+            console.log(`Cleared table assignments for event ${eventId} as tables feature was disabled`);
+        }
+
+        return {
+            statusCode: 200,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'Content-Type'
+            },
+            body: JSON.stringify({ 
+                success: true,
+                message: 'Event updated successfully',
+                event: result[0]
+            })
+        };
 
     } catch (error) {
         console.error('Error updating event:', error);
-        return new Response(JSON.stringify({
-            success: false,
-            error: error.message
-        }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        
+        return {
+            statusCode: 500,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'Content-Type'
+            },
+            body: JSON.stringify({ 
+                success: false,
+                message: 'Failed to update event',
+                error: error.message 
+            })
+        };
     }
-};
-
-export const config = {
-    path: "/api/update-event"
 };

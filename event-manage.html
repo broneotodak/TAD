@@ -13,6 +13,7 @@
             <a href="admin-dashboard.html" class="back-btn">← Back to Dashboard</a>
             <h1 id="eventTitle">Loading Event...</h1>
             <div class="header-actions">
+                <button onclick="openEditEventModal()" class="btn-primary btn-small">✏️ Edit Event</button>
                 <button onclick="toggleTheme()" class="theme-toggle" title="Toggle theme">🌓</button>
                 <button onclick="loadFromDatabase()" class="btn-secondary btn-small">🔄 Refresh</button>
                 <button onclick="logout()" class="logout-btn">Logout</button>
@@ -37,20 +38,32 @@
             <div class="event-details-card" style="background: var(--card-bg); border: 2px solid var(--border-color); border-radius: 15px; padding: 30px; margin-bottom: 30px;">
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
                     <div>
-                        <label style="color: var(--text-secondary); font-size: 0.9rem;">Event Type</label>
-                        <p id="eventType" style="font-size: 1.1rem; margin-top: 5px;">-</p>
-                    </div>
-                    <div>
                         <label style="color: var(--text-secondary); font-size: 0.9rem;">Date</label>
                         <p id="eventDate" style="font-size: 1.1rem; margin-top: 5px;">-</p>
+                    </div>
+                    <div>
+                        <label style="color: var(--text-secondary); font-size: 0.9rem;">Time</label>
+                        <p id="eventTime" style="font-size: 1.1rem; margin-top: 5px;">-</p>
                     </div>
                     <div>
                         <label style="color: var(--text-secondary); font-size: 0.9rem;">Venue</label>
                         <p id="eventVenue" style="font-size: 1.1rem; margin-top: 5px;">-</p>
                     </div>
-                    <div>
-                        <label style="color: var(--text-secondary); font-size: 0.9rem;">Time</label>
-                        <p id="eventTime" style="font-size: 1.1rem; margin-top: 5px;">-</p>
+                    <div id="eventThemeContainer" style="display: none;">
+                        <label style="color: var(--text-secondary); font-size: 0.9rem;">Theme</label>
+                        <p id="eventTheme" style="font-size: 1.1rem; margin-top: 5px;">-</p>
+                    </div>
+                </div>
+                
+                <!-- Show tentative/menu if available -->
+                <div id="eventInfoSection" style="margin-top: 20px; display: none;">
+                    <div id="tentativeSection" style="display: none;">
+                        <h4 style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 10px;">📋 Event Program</h4>
+                        <p id="eventTentativeDisplay" style="white-space: pre-line;">-</p>
+                    </div>
+                    <div id="menuSection" style="display: none; margin-top: 15px;">
+                        <h4 style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 10px;">🍽️ Menu</h4>
+                        <p id="eventMenuDisplay" style="white-space: pre-line;">-</p>
                     </div>
                 </div>
             </div>
@@ -270,14 +283,40 @@
             if (!currentEvent) return;
 
             document.getElementById('eventTitle').textContent = currentEvent.name || 'Event';
-            document.getElementById('eventType').textContent = currentEvent.eventType || '-';
             document.getElementById('eventDate').textContent = currentEvent.date ? new Date(currentEvent.date).toLocaleDateString() : '-';
             document.getElementById('eventVenue').textContent = currentEvent.venue || '-';
+            document.getElementById('eventTime').textContent = currentEvent.time || '-';
             
-            const timeStart = currentEvent.timeStart || '';
-            const timeEnd = currentEvent.timeEnd || '';
-            const timeText = timeStart && timeEnd ? `${timeStart} - ${timeEnd}` : timeStart || timeEnd || '-';
-            document.getElementById('eventTime').textContent = timeText;
+            // Show theme if available
+            if (currentEvent.theme) {
+                document.getElementById('eventThemeContainer').style.display = 'block';
+                document.getElementById('eventTheme').textContent = currentEvent.theme;
+            } else {
+                document.getElementById('eventThemeContainer').style.display = 'none';
+            }
+            
+            // Show tentative if available
+            if (currentEvent.tentative) {
+                document.getElementById('eventInfoSection').style.display = 'block';
+                document.getElementById('tentativeSection').style.display = 'block';
+                document.getElementById('eventTentativeDisplay').textContent = currentEvent.tentative;
+            } else {
+                document.getElementById('tentativeSection').style.display = 'none';
+            }
+            
+            // Show menu if available
+            if (currentEvent.menu) {
+                document.getElementById('eventInfoSection').style.display = 'block';
+                document.getElementById('menuSection').style.display = 'block';
+                document.getElementById('eventMenuDisplay').textContent = currentEvent.menu;
+            } else {
+                document.getElementById('menuSection').style.display = 'none';
+            }
+            
+            // Hide the entire info section if neither tentative nor menu exists
+            if (!currentEvent.tentative && !currentEvent.menu) {
+                document.getElementById('eventInfoSection').style.display = 'none';
+            }
 
             // Show/hide features based on event settings
             const features = currentEvent.features || { attendance: true, tables: true, luckyDraw: true };
@@ -1145,5 +1184,171 @@
             }
         }
     </style>
+
+    <!-- Edit Event Details Modal -->
+    <div id="editEventModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 700px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h2>Edit Event Details</h2>
+                <button onclick="closeEditEventModal()" class="close-btn">&times;</button>
+            </div>
+            <form id="editEventForm" onsubmit="saveEventDetails(event)">
+                <div class="form-group">
+                    <label for="editEventName">Event Name *</label>
+                    <input type="text" id="editEventName" required>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editEventDate">Date *</label>
+                        <input type="date" id="editEventDate" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editEventTime">Time *</label>
+                        <input type="text" id="editEventTime" placeholder="e.g., 2:00 PM - 5:00 PM" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editEventVenue">Venue *</label>
+                    <input type="text" id="editEventVenue" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editEventTheme">Theme (Optional)</label>
+                    <input type="text" id="editEventTheme" placeholder="e.g., Business Casual, Formal Attire">
+                </div>
+                
+                <hr style="margin: 25px 0; border: 1px solid var(--border-color);">
+                
+                <h3 style="margin-bottom: 15px;">Event Features</h3>
+                <div class="checkbox-group" style="display: flex; gap: 30px; margin-bottom: 25px;">
+                    <label style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" id="editFeatureTables" onchange="toggleMenuField()">
+                        <span>Table Assignment</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" id="editFeatureLuckyDraw">
+                        <span>Lucky Draw</span>
+                    </label>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editEventTentative">
+                        Event Program / Tentative
+                        <span style="color: var(--text-secondary); font-size: 0.85rem;">(Will be shown after check-in)</span>
+                    </label>
+                    <textarea id="editEventTentative" rows="8" placeholder="Enter the event schedule/program...
+Example:
+2:00 PM - Registration
+2:30 PM - Opening Speech
+3:00 PM - Main Presentation
+4:30 PM - Q&A Session
+5:00 PM - Closing"></textarea>
+                </div>
+                
+                <div class="form-group" id="editEventMenuGroup">
+                    <label for="editEventMenu">
+                        Menu
+                        <span style="color: var(--text-secondary); font-size: 0.85rem;">(For dinner/lunch events)</span>
+                    </label>
+                    <textarea id="editEventMenu" rows="6" placeholder="Enter the menu items...
+Example:
+Appetizer: Caesar Salad
+Main: Grilled Salmon with Vegetables
+Dessert: Chocolate Mousse
+Beverages: Coffee, Tea, Soft Drinks"></textarea>
+                </div>
+                
+                <div class="modal-buttons">
+                    <button type="button" onclick="closeEditEventModal()" class="btn-secondary">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Edit Event Modal Functions
+        function openEditEventModal() {
+            if (!currentEvent) return;
+            
+            // Populate form with current event data
+            document.getElementById('editEventName').value = currentEvent.name || '';
+            document.getElementById('editEventDate').value = currentEvent.date ? currentEvent.date.split('T')[0] : '';
+            document.getElementById('editEventTime').value = currentEvent.time || '';
+            document.getElementById('editEventVenue').value = currentEvent.venue || '';
+            document.getElementById('editEventTheme').value = currentEvent.theme || '';
+            document.getElementById('editEventTentative').value = currentEvent.tentative || '';
+            document.getElementById('editEventMenu').value = currentEvent.menu || '';
+            
+            // Set checkboxes based on features
+            document.getElementById('editFeatureTables').checked = currentEvent.features?.tables !== false;
+            document.getElementById('editFeatureLuckyDraw').checked = currentEvent.features?.lucky_draw !== false;
+            
+            // Show/hide menu field based on context
+            toggleMenuField();
+            
+            // Show modal
+            document.getElementById('editEventModal').style.display = 'flex';
+        }
+        
+        function closeEditEventModal() {
+            document.getElementById('editEventModal').style.display = 'none';
+        }
+        
+        function toggleMenuField() {
+            // Show menu field if it's a dinner/lunch event or has existing menu data
+            const menuGroup = document.getElementById('editEventMenuGroup');
+            const hasMenu = document.getElementById('editEventMenu').value.trim() !== '';
+            const eventName = document.getElementById('editEventName').value.toLowerCase();
+            const isDiningEvent = eventName.includes('dinner') || eventName.includes('lunch') || eventName.includes('breakfast');
+            
+            menuGroup.style.display = (hasMenu || isDiningEvent) ? 'block' : 'block'; // Always show, let admin decide
+        }
+        
+        async function saveEventDetails(event) {
+            event.preventDefault();
+            
+            try {
+                const eventId = new URLSearchParams(window.location.search).get('id');
+                
+                const eventData = {
+                    name: document.getElementById('editEventName').value,
+                    date: document.getElementById('editEventDate').value,
+                    time: document.getElementById('editEventTime').value,
+                    venue: document.getElementById('editEventVenue').value,
+                    theme: document.getElementById('editEventTheme').value || null,
+                    tentative: document.getElementById('editEventTentative').value || null,
+                    menu: document.getElementById('editEventMenu').value || null,
+                    features: {
+                        tables: document.getElementById('editFeatureTables').checked,
+                        lucky_draw: document.getElementById('editFeatureLuckyDraw').checked
+                    }
+                };
+                
+                const response = await fetch('/api/update-event', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ eventId, ...eventData })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Event details updated successfully!');
+                    closeEditEventModal();
+                    // Reload the page to show updated data
+                    loadFromDatabase();
+                } else {
+                    throw new Error(result.message || 'Failed to update event');
+                }
+            } catch (error) {
+                console.error('Error updating event:', error);
+                alert('Failed to update event: ' + error.message);
+            }
+        }
+    </script>
 </body>
 </html>
