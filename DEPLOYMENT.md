@@ -23,7 +23,7 @@ Value: Your Neon database connection string (already configured)
 ```
 OPENAI_API_KEY
 ```
-Value: `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`
+Value: `sk-proj-YOUR_OPENAI_API_KEY_HERE` (Get from OpenAI dashboard)
 
 ---
 

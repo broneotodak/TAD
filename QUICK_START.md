@@ -14,8 +14,9 @@ Go to Netlify Dashboard → Site Settings → Environment Variables
 
 Add:
 ```
-OPENAI_API_KEY = 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
+OPENAI_API_KEY = sk-proj-YOUR_OPENAI_API_KEY_HERE
 ```
+(Use the API key you already added to Netlify)
 
 ### 3. Run Migration (ONE TIME ONLY)
 Visit: `https://your-site.netlify.app/api/migrate-to-multi-event`
