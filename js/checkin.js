@@ -139,18 +139,19 @@ async function showCheckedInView(participant) {
     
     // Check if tables feature is enabled for this event
     const hasTablesFeature = currentEvent?.features?.tables !== false;
-    const finalTableSection = document.getElementById('finalTableSection');
-    const simpleSuccessSection = document.getElementById('simpleSuccessSection');
+    const finalTableDisplay = document.getElementById('finalTableDisplay');
     
     if (hasTablesFeature && participant.table) {
         // Show table info
-        if (finalTableSection) finalTableSection.style.display = 'block';
-        if (simpleSuccessSection) simpleSuccessSection.style.display = 'none';
-        document.getElementById('finalTableNumber').textContent = participant.table || 'Not Assigned';
+        if (finalTableDisplay) {
+            finalTableDisplay.style.display = 'block';
+            document.getElementById('finalTableNumber').textContent = participant.table || 'Not Assigned';
+        }
     } else {
-        // Show simple success message for events without tables
-        if (finalTableSection) finalTableSection.style.display = 'none';
-        if (simpleSuccessSection) simpleSuccessSection.style.display = 'block';
+        // Hide table display for events without tables or participants without table assignment
+        if (finalTableDisplay) {
+            finalTableDisplay.style.display = 'none';
+        }
     }
     
     // Show lucky draw message only if lucky draw feature is enabled

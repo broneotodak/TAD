@@ -28,6 +28,9 @@ export default async (req, context) => {
         theme,
         time_start as "timeStart",
         time_end as "timeEnd",
+        CONCAT(time_start, ' - ', time_end) as "time",
+        tentative,
+        menu,
         features,
         is_active as "isActive",
         created_at as "createdAt"
