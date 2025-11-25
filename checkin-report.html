@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check-in Report - Event Management</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .report-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .stats-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .stat-percentage {
+            font-size: 0.9rem;
+            color: var(--success-color);
+            margin-top: 5px;
+        }
+
+        .chart-section {
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .timeline-chart {
+            height: 300px;
+            position: relative;
+            margin-top: 20px;
+        }
+
+        .timeline-bar {
+            display: flex;
+            align-items: flex-end;
+            height: 250px;
+            border-left: 2px solid var(--border-color);
+            border-bottom: 2px solid var(--border-color);
+            padding: 10px;
+            gap: 10px;
+        }
+
+        .time-bar {
+            flex: 1;
+            background: linear-gradient(to top, var(--primary-color), var(--accent-color));
+            border-radius: 4px 4px 0 0;
+            min-width: 30px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .time-bar:hover {
+            opacity: 0.8;
+        }
+
+        .time-bar .tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--dark-bg);
+            border: 1px solid var(--border-color);
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            display: none;
+            margin-bottom: 5px;
+        }
+
+        .time-bar:hover .tooltip {
+            display: block;
+        }
+
+        .time-labels {
+            display: flex;
+            gap: 10px;
+            padding: 10px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .time-label {
+            flex: 1;
+            text-align: center;
+            min-width: 30px;
+        }
+
+        .filter-section {
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-controls input,
+        .filter-controls select {
+            padding: 8px 12px;
+            background: var(--dark-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            margin-left: auto;
+        }
+
+        .checkin-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .checkin-table th {
+            background: var(--dark-bg);
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .checkin-table td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .checkin-table tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .check-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .check-status.checked {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .check-status.not-checked {
+            background: var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        .vip-badge {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #000;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .peak-hours {
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 4px solid var(--primary-color);
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 6px;
+        }
+
+        .peak-hours h4 {
+            margin-bottom: 10px;
+            color: var(--text-primary);
+        }
+
+        .peak-hours p {
+            color: var(--text-secondary);
+            margin: 5px 0;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+
+        .refresh-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        .refresh-btn:hover {
+            transform: scale(1.1);
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .refresh-btn.loading {
+            animation: rotate 1s linear infinite;
+        }
+
+        @media print {
+            .header,
+            .filter-section,
+            .refresh-btn,
+            .export-buttons {
+                display: none !important;
+            }
+
+            .report-container {
+                padding: 0;
+            }
+
+            .checkin-table {
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container report-container">
+        <div class="header">
+            <a href="#" onclick="goBack()" class="back-btn">← Back to Event</a>
+            <h1>Check-in Report</h1>
+            <div class="header-actions">
+                <span id="eventName" style="color: var(--text-secondary); margin-right: 20px;"></span>
+                <span id="lastUpdate" style="color: var(--text-secondary); font-size: 0.9rem;"></span>
+                <button onclick="toggleTheme()" class="theme-toggle" title="Toggle theme">🌓</button>
+            </div>
+        </div>
+
+        <!-- Statistics Overview -->
+        <div class="stats-overview">
+            <div class="stat-card">
+                <h3>Total Participants</h3>
+                <div class="stat-number" id="totalParticipants">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Checked In</h3>
+                <div class="stat-number" id="checkedInCount">0</div>
+                <div class="stat-percentage" id="checkedInPercentage">0%</div>
+            </div>
+            <div class="stat-card">
+                <h3>Not Checked In</h3>
+                <div class="stat-number" id="notCheckedCount">0</div>
+                <div class="stat-percentage" id="notCheckedPercentage" style="color: var(--danger-color);">0%</div>
+            </div>
+            <div class="stat-card">
+                <h3>VIP Attendance</h3>
+                <div class="stat-number" id="vipCheckedIn">0</div>
+                <div class="stat-percentage" id="vipPercentage">0% of VIPs</div>
+            </div>
+            <div class="stat-card">
+                <h3>Average Check-in Time</h3>
+                <div class="stat-number" id="avgCheckInTime" style="font-size: 1.5rem;">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Peak Hour</h3>
+                <div class="stat-number" id="peakHour" style="font-size: 1.5rem;">-</div>
+            </div>
+        </div>
+
+        <!-- Check-in Timeline Chart -->
+        <div class="chart-section">
+            <h2>Check-in Timeline</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 20px;">Hourly distribution of check-ins</p>
+            <div class="timeline-chart" id="timelineChart">
+                <div class="timeline-bar" id="timelineBars"></div>
+                <div class="time-labels" id="timeLabels"></div>
+            </div>
+            <div class="peak-hours" id="peakHoursInfo" style="display: none;">
+                <h4>📊 Peak Check-in Times</h4>
+                <p id="peakInfo1"></p>
+                <p id="peakInfo2"></p>
+                <p id="peakInfo3"></p>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filter-section">
+            <div class="filter-controls">
+                <input type="text" id="searchInput" placeholder="Search by name or company..." onkeyup="filterTable()">
+                
+                <select id="statusFilter" onchange="filterTable()">
+                    <option value="all">All Status</option>
+                    <option value="checked">Checked In</option>
+                    <option value="not-checked">Not Checked In</option>
+                </select>
+
+                <select id="vipFilter" onchange="filterTable()">
+                    <option value="all">All Participants</option>
+                    <option value="vip">VIP Only</option>
+                    <option value="regular">Regular Only</option>
+                </select>
+
+                <select id="sortBy" onchange="sortTable()">
+                    <option value="name">Sort by Name</option>
+                    <option value="time">Sort by Check-in Time</option>
+                    <option value="company">Sort by Company</option>
+                    <option value="table">Sort by Table</option>
+                </select>
+
+                <div class="export-buttons">
+                    <button onclick="exportCSV()" class="btn-secondary">📥 Export CSV</button>
+                    <button onclick="window.print()" class="btn-secondary">🖨️ Print Report</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Check-in Table -->
+        <div class="chart-section">
+            <h2>Participant Details</h2>
+            <div class="table-wrapper">
+                <table class="checkin-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th>Company</th>
+                            <th>Table</th>
+                            <th>Status</th>
+                            <th>Check-in Time</th>
+                            <th>Duration</th>
+                        </tr>
+                    </thead>
+                    <tbody id="participantsTableBody">
+                        <tr>
+                            <td colspan="7" class="no-data">Loading data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Refresh Button -->
+    <button class="refresh-btn" onclick="refreshData()" title="Refresh Data">🔄</button>
+
+    <script>
+        let currentEventId = null;
+        let currentEvent = null;
+        let participants = [];
+        let eventStartTime = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            currentEventId = urlParams.get('event');
+
+            if (!currentEventId) {
+                alert('No event ID provided');
+                window.location.href = 'admin-dashboard.html';
+                return;
+            }
+
+            loadTheme();
+            await loadData();
+
+            // Auto-refresh every 30 seconds
+            setInterval(refreshData, 30000);
+        });
+
+        // Load theme
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        }
+
+        // Toggle theme
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+
+        // Load data
+        async function loadData() {
+            try {
+                // Load event details
+                const eventResponse = await fetch(`/api/get-event?id=${currentEventId}`);
+                const eventResult = await eventResponse.json();
+                if (eventResult.success) {
+                    currentEvent = eventResult.event;
+                    document.getElementById('eventName').textContent = currentEvent.name || 'Event';
+                    
+                    // Set event start time for duration calculation
+                    if (currentEvent.date && currentEvent.timeStart) {
+                        const dateStr = currentEvent.date.split('T')[0];
+                        eventStartTime = new Date(`${dateStr}T${currentEvent.timeStart}`);
+                    }
+                }
+
+                // Load participants
+                const response = await fetch(`/api/get-participants?eventId=${currentEventId}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    participants = result.participants || [];
+                    updateStatistics();
+                    updateTimeline();
+                    displayParticipants();
+                    updateLastUpdate();
+                }
+            } catch (error) {
+                console.error('Error loading data:', error);
+            }
+        }
+
+        // Update statistics
+        function updateStatistics() {
+            const total = participants.length;
+            const checkedIn = participants.filter(p => p.checkedIn).length;
+            const notChecked = total - checkedIn;
+            const vips = participants.filter(p => p.vip).length;
+            const vipsCheckedIn = participants.filter(p => p.vip && p.checkedIn).length;
+
+            document.getElementById('totalParticipants').textContent = total;
+            document.getElementById('checkedInCount').textContent = checkedIn;
+            document.getElementById('checkedInPercentage').textContent = total > 0 ? 
+                `${((checkedIn / total) * 100).toFixed(1)}%` : '0%';
+            
+            document.getElementById('notCheckedCount').textContent = notChecked;
+            document.getElementById('notCheckedPercentage').textContent = total > 0 ? 
+                `${((notChecked / total) * 100).toFixed(1)}%` : '0%';
+
+            document.getElementById('vipCheckedIn').textContent = `${vipsCheckedIn}/${vips}`;
+            document.getElementById('vipPercentage').textContent = vips > 0 ? 
+                `${((vipsCheckedIn / vips) * 100).toFixed(1)}% of VIPs` : 'No VIPs';
+
+            // Calculate average check-in time
+            const checkedInParticipants = participants.filter(p => p.checkedIn && p.checkedInAt);
+            if (checkedInParticipants.length > 0) {
+                const times = checkedInParticipants.map(p => {
+                    const time = new Date(p.checkedInAt);
+                    return time.getHours() * 60 + time.getMinutes();
+                });
+                const avgMinutes = times.reduce((a, b) => a + b, 0) / times.length;
+                const avgHour = Math.floor(avgMinutes / 60);
+                const avgMin = Math.floor(avgMinutes % 60);
+                document.getElementById('avgCheckInTime').textContent = 
+                    `${avgHour.toString().padStart(2, '0')}:${avgMin.toString().padStart(2, '0')}`;
+            } else {
+                document.getElementById('avgCheckInTime').textContent = '-';
+            }
+        }
+
+        // Update timeline chart
+        function updateTimeline() {
+            const checkedInParticipants = participants.filter(p => p.checkedIn && p.checkedInAt);
+            if (checkedInParticipants.length === 0) {
+                document.getElementById('timelineBars').innerHTML = '<div class="no-data">No check-ins yet</div>';
+                return;
+            }
+
+            // Group by hour
+            const hourlyData = {};
+            let minHour = 24, maxHour = 0;
+
+            checkedInParticipants.forEach(p => {
+                const time = new Date(p.checkedInAt);
+                const hour = time.getHours();
+                hourlyData[hour] = (hourlyData[hour] || 0) + 1;
+                minHour = Math.min(minHour, hour);
+                maxHour = Math.max(maxHour, hour);
+            });
+
+            // Find peak hour
+            let peakHour = -1;
+            let peakCount = 0;
+            Object.entries(hourlyData).forEach(([hour, count]) => {
+                if (count > peakCount) {
+                    peakCount = count;
+                    peakHour = parseInt(hour);
+                }
+            });
+
+            if (peakHour >= 0) {
+                document.getElementById('peakHour').textContent = 
+                    `${peakHour.toString().padStart(2, '0')}:00`;
+                
+                // Update peak hours info
+                const sortedHours = Object.entries(hourlyData)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 3);
+                
+                document.getElementById('peakHoursInfo').style.display = 'block';
+                sortedHours.forEach((entry, index) => {
+                    const hour = parseInt(entry[0]);
+                    const count = entry[1];
+                    document.getElementById(`peakInfo${index + 1}`).textContent = 
+                        `${hour.toString().padStart(2, '0')}:00 - ${(hour + 1).toString().padStart(2, '0')}:00: ${count} check-ins`;
+                });
+            }
+
+            // Create bars
+            const barsContainer = document.getElementById('timelineBars');
+            const labelsContainer = document.getElementById('timeLabels');
+            barsContainer.innerHTML = '';
+            labelsContainer.innerHTML = '';
+
+            const maxCount = Math.max(...Object.values(hourlyData));
+
+            for (let h = minHour; h <= maxHour; h++) {
+                const count = hourlyData[h] || 0;
+                const height = count > 0 ? (count / maxCount) * 100 : 0;
+                
+                const bar = document.createElement('div');
+                bar.className = 'time-bar';
+                bar.style.height = `${height}%`;
+                bar.innerHTML = `<span class="tooltip">${count} check-ins</span>`;
+                barsContainer.appendChild(bar);
+
+                const label = document.createElement('div');
+                label.className = 'time-label';
+                label.textContent = `${h.toString().padStart(2, '0')}:00`;
+                labelsContainer.appendChild(label);
+            }
+        }
+
+        // Display participants
+        function displayParticipants() {
+            const tbody = document.getElementById('participantsTableBody');
+            
+            if (participants.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="no-data">No participants found</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = participants.map((p, index) => {
+                let checkInTime = '-';
+                let duration = '-';
+                
+                if (p.checkedIn && p.checkedInAt) {
+                    const time = new Date(p.checkedInAt);
+                    checkInTime = time.toLocaleString();
+                    
+                    // Calculate duration since event start
+                    if (eventStartTime) {
+                        const diff = time - eventStartTime;
+                        if (diff > 0) {
+                            const hours = Math.floor(diff / (1000 * 60 * 60));
+                            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                            duration = hours > 0 ? 
+                                `${hours}h ${minutes}m after start` : 
+                                `${minutes}m after start`;
+                        } else {
+                            duration = 'Early arrival';
+                        }
+                    }
+                }
+
+                return `
+                    <tr data-status="${p.checkedIn ? 'checked' : 'not-checked'}" 
+                        data-vip="${p.vip ? 'vip' : 'regular'}"
+                        data-name="${p.name.toLowerCase()}"
+                        data-company="${(p.company || '').toLowerCase()}">
+                        <td>${index + 1}</td>
+                        <td>
+                            ${p.name}
+                            ${p.vip ? '<span class="vip-badge">VIP</span>' : ''}
+                        </td>
+                        <td>${p.company || '-'}</td>
+                        <td>${p.table ? `Table ${p.table}` : '-'}</td>
+                        <td>
+                            <span class="check-status ${p.checkedIn ? 'checked' : 'not-checked'}">
+                                ${p.checkedIn ? '✓ Checked In' : 'Not Checked'}
+                            </span>
+                        </td>
+                        <td>${checkInTime}</td>
+                        <td>${duration}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Filter table
+        function filterTable() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+            const vipFilter = document.getElementById('vipFilter').value;
+            
+            const rows = document.querySelectorAll('#participantsTableBody tr');
+            
+            rows.forEach(row => {
+                if (row.querySelector('.no-data')) return;
+                
+                const name = row.getAttribute('data-name') || '';
+                const company = row.getAttribute('data-company') || '';
+                const status = row.getAttribute('data-status');
+                const vip = row.getAttribute('data-vip');
+                
+                let show = true;
+                
+                // Search filter
+                if (searchTerm && !name.includes(searchTerm) && !company.includes(searchTerm)) {
+                    show = false;
+                }
+                
+                // Status filter
+                if (statusFilter !== 'all' && status !== statusFilter) {
+                    show = false;
+                }
+                
+                // VIP filter
+                if (vipFilter !== 'all' && vip !== vipFilter) {
+                    show = false;
+                }
+                
+                row.style.display = show ? '' : 'none';
+            });
+        }
+
+        // Sort table
+        function sortTable() {
+            const sortBy = document.getElementById('sortBy').value;
+            
+            participants.sort((a, b) => {
+                switch (sortBy) {
+                    case 'name':
+                        return a.name.localeCompare(b.name);
+                    case 'time':
+                        if (!a.checkedInAt) return 1;
+                        if (!b.checkedInAt) return -1;
+                        return new Date(a.checkedInAt) - new Date(b.checkedInAt);
+                    case 'company':
+                        return (a.company || '').localeCompare(b.company || '');
+                    case 'table':
+                        return (a.table || 999) - (b.table || 999);
+                    default:
+                        return 0;
+                }
+            });
+            
+            displayParticipants();
+            filterTable();
+        }
+
+        // Export CSV
+        function exportCSV() {
+            let csv = 'Name,Company,VIP,Table,Status,Check-in Time\n';
+            
+            participants.forEach(p => {
+                const checkInTime = p.checkedIn && p.checkedInAt ? 
+                    new Date(p.checkedInAt).toLocaleString() : '';
+                csv += `"${p.name}","${p.company || ''}","${p.vip ? 'Yes' : 'No'}","${p.table || ''}","${p.checkedIn ? 'Checked In' : 'Not Checked'}","${checkInTime}"\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `checkin-report-${currentEventId}-${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Refresh data
+        async function refreshData() {
+            const btn = document.querySelector('.refresh-btn');
+            btn.classList.add('loading');
+            await loadData();
+            btn.classList.remove('loading');
+        }
+
+        // Update last update time
+        function updateLastUpdate() {
+            const now = new Date();
+            document.getElementById('lastUpdate').textContent = 
+                `Last updated: ${now.toLocaleTimeString()}`;
+        }
+
+        // Go back
+        function goBack() {
+            window.location.href = `event-manage.html?id=${currentEventId}`;
+        }
+    </script>
+</body>
+</html>

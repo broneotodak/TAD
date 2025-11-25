@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check-in QR Code</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            background: var(--dark-bg);
+        }
+
+        .qr-container {
+            text-align: center;
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 20px;
+            padding: 60px;
+            max-width: 800px;
+            width: 100%;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .event-logo {
+            width: 150px;
+            height: 150px;
+            margin: 0 auto 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            font-size: 4rem;
+        }
+
+        .event-name {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+        }
+
+        .event-details {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+        }
+
+        .qr-wrapper {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            display: inline-block;
+            margin: 20px auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        #qrcode {
+            display: flex;
+            justify-content: center;
+        }
+
+        #qrcode canvas,
+        #qrcode img {
+            border-radius: 10px;
+        }
+
+        .instruction-text {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin: 30px 0 15px;
+            color: var(--text-primary);
+        }
+
+        .instruction-steps {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            line-height: 1.8;
+            margin: 20px 0;
+        }
+
+        .url-display {
+            background: var(--dark-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin: 30px auto;
+            font-family: monospace;
+            font-size: 1rem;
+            color: var(--text-primary);
+            word-break: break-all;
+            max-width: 500px;
+        }
+
+        .back-link {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 15px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .back-link:hover {
+            color: var(--text-primary);
+            border-color: var(--primary-color);
+        }
+
+        .loading {
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+            padding: 100px 20px;
+        }
+
+        .spinner {
+            border: 3px solid var(--border-color);
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            border-color: var(--primary-color);
+        }
+
+        /* Print styles */
+        @media print {
+            body {
+                background: white;
+            }
+
+            .back-link,
+            .theme-toggle,
+            .instruction-steps,
+            .url-display {
+                display: none !important;
+            }
+
+            .qr-container {
+                border: none;
+                box-shadow: none;
+                padding: 20px;
+            }
+
+            .event-name {
+                color: black;
+            }
+
+            .instruction-text {
+                color: black;
+            }
+        }
+
+        /* Fullscreen mode */
+        .fullscreen-mode {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--dark-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .fullscreen-mode .qr-container {
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow: auto;
+        }
+
+        .fullscreen-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 10000;
+        }
+
+        .fullscreen-toggle:hover {
+            border-color: var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+    <a href="#" class="back-link" onclick="goBack()">← Back to Admin</a>
+    <button onclick="toggleTheme()" class="theme-toggle" title="Toggle theme">🌓</button>
+    <button onclick="toggleFullscreen()" class="fullscreen-toggle">⛶ Fullscreen</button>
+
+    <div class="qr-container" id="qrContainer">
+        <div class="loading" id="loadingSection">
+            <div class="spinner"></div>
+            <p>Loading event details...</p>
+        </div>
+
+        <div id="qrSection" style="display: none;">
+            <div class="event-logo">🎯</div>
+            
+            <h1 class="event-name" id="eventName">Event Name</h1>
+            
+            <div class="event-details">
+                <div id="eventDate"></div>
+                <div id="eventVenue"></div>
+            </div>
+
+            <div class="qr-wrapper">
+                <div id="qrcode"></div>
+            </div>
+
+            <div class="instruction-text">Scan to Check-In</div>
+            
+            <div class="instruction-steps">
+                <div>1. Open your phone camera</div>
+                <div>2. Scan the QR code</div>
+                <div>3. Search for your name</div>
+                <div>4. Confirm check-in</div>
+            </div>
+
+            <div class="url-display" id="urlDisplay"></div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        let currentEventId = null;
+        let currentEvent = null;
+        let isFullscreen = false;
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Get event ID from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            currentEventId = urlParams.get('event');
+
+            if (!currentEventId) {
+                showError('No event ID provided');
+                return;
+            }
+
+            // Load theme
+            loadTheme();
+
+            // Load event details and generate QR
+            await loadEventAndGenerateQR();
+        });
+
+        // Load theme
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        }
+
+        // Toggle theme
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+
+        // Load event and generate QR
+        async function loadEventAndGenerateQR() {
+            try {
+                // Fetch event details
+                const response = await fetch(`/api/get-event?id=${currentEventId}`);
+                const result = await response.json();
+
+                if (!result.success) {
+                    throw new Error('Failed to load event details');
+                }
+
+                currentEvent = result.event;
+                displayEventDetails();
+                generateQRCode();
+
+                // Hide loading, show QR
+                document.getElementById('loadingSection').style.display = 'none';
+                document.getElementById('qrSection').style.display = 'block';
+
+            } catch (error) {
+                console.error('Error loading event:', error);
+                showError('Failed to load event details');
+            }
+        }
+
+        // Display event details
+        function displayEventDetails() {
+            if (!currentEvent) return;
+
+            // Event name
+            document.getElementById('eventName').textContent = currentEvent.name || 'Event Check-in';
+
+            // Event date
+            if (currentEvent.date) {
+                const date = new Date(currentEvent.date);
+                const dateStr = date.toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                });
+                document.getElementById('eventDate').textContent = dateStr;
+            }
+
+            // Event venue
+            if (currentEvent.venue) {
+                document.getElementById('eventVenue').textContent = `📍 ${currentEvent.venue}`;
+            }
+
+            // Update event logo based on type
+            const logoElement = document.querySelector('.event-logo');
+            const eventTypeIcons = {
+                'Annual Dinner': '🍽️',
+                'Conference': '🎤',
+                'Workshop': '🛠️',
+                'Seminar': '📚',
+                'Networking': '🤝',
+                'Other': '🎭'
+            };
+            logoElement.textContent = eventTypeIcons[currentEvent.eventType] || '🎯';
+        }
+
+        // Generate QR Code
+        function generateQRCode() {
+            const qrcodeDiv = document.getElementById('qrcode');
+            
+            // Clear previous QR code
+            qrcodeDiv.innerHTML = '';
+            
+            // Generate check-in URL
+            const baseUrl = window.location.origin;
+            const checkinUrl = `${baseUrl}/checkin.html?event=${currentEventId}&qr=true`;
+            
+            // Display URL
+            document.getElementById('urlDisplay').textContent = checkinUrl;
+            
+            // Generate QR code with high quality
+            new QRCode(qrcodeDiv, {
+                text: checkinUrl,
+                width: 300,
+                height: 300,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+
+        // Show error message
+        function showError(message) {
+            const container = document.getElementById('qrContainer');
+            container.innerHTML = `
+                <div class="loading">
+                    <h2 style="color: var(--danger-color);">⚠️ Error</h2>
+                    <p>${message}</p>
+                    <button onclick="goBack()" class="btn-primary" style="margin-top: 20px;">Back to Admin</button>
+                </div>
+            `;
+        }
+
+        // Go back to admin
+        function goBack() {
+            if (currentEventId) {
+                window.location.href = `event-manage.html?id=${currentEventId}`;
+            } else {
+                window.location.href = 'admin-dashboard.html';
+            }
+        }
+
+        // Toggle fullscreen
+        function toggleFullscreen() {
+            if (!isFullscreen) {
+                // Enter fullscreen
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen();
+                } else if (document.documentElement.mozRequestFullScreen) {
+                    document.documentElement.mozRequestFullScreen();
+                } else if (document.documentElement.webkitRequestFullscreen) {
+                    document.documentElement.webkitRequestFullscreen();
+                } else if (document.documentElement.msRequestFullscreen) {
+                    document.documentElement.msRequestFullscreen();
+                }
+                document.body.classList.add('fullscreen-mode');
+                isFullscreen = true;
+            } else {
+                // Exit fullscreen
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.mozCancelFullScreen) {
+                    document.mozCancelFullScreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                }
+                document.body.classList.remove('fullscreen-mode');
+                isFullscreen = false;
+            }
+        }
+
+        // Listen for fullscreen changes
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement) {
+                document.body.classList.remove('fullscreen-mode');
+                isFullscreen = false;
+            }
+        });
+
+        // Auto-refresh every 5 minutes to keep QR fresh
+        setInterval(() => {
+            generateQRCode();
+        }, 5 * 60 * 1000);
+    </script>
+</body>
+</html>

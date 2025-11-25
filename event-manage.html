@@ -151,12 +151,6 @@
                 </div>
             </div>
 
-            <!-- QR Code Display -->
-            <div id="qrDisplay" style="display: none; text-align: center; padding: 30px;">
-                <div id="qrcode"></div>
-                <p style="margin-top: 20px;">Scan this QR code to access the check-in page</p>
-                <button onclick="printQR()" class="btn-primary">🖨️ Print QR Code</button>
-            </div>
         </div>
     </div>
 
@@ -308,7 +302,8 @@
             
             // Always available actions
             if (features.attendance !== false) {
-                actionsHTML += '<button onclick="generateQRCode()" class="btn-success">📱 Generate Check-in QR</button>';
+                actionsHTML += '<button onclick="generateQRCode()" class="btn-success">📱 Display Check-in QR</button>';
+                actionsHTML += '<button onclick="viewCheckinReport()" class="btn-info">📊 Check-in Report</button>';
             }
             
             // Table-related actions
@@ -444,6 +439,7 @@
                         <span class="${p.checkedIn ? 'badge-success' : 'badge-secondary'}">
                             ${p.checkedIn ? '✓ Checked In' : 'Not Checked In'}
                         </span>
+                        ${p.checkedIn && p.checkedInAt ? `<br><small style="color: var(--text-secondary);">${new Date(p.checkedInAt).toLocaleString()}</small>` : ''}
                     </td>
                     <td>
                         <button onclick="editParticipant(${p.id})" class="btn-small">Edit</button>
@@ -674,38 +670,19 @@
             }
         }
 
-        // Generate QR Code
+        // Generate QR Code - redirect to QR display page
         function generateQRCode() {
-            const qrDisplay = document.getElementById('qrDisplay');
-            const qrcodeDiv = document.getElementById('qrcode');
-            
-            // Clear previous QR code
-            qrcodeDiv.innerHTML = '';
-            
-            // Generate check-in URL
-            const checkinUrl = `${window.location.origin}/checkin.html?event=${currentEventId}&qr=true`;
-            
-            // Generate QR code
-            new QRCode(qrcodeDiv, {
-                text: checkinUrl,
-                width: 256,
-                height: 256,
-                colorDark: '#000000',
-                colorLight: '#ffffff',
-                correctLevel: QRCode.CorrectLevel.H
-            });
-            
-            qrDisplay.style.display = 'block';
-        }
-
-        // Print QR Code
-        function printQR() {
-            window.print();
+            window.open(`qr-display.html?event=${currentEventId}`, '_blank');
         }
 
         // View lucky draw
         function viewLuckyDraw() {
             window.open(`lucky-draw.html?event=${currentEventId}`, '_blank');
+        }
+        
+        // View check-in report
+        function viewCheckinReport() {
+            window.open(`checkin-report.html?event=${currentEventId}`, '_blank');
         }
 
         // Export data
