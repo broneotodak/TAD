@@ -16,10 +16,10 @@
         <div class="checkin-container">
             <div class="checkin-card">
                 <div class="checkin-header">
-                    <h2>Welcome to Todak Annual Dinner 2025</h2>
-                    <h3 style="color: #cccccc; margin: 10px 0;">Dress to Kill</h3>
-                    <p style="margin-bottom: 5px;">📅 Monday, 8 December 2025 | ⏰ 6:00 PM - 11:00 PM</p>
-                    <p style="margin-bottom: 15px;">📍 DoubleTree by Hilton Putrajaya Lakeside</p>
+                    <h2 id="eventWelcome">Welcome to the Event</h2>
+                    <h3 id="eventTheme" style="color: #cccccc; margin: 10px 0; display: none;"></h3>
+                    <p id="eventDateTime" style="margin-bottom: 5px;"></p>
+                    <p id="eventVenue" style="margin-bottom: 15px;"></p>
                     <p>Please search and select your name to check in</p>
                     <div class="search-reminder">
                         ⚠️ <strong>IMPORTANT:</strong> Search for your <strong>NAME</strong> only (not company name)
@@ -40,16 +40,20 @@
                 <div id="tableAssignment" class="table-assignment" style="display: none;">
                     <div class="success-animation">✓</div>
                     <h2>Welcome, <span id="participantName"></span>!</h2>
-                    <div class="table-info">
-                        <div class="table-number">
-                            <span class="label">Your Table</span>
-                            <span class="number" id="tableNumber">-</span>
-                        </div>
-                    </div>
                     
-                    <div class="tablemates-section">
-                        <h3>Your Tablemates</h3>
-                        <div id="tablematesList" class="tablemates-list"></div>
+                    <!-- Table info only shown if tables feature is enabled -->
+                    <div id="tableInfoSection" style="display: none;">
+                        <div class="table-info">
+                            <div class="table-number">
+                                <span class="label">Your Table</span>
+                                <span class="number" id="tableNumber">-</span>
+                            </div>
+                        </div>
+                        
+                        <div class="tablemates-section">
+                            <h3>Your Tablemates</h3>
+                            <div id="tablematesList" class="tablemates-list"></div>
+                        </div>
                     </div>
 
                     <div class="checkin-actions">

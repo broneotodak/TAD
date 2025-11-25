@@ -35,20 +35,21 @@ async function loadEventDetails() {
             console.log('Loaded event:', currentEvent.name);
             
             // Update page with event details
-            const checkinHeader = document.querySelector('.checkin-header h2');
-            if (checkinHeader && currentEvent.name) {
-                checkinHeader.textContent = `Welcome to ${currentEvent.name}`;
+            const eventWelcome = document.getElementById('eventWelcome');
+            if (eventWelcome && currentEvent.name) {
+                eventWelcome.textContent = `Welcome to ${currentEvent.name}`;
             }
             
             // Update theme if exists
-            const themeElement = document.querySelector('.checkin-header h3');
+            const themeElement = document.getElementById('eventTheme');
             if (themeElement && currentEvent.theme) {
                 themeElement.textContent = currentEvent.theme;
+                themeElement.style.display = 'block';
             }
             
-            // Update date, time, venue
-            const detailElements = document.querySelectorAll('.checkin-header p');
-            if (detailElements.length > 0) {
+            // Update date and time
+            const dateTimeElement = document.getElementById('eventDateTime');
+            if (dateTimeElement) {
                 let dateText = '';
                 if (currentEvent.date) {
                     const date = new Date(currentEvent.date);
@@ -62,11 +63,13 @@ async function loadEventDetails() {
                 if (currentEvent.timeStart && currentEvent.timeEnd) {
                     dateText += ` | ⏰ ${currentEvent.timeStart} - ${currentEvent.timeEnd}`;
                 }
-                if (dateText) detailElements[0].textContent = dateText;
-                
-                if (currentEvent.venue && detailElements[1]) {
-                    detailElements[1].textContent = `📍 ${currentEvent.venue}`;
-                }
+                dateTimeElement.textContent = dateText;
+            }
+            
+            // Update venue
+            const venueElement = document.getElementById('eventVenue');
+            if (venueElement && currentEvent.venue) {
+                venueElement.textContent = `📍 ${currentEvent.venue}`;
             }
         }
     } catch (error) {
@@ -134,10 +137,23 @@ async function showCheckedInView(participant) {
     const successSection = document.getElementById('checkinSuccess');
     successSection.style.display = 'block';
     
-    // Update final display
-    document.getElementById('finalTableNumber').textContent = participant.table || 'Not Assigned';
+    // Check if tables feature is enabled for this event
+    const hasTablesFeature = currentEvent?.features?.tables !== false;
+    const finalTableSection = document.getElementById('finalTableSection');
+    const simpleSuccessSection = document.getElementById('simpleSuccessSection');
     
-    // Show tablemates
+    if (hasTablesFeature && participant.table) {
+        // Show table info
+        if (finalTableSection) finalTableSection.style.display = 'block';
+        if (simpleSuccessSection) simpleSuccessSection.style.display = 'none';
+        document.getElementById('finalTableNumber').textContent = participant.table || 'Not Assigned';
+    } else {
+        // Show simple success message for events without tables
+        if (finalTableSection) finalTableSection.style.display = 'none';
+        if (simpleSuccessSection) simpleSuccessSection.style.display = 'block';
+    }
+    
+    // Show tablemates (only if we have table feature and final tablemates list exists)
     const finalTablematesList = document.getElementById('finalTablematesList');
     if (!participant.table) {
         finalTablematesList.innerHTML = '<p class="no-tablemates">No table assigned yet</p>';
@@ -273,10 +289,21 @@ function selectParticipant(id) {
     assignmentSection.style.display = 'block';
     
     document.getElementById('participantName').textContent = selectedParticipant.name;
-    document.getElementById('tableNumber').textContent = selectedParticipant.table || 'Not Assigned';
     
-    // Show tablemates
-    showTablemates();
+    // Check if tables feature is enabled for this event
+    const hasTablesFeature = currentEvent?.features?.tables !== false;
+    const tableInfoSection = document.getElementById('tableInfoSection');
+    
+    if (hasTablesFeature && selectedParticipant.table) {
+        // Show table info
+        if (tableInfoSection) tableInfoSection.style.display = 'block';
+        document.getElementById('tableNumber').textContent = selectedParticipant.table || 'Not Assigned';
+        // Show tablemates
+        showTablemates();
+    } else {
+        // Hide table info for events without tables feature
+        if (tableInfoSection) tableInfoSection.style.display = 'none';
+    }
 }
 
 function showTablemates() {
@@ -366,8 +393,37 @@ function updateConfigStatus() {
 function clearUserSession() {
     console.log('Clearing user session');
     localStorage.removeItem('userCheckedInId');
+    localStorage.removeItem(`userCheckedInId_event_${currentEventId}`);
     
     // Reload page to show search interface
     window.location.reload();
+}
+
+// View event details page
+function viewEventDetails() {
+    if (selectedParticipant && currentEventId) {
+        window.location.href = `event-details.html?event=${currentEventId}&participant=${selectedParticipant.id}`;
+    }
+}
+
+// Check in another guest
+function checkInAnother() {
+    // Clear selected participant but keep session for current user
+    selectedParticipant = null;
+    
+    // Reset UI to search view
+    document.getElementById('checkinSuccess').style.display = 'none';
+    document.getElementById('tableAssignment').style.display = 'none';
+    document.getElementById('searchResults').style.display = 'block';
+    document.getElementById('participantSearch').style.display = 'block';
+    document.querySelector('.checkin-header').style.display = 'block';
+    
+    // Clear search and focus
+    document.getElementById('participantSearch').value = '';
+    document.getElementById('participantSearch').focus();
+    document.getElementById('searchResults').innerHTML = '';
+    
+    // Reload data to get latest updates
+    loadFromDatabase();
 }
 
