@@ -307,7 +307,7 @@ function skipParticipants() {
 }
 
 // Create event
-async function createEvent() {
+async function createNewEvent() {
     try {
         // Save final step data
         saveStepData(currentStep);
