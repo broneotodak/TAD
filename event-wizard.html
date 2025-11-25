@@ -587,13 +587,232 @@
                         <div class="spinner"></div>
                         <p>AI is extracting participant data...</p>
                     </div>
-                </div>
-            </div>
+                    border-top: 3px solid var(--primary-color);
+                    border-radius: 50%;
+                    width: 50px;
+                    height: 50px;
+                    animation: spin 1s linear infinite;
+                    margin: 0 auto 20px;
+                    }
 
-            <!-- Wizard Actions -->
-            <div class="wizard-actions">
-                <button class="btn-wizard btn-back" onclick="previousStep()" id="btnBack" style="display: none;">
-                    ← Back
-</body>
+                    @keyframes spin {
+                    0% {
+                    transform: rotate(0deg);
+                    }
+
+                    100% {
+                    transform: rotate(360deg);
+                    }
+                    }
+                    </style>
+                    </head>
+
+                    <body>
+                        <div class="container wizard-container">
+                            <div class="header">
+                                <a href="admin-dashboard.html" class="back-btn">← Back to Dashboard</a>
+                                <h1>Create New Event</h1>
+                                <div></div>
+                            </div>
+
+                            <div class="wizard-header">
+                                <h1>Event Creation Wizard</h1>
+                                <p>Follow the steps to create your event</p>
+                            </div>
+
+                            <div class="progress-bar">
+                                <div class="progress-line" id="progressLine"></div>
+                                <div class="progress-step active" data-step="1">
+                                    <div class="progress-step-circle">1</div>
+                                    <div class="progress-step-label">Event Details</div>
+                                </div>
+                                <div class="progress-step" data-step="2">
+                                    <div class="progress-step-circle">2</div>
+                                    <div class="progress-step-label">Event Type</div>
+                                </div>
+                                <div class="progress-step" data-step="3">
+                                    <div class="progress-step-circle">3</div>
+                                    <div class="progress-step-label">Features</div>
+                                </div>
+                                <div class="progress-step" data-step="4">
+                                    <div class="progress-step-circle">4</div>
+                                    <div class="progress-step-label">Participants</div>
+                                </div>
+                            </div>
+
+                            <div class="wizard-content">
+                                <!-- Step 1: Event Details -->
+                                <div class="wizard-step active" data-step="1">
+                                    <h2 class="step-title">Event Details</h2>
+                                    <p class="step-description">Enter the basic information about your event</p>
+
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label>Event Name *</label>
+                                            <input type="text" id="eventName" placeholder="e.g., Annual Dinner 2025"
+                                                required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Event Date *</label>
+                                            <input type="date" id="eventDate" required>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label>Venue</label>
+                                            <input type="text" id="eventVenue" placeholder="e.g., DoubleTree by Hilton">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Theme</label>
+                                            <input type="text" id="eventTheme" placeholder="e.g., Dress to Kill">
+                                        </div>
+                                    </div>
+
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label>Start Time</label>
+                                            <input type="time" id="eventTimeStart">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>End Time</label>
+                                            <input type="time" id="eventTimeEnd">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Step 2: Event Type -->
+                                <div class="wizard-step" data-step="2">
+                                    <h2 class="step-title">Select Event Type</h2>
+                                    <p class="step-description">Choose the type of event you're organizing</p>
+
+                                    <div class="event-type-grid">
+                                        <div class="event-type-option" onclick="selectEventType('Annual Dinner')">
+                                            <div class="event-type-icon">🍽️</div>
+                                            <div class="event-type-name">Annual Dinner</div>
+                                        </div>
+                                        <div class="event-type-option" onclick="selectEventType('Conference')">
+                                            <div class="event-type-icon">🎤</div>
+                                            <div class="event-type-name">Conference</div>
+                                        </div>
+                                        <div class="event-type-option" onclick="selectEventType('Workshop')">
+                                            <div class="event-type-icon">🛠️</div>
+                                            <div class="event-type-name">Workshop</div>
+                                        </div>
+                                        <div class="event-type-option" onclick="selectEventType('Seminar')">
+                                            <div class="event-type-icon">📚</div>
+                                            <div class="event-type-name">Seminar</div>
+                                        </div>
+                                        <div class="event-type-option" onclick="selectEventType('Networking')">
+                                            <div class="event-type-icon">🤝</div>
+                                            <div class="event-type-name">Networking</div>
+                                        </div>
+                                        <div class="event-type-option" onclick="selectEventType('Other')">
+                                            <div class="event-type-icon">🎭</div>
+                                            <div class="event-type-name">Other</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Step 3: Features -->
+                                <div class="wizard-step" data-step="3">
+                                    <h2 class="step-title">Select Features</h2>
+                                    <p class="step-description">Choose which features you want to enable for this event
+                                    </p>
+
+                                    <div class="features-grid">
+                                        <div class="feature-toggle active" onclick="toggleFeature('attendance')">
+                                            <div class="feature-info">
+                                                <div class="feature-title">✅ Attendance Tracking</div>
+                                                <div class="feature-description">Track who has checked in to your event
+                                                </div>
+                                            </div>
+                                            <div class="toggle-switch active" data-feature="attendance">
+                                                <div class="toggle-slider"></div>
+                                            </div>
+                                        </div>
+
+                                        <div class="feature-toggle active" onclick="toggleFeature('tables')">
+                                            <div class="feature-info">
+                                                <div class="feature-title">🪑 Table Assignment</div>
+                                                <div class="feature-description">Assign participants to specific tables
+                                                </div>
+                                            </div>
+                                            <div class="toggle-switch active" data-feature="tables">
+                                                <div class="toggle-slider"></div>
+                                            </div>
+                                        </div>
+
+                                        <div class="feature-toggle active" onclick="toggleFeature('luckyDraw')">
+                                            <div class="feature-info">
+                                                <div class="feature-title">🎰 Lucky Draw</div>
+                                                <div class="feature-description">Run lucky draw for checked-in
+                                                    participants</div>
+                                            </div>
+                                            <div class="toggle-switch active" data-feature="luckyDraw">
+                                                <div class="toggle-slider"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Step 4: Participants -->
+                                <div class="wizard-step" data-step="4">
+                                    <h2 class="step-title">Add Participants</h2>
+                                    <p class="step-description">Upload a participant list or add them manually later</p>
+
+                                    <div id="uploadSection">
+                                        <div class="upload-area" id="uploadArea"
+                                            onclick="document.getElementById('fileInput').click()">
+                                            <div class="upload-icon">📤</div>
+                                            <div class="upload-text">Drag & Drop your file here</div>
+                                            <div class="upload-hint">or click to browse (PDF, CSV, Excel supported)
+                                            </div>
+                                        </div>
+                                        <input type="file" id="fileInput" class="file-input"
+                                            accept=".pdf,.csv,.xlsx,.xls" onchange="handleFileUpload(event)">
+
+                                        <div class="or-divider">
+                                            <span>OR</span>
+                                        </div>
+
+                                        <div class="manual-add-section">
+                                            <button class="btn-secondary" onclick="skipParticipants()">Skip for
+                                                Now</button>
+                                            <p
+                                                style="color: var(--text-secondary); margin-top: 10px; font-size: 0.9rem;">
+                                                You can add participants manually later from the event management page
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div id="processingSection" style="display: none;">
+                                        <div class="processing">
+                                            <div class="spinner"></div>
+                                            <p>AI is extracting participant data...</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Wizard Actions -->
+                                <div class="wizard-actions">
+                                    <button class="btn-wizard btn-back" onclick="previousStep()" id="btnBack"
+                                        style="display: none;">
+                                        ← Back
+                                    </button>
+                                    <div></div>
+                                    <button class="btn-wizard btn-next" onclick="nextStep()" id="btnNext">
+                                        Next →
+                                    </button>
+                                    <button class="btn-wizard btn-create" onclick="createNewEvent()" id="btnCreate"
+                                        style="display: none;">
+                                        Create Event
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <script src="js/event-wizard.js"></script>
+                    </body>
 
 </html>
