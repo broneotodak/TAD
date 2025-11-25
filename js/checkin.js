@@ -1,48 +1,118 @@
 // Check-in JavaScript
 let participants = [];
 let selectedParticipant = null;
+let currentEventId = null;
+let currentEvent = null;
 
-// Check if user already checked in (restore session)
+// Get event ID from URL
+const urlParams = new URLSearchParams(window.location.search);
+currentEventId = urlParams.get('event');
+
+// Check if user already checked in (restore session) - now event specific
 function checkExistingSession() {
-    const sessionId = localStorage.getItem('userCheckedInId');
+    const sessionKey = `userCheckedInId_event_${currentEventId}`;
+    const sessionId = localStorage.getItem(sessionKey);
     if (sessionId) {
-        console.log('Found existing check-in session:', sessionId);
+        console.log('Found existing check-in session for event', currentEventId, ':', sessionId);
         return parseInt(sessionId);
     }
     return null;
 }
 
-// Load data from database
-if (window.dbAPI) {
-    window.dbAPI.getParticipants().then(result => {
-        if (result.success && result.data) {
-            participants = result.data.participants;
-            console.log(`✅ Loaded ${participants.length} participants from database`);
+// Load event details
+async function loadEventDetails() {
+    if (!currentEventId) {
+        console.error('No event ID provided');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/get-event?id=${currentEventId}`);
+        const result = await response.json();
+        
+        if (result.success) {
+            currentEvent = result.event;
+            console.log('Loaded event:', currentEvent.name);
             
-            // Check for existing session
-            const sessionId = checkExistingSession();
-            if (sessionId) {
-                const participant = participants.find(p => p.id === sessionId);
-                if (participant && participant.checkedIn) {
-                    console.log('Restoring session for:', participant.name);
-                    showCheckedInView(participant);
-                    return;
-                } else {
-                    // Session invalid, clear it
-                    localStorage.removeItem('userCheckedInId');
+            // Update page with event details
+            const checkinHeader = document.querySelector('.checkin-header h2');
+            if (checkinHeader && currentEvent.name) {
+                checkinHeader.textContent = `Welcome to ${currentEvent.name}`;
+            }
+            
+            // Update theme if exists
+            const themeElement = document.querySelector('.checkin-header h3');
+            if (themeElement && currentEvent.theme) {
+                themeElement.textContent = currentEvent.theme;
+            }
+            
+            // Update date, time, venue
+            const detailElements = document.querySelectorAll('.checkin-header p');
+            if (detailElements.length > 0) {
+                let dateText = '';
+                if (currentEvent.date) {
+                    const date = new Date(currentEvent.date);
+                    dateText = `📅 ${date.toLocaleDateString('en-US', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                    })}`;
+                }
+                if (currentEvent.timeStart && currentEvent.timeEnd) {
+                    dateText += ` | ⏰ ${currentEvent.timeStart} - ${currentEvent.timeEnd}`;
+                }
+                if (dateText) detailElements[0].textContent = dateText;
+                
+                if (currentEvent.venue && detailElements[1]) {
+                    detailElements[1].textContent = `📍 ${currentEvent.venue}`;
                 }
             }
-        } else {
-            participants = [...attendanceData];
-            console.log('⚠️ Using default data');
         }
-        updateStats();
-        updateConfigStatus();
-    }).catch(error => {
-        console.error('Failed to load data:', error);
-        participants = [...attendanceData];
-        updateStats();
-        updateConfigStatus();
+    } catch (error) {
+        console.error('Failed to load event details:', error);
+    }
+}
+
+// Load data from database
+if (window.dbAPI) {
+    // First load event details
+    loadEventDetails().then(() => {
+        // Then load participants for this specific event
+        const apiUrl = currentEventId ? 
+            `/api/get-participants?eventId=${currentEventId}` : 
+            '/api/get-participants';
+            
+        fetch(apiUrl).then(response => response.json()).then(result => {
+            if (result.success) {
+                participants = result.participants || [];
+                console.log(`✅ Loaded ${participants.length} participants for event ${currentEventId}`);
+                
+                // Check for existing session
+                const sessionId = checkExistingSession();
+                if (sessionId) {
+                    const participant = participants.find(p => p.id === sessionId);
+                    if (participant && participant.checkedIn) {
+                        console.log('Restoring session for:', participant.name);
+                        showCheckedInView(participant);
+                        return;
+                    } else {
+                        // Session invalid, clear it
+                        localStorage.removeItem(`userCheckedInId_event_${currentEventId}`);
+                    }
+                }
+            } else {
+                console.error('Failed to load participants:', result.error);
+                participants = [];
+            }
+            updateStats();
+            updateConfigStatus();
+        }).catch(error => {
+            console.error('Failed to load data:', error);
+            participants = [];
+            updateStats();
+            updateConfigStatus();
+        });
     });
 } else {
     loadData();
@@ -252,9 +322,10 @@ async function confirmCheckin() {
         }
     }
     
-    // Save user session to remember they checked in
-    localStorage.setItem('userCheckedInId', selectedParticipant.id.toString());
-    console.log('Session saved for user:', selectedParticipant.id);
+    // Save user session to remember they checked in (event-specific)
+    const sessionKey = `userCheckedInId_event_${currentEventId}`;
+    localStorage.setItem(sessionKey, selectedParticipant.id.toString());
+    console.log('Session saved for user:', selectedParticipant.id, 'for event:', currentEventId);
     
     // Save locally as backup
     saveData();

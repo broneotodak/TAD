@@ -607,17 +607,88 @@
             }
         }
 
-        // Edit participant
+        // Edit participant - with proper modal
         async function editParticipant(id) {
             const participant = participants.find(p => p.id === id);
             if (!participant) return;
 
-            const name = prompt('Enter participant name:', participant.name);
-            if (!name) return;
+            // Create edit modal
+            const modalHtml = `
+                <div id="editModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+                    <div style="background: var(--card-bg); border: 2px solid var(--border-color); border-radius: 15px; padding: 30px; max-width: 500px; width: 90%;">
+                        <h2 style="margin-bottom: 20px;">Edit Participant</h2>
+                        <form id="editForm" onsubmit="return false;">
+                            <div class="form-group" style="margin-bottom: 15px;">
+                                <label style="display: block; margin-bottom: 5px;">Name *</label>
+                                <input type="text" id="editName" value="${participant.name}" required style="width: 100%; padding: 8px; background: var(--dark-bg); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary);">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 15px;">
+                                <label style="display: block; margin-bottom: 5px;">Company</label>
+                                <input type="text" id="editCompany" value="${participant.company || ''}" style="width: 100%; padding: 8px; background: var(--dark-bg); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary);">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 15px;">
+                                <label style="display: block; margin-bottom: 5px;">
+                                    <input type="checkbox" id="editVIP" ${participant.vip ? 'checked' : ''} style="margin-right: 8px;">
+                                    VIP Guest
+                                </label>
+                            </div>
+                            ${currentEvent?.features?.tables !== false ? `
+                            <div class="form-group" style="margin-bottom: 15px;">
+                                <label style="display: block; margin-bottom: 5px;">Table Number</label>
+                                <select id="editTable" style="width: 100%; padding: 8px; background: var(--dark-bg); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary);">
+                                    <option value="">No Table</option>
+                                    ${tables.map(t => `
+                                        <option value="${t.number}" ${participant.table === t.number ? 'selected' : ''}>
+                                            Table ${t.number}
+                                        </option>
+                                    `).join('')}
+                                </select>
+                            </div>
+                            ` : ''}
+                            <div class="form-group" style="margin-bottom: 20px;">
+                                <label style="display: block; margin-bottom: 5px;">
+                                    <input type="checkbox" id="editCheckedIn" ${participant.checkedIn ? 'checked' : ''} style="margin-right: 8px;">
+                                    Checked In
+                                </label>
+                                ${participant.checkedIn && participant.checkedInAt ? 
+                                    `<small style="color: var(--text-secondary);">Checked in at: ${new Date(participant.checkedInAt).toLocaleString()}</small>` : ''}
+                            </div>
+                            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                                <button type="button" onclick="closeEditModal()" class="btn-secondary" style="padding: 8px 20px;">Cancel</button>
+                                <button type="button" onclick="saveEditParticipant(${id})" class="btn-primary" style="padding: 8px 20px;">Save Changes</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
 
-            const company = prompt('Enter company name:', participant.company);
-            const isVIP = confirm(`Is this a VIP guest? (Currently: ${participant.vip ? 'Yes' : 'No'})`);
-
+            // Add modal to page
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            // Focus on name field
+            document.getElementById('editName').focus();
+        }
+        
+        // Close edit modal
+        function closeEditModal() {
+            const modal = document.getElementById('editModal');
+            if (modal) modal.remove();
+        }
+        
+        // Save edited participant
+        async function saveEditParticipant(id) {
+            const name = document.getElementById('editName').value.trim();
+            const company = document.getElementById('editCompany').value.trim();
+            const vip = document.getElementById('editVIP').checked;
+            const tableElement = document.getElementById('editTable');
+            const table = tableElement ? (tableElement.value ? parseInt(tableElement.value) : null) : null;
+            const checkedIn = document.getElementById('editCheckedIn').checked;
+            
+            if (!name) {
+                alert('Name is required');
+                return;
+            }
+            
             try {
                 const response = await fetch('/api/update-participant', {
                     method: 'POST',
@@ -626,22 +697,25 @@
                     },
                     body: JSON.stringify({
                         id: id,
-                        name: name.trim(),
-                        company: company?.trim() || '',
-                        vip: isVIP,
-                        table: participant.table
+                        name: name,
+                        company: company,
+                        vip: vip,
+                        table: table,
+                        checked_in: checkedIn
                     })
                 });
 
                 const result = await response.json();
                 if (result.success) {
+                    closeEditModal();
                     await loadFromDatabase();
+                    alert('✅ Participant updated successfully!');
                 } else {
                     throw new Error(result.error);
                 }
             } catch (error) {
                 console.error('Error updating participant:', error);
-                alert('Failed to update participant');
+                alert('Failed to update participant: ' + error.message);
             }
         }
 

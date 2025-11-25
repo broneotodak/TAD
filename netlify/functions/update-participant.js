@@ -7,7 +7,7 @@ export default async (req, context) => {
   }
 
   try {
-    const { id, name, company, vip, table } = await req.json();
+    const { id, name, company, vip, table, checked_in } = await req.json();
     const sql = neon(process.env.NETLIFY_DATABASE_URL);
     
     if (!id || !name) {
@@ -20,6 +20,24 @@ export default async (req, context) => {
       });
     }
 
+    // Build update query dynamically based on what fields are provided
+    let updateFields = {
+      name: name,
+      company: company || '',
+      vip: vip || false,
+      table_number: table || null,
+      updated_at: 'CURRENT_TIMESTAMP'
+    };
+    
+    // Only update checked_in if explicitly provided
+    if (checked_in !== undefined) {
+      updateFields.checked_in = checked_in;
+      // If checking in, set the timestamp
+      if (checked_in && !checked_in === false) {
+        updateFields.checked_in_at = 'CURRENT_TIMESTAMP';
+      }
+    }
+
     const result = await sql`
       UPDATE participants 
       SET 
@@ -27,6 +45,8 @@ export default async (req, context) => {
         company = ${company || ''},
         vip = ${vip || false},
         table_number = ${table || null},
+        checked_in = ${checked_in !== undefined ? checked_in : sql`checked_in`},
+        checked_in_at = ${checked_in === true ? sql`CURRENT_TIMESTAMP` : sql`checked_in_at`},
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ${id}
       RETURNING *
