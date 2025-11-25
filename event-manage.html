@@ -114,8 +114,8 @@
                             <tr>
                                 <th>Name</th>
                                 <th>Company</th>
-                                <th>VIP</th>
-                                <th>Table</th>
+                                <th id="vipHeader">VIP</th>
+                                <th id="tableHeader">Table</th>
                                 <th>Status</th>
                                 <th>Actions</th>
                             </tr>
@@ -346,6 +346,15 @@
             const filterVIP = document.getElementById('filterVIP').checked;
             const filterCheckedIn = document.getElementById('filterCheckedIn').checked;
 
+            // Check if tables feature is enabled
+            const hasTablesFeature = currentEvent?.features?.tables !== false;
+            
+            // Hide/show table column based on feature
+            const tableHeader = document.getElementById('tableHeader');
+            if (tableHeader) {
+                tableHeader.style.display = hasTablesFeature ? '' : 'none';
+            }
+
             let filtered = participants.filter(p => {
                 const matchesSearch = p.name.toLowerCase().includes(searchTerm) || 
                                      p.company.toLowerCase().includes(searchTerm);
@@ -359,6 +368,7 @@
                     <td>${p.name}</td>
                     <td>${p.company}</td>
                     <td>${p.vip ? '⭐ VIP' : ''}</td>
+                    ${hasTablesFeature ? `
                     <td>
                         <select onchange="updateParticipantTable(${p.id}, this.value)">
                             <option value="">No Table</option>
@@ -369,6 +379,7 @@
                             `).join('')}
                         </select>
                     </td>
+                    ` : '<td style="display:none;"></td>'}
                     <td>
                         <span class="${p.checkedIn ? 'badge-success' : 'badge-secondary'}">
                             ${p.checkedIn ? '✓ Checked In' : 'Not Checked In'}

@@ -52,12 +52,10 @@ export default async (req, context) => {
 
     return new Response(JSON.stringify({
       success: true,
-      data: {
-        eventId: parseInt(eventId),
-        participants,
-        tables,
-        lastUpdated: new Date().toISOString()
-      }
+      eventId: parseInt(eventId),
+      participants: participants || [],
+      tables: tables || [],
+      lastUpdated: new Date().toISOString()
     }), {
       status: 200,
       headers: {
