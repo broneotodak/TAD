@@ -20,37 +20,54 @@ export default async (req, context) => {
       });
     }
 
-    // Build update query dynamically based on what fields are provided
-    let updateFields = {
-      name: name,
-      company: company || '',
-      vip: vip || false,
-      table_number: table || null,
-      updated_at: 'CURRENT_TIMESTAMP'
-    };
+    let result;
     
-    // Only update checked_in if explicitly provided
+    // Handle checked_in update separately if provided
     if (checked_in !== undefined) {
-      updateFields.checked_in = checked_in;
-      // If checking in, set the timestamp
-      if (checked_in && !checked_in === false) {
-        updateFields.checked_in_at = 'CURRENT_TIMESTAMP';
+      if (checked_in === true) {
+        // If checking in, set both checked_in and timestamp
+        result = await sql`
+          UPDATE participants 
+          SET 
+            name = ${name},
+            company = ${company || ''},
+            vip = ${vip === true},
+            table_number = ${table || null},
+            checked_in = true,
+            checked_in_at = CURRENT_TIMESTAMP,
+            updated_at = CURRENT_TIMESTAMP
+          WHERE id = ${id}
+          RETURNING *
+        `;
+      } else {
+        // If unchecking, only update checked_in (preserve original check-in time)
+        result = await sql`
+          UPDATE participants 
+          SET 
+            name = ${name},
+            company = ${company || ''},
+            vip = ${vip === true},
+            table_number = ${table || null},
+            checked_in = false,
+            updated_at = CURRENT_TIMESTAMP
+          WHERE id = ${id}
+          RETURNING *
+        `;
       }
+    } else {
+      // Normal update without touching check-in status
+      result = await sql`
+        UPDATE participants 
+        SET 
+          name = ${name},
+          company = ${company || ''},
+          vip = ${vip === true},
+          table_number = ${table || null},
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = ${id}
+        RETURNING *
+      `;
     }
-
-    const result = await sql`
-      UPDATE participants 
-      SET 
-        name = ${name},
-        company = ${company || ''},
-        vip = ${vip || false},
-        table_number = ${table || null},
-        checked_in = ${checked_in !== undefined ? checked_in : sql`checked_in`},
-        checked_in_at = ${checked_in === true ? sql`CURRENT_TIMESTAMP` : sql`checked_in_at`},
-        updated_at = CURRENT_TIMESTAMP
-      WHERE id = ${id}
-      RETURNING *
-    `;
 
     if (result.length === 0) {
       return new Response(JSON.stringify({ 
