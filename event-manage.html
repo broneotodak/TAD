@@ -685,9 +685,10 @@
 
                 // Determine which API to use based on file type
                 const isCSV = file.name.toLowerCase().endsWith('.csv');
-                const apiEndpoint = isCSV ? '/api/parse-csv-participants' : '/api/upload-participants-ai';
+                // Use Todak-specific parser for CSV files
+                const apiEndpoint = isCSV ? '/api/parse-todak-csv' : '/api/upload-participants-ai';
                 
-                console.log(`Calling ${isCSV ? 'CSV parser' : 'AI extraction'} API...`);
+                console.log(`Calling ${isCSV ? 'Todak CSV parser' : 'AI extraction'} API...`);
                 const response = await fetch(apiEndpoint, {
                     method: 'POST',
                     headers: {

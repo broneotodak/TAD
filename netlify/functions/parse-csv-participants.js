@@ -45,6 +45,48 @@ export default async (req, context) => {
             // Simple CSV parsing (handles basic comma separation)
             const values = line.split(',').map(v => v.trim().replace(/^["']|["']$/g, ''));
             
+            // Special handling for your format where name and company are in same column
+            // Format: "Name Company,Sdn Bhd" should become Name and "Company Sdn Bhd"
+            if (nameIndex === 1 && values.length >= 3) {
+                // The name is in column 2, but it includes part of company name
+                const fullName = values[1]; // e.g., "Khairul Azlan Bin Zainal Ariffin Todak"
+                const companySuffix = values[2]; // e.g., "Holdings Sdn Bhd"
+                
+                // Split name from company (company usually starts with capital letter after personal name)
+                // Look for common company prefixes
+                const companyPrefixes = ['Todak', 'Holdings', 'Academy', 'Studios', 'Culture', 'Digitech', 
+                                        'Mybarber', 'Paygate', 'Sarcom', 'CG', 'Muscle', 'Tadika', 
+                                        'Lan', 'Kelab', '10 Camp'];
+                
+                let actualName = fullName;
+                let companyPrefix = '';
+                
+                for (const prefix of companyPrefixes) {
+                    const idx = fullName.lastIndexOf(' ' + prefix);
+                    if (idx > 0) {
+                        actualName = fullName.substring(0, idx).trim();
+                        companyPrefix = fullName.substring(idx + 1).trim();
+                        break;
+                    }
+                }
+                
+                // Build full company name
+                const fullCompany = companyPrefix && companySuffix ? 
+                    `${companyPrefix} ${companySuffix}` : 
+                    companySuffix || companyPrefix || '';
+                
+                const participant = {
+                    name: actualName,
+                    company: fullCompany,
+                    vip: false,
+                    table: null
+                };
+                
+                participants.push(participant);
+                continue;
+            }
+            
+            // Standard parsing for other formats
             const name = values[nameIndex];
             if (!name) continue;
 
