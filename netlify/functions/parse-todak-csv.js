@@ -50,58 +50,112 @@ export default async (req, context) => {
             const line = lines[i].trim();
             if (!line) continue;
 
-            // Split by comma
+            // Split by comma - be careful with commas in names
             const parts = line.split(',').map(p => p.trim());
             if (parts.length < 2) continue;
 
             const empNo = parts[0];
             
             // Handle the special format where name and company are mixed
-            // Format: "Name Todak,Company Suffix" or "Name Company,Suffix"
             let name = '';
             let company = '';
             
-            if (parts.length === 3) {
+            if (parts.length >= 3) {
                 // Format like: "TH006,Khairul Azlan Bin Zainal Ariffin Todak,Holdings Sdn Bhd"
+                // Or special teams like: "MLBB,(MAL) Name Kelab,Sukan Elektronik Todak"
                 const namePart = parts[1];
-                const companySuffix = parts[2];
+                const companySuffix = parts.slice(2).join(' '); // Join all remaining parts
                 
-                // Find where the company name starts
-                // Company usually starts with known prefixes
-                const companyPrefixes = ['Todak', 'Mybarber', 'Sarcom', 'CG', 'Muscle', 'Tadika', 
-                                        'Lan Todak', 'Kelab', '10 Camp'];
-                
-                let foundPrefix = '';
-                let nameEnd = namePart.length;
-                
-                for (const prefix of companyPrefixes) {
-                    const idx = namePart.lastIndexOf(' ' + prefix);
-                    if (idx > 0) {
-                        nameEnd = idx;
-                        foundPrefix = namePart.substring(idx + 1);
+                // Check for special prefixes in names (like team designations)
+                const specialPrefixes = ['(MAL)', '(Ladies)'];
+                let hasSpecialPrefix = false;
+                for (const prefix of specialPrefixes) {
+                    if (namePart.includes(prefix)) {
+                        hasSpecialPrefix = true;
                         break;
                     }
                 }
                 
-                name = namePart.substring(0, nameEnd).trim();
-                
-                // Build full company name
-                if (foundPrefix && companySuffix) {
-                    // Check if we have a known mapping
-                    if (companyMap[companySuffix]) {
-                        company = companyMap[companySuffix];
-                    } else {
-                        company = `${foundPrefix} ${companySuffix}`;
-                    }
-                } else if (companySuffix) {
+                if (hasSpecialPrefix) {
+                    // For special cases, the whole namePart is the name
+                    name = namePart;
                     company = companySuffix;
                 } else {
-                    company = foundPrefix;
+                    // Find where the company name starts
+                    const companyPrefixes = ['Todak', 'Mybarber', 'Sarcom', 'CG', 'Muscle', 'Tadika', 
+                                            'Lan Todak', 'Kelab', '10 Camp'];
+                    
+                    let foundPrefix = '';
+                    let nameEnd = namePart.length;
+                    
+                    for (const prefix of companyPrefixes) {
+                        const idx = namePart.lastIndexOf(' ' + prefix);
+                        if (idx > 0) {
+                            nameEnd = idx;
+                            foundPrefix = namePart.substring(idx + 1);
+                            break;
+                        }
+                    }
+                    
+                    name = namePart.substring(0, nameEnd).trim();
+                    
+                    // Build full company name
+                    if (foundPrefix && companySuffix) {
+                        company = `${foundPrefix} ${companySuffix}`;
+                    } else if (companySuffix) {
+                        company = companySuffix;
+                    } else {
+                        company = foundPrefix;
+                    }
                 }
             } else if (parts.length === 2) {
-                // Simple format: "Employee No,Name"
-                name = parts[1];
-                company = '';
+                // Simple format: "Employee No,Name" or "TeamName,PlayerName Company"
+                const secondPart = parts[1];
+                
+                // Check if this is a team/player entry
+                const teamPrefixes = ['Valorant', 'MLBB', 'Freefire', 'PUBGM', 'HOK', 'EFOOTBALL'];
+                if (teamPrefixes.includes(empNo)) {
+                    // This is a team entry - extract name and company
+                    const lastSpaceIdx = secondPart.lastIndexOf(' ');
+                    if (lastSpaceIdx > 0) {
+                        // Check if last word looks like a company
+                        const lastWord = secondPart.substring(lastSpaceIdx + 1);
+                        if (lastWord === 'Kelab' || lastWord === 'Todak' || lastWord.includes('Sdn')) {
+                            // Find where company starts (usually "Kelab Sukan Elektronik Todak")
+                            const companyStartWords = ['Kelab', 'Todak'];
+                            let companyStart = -1;
+                            for (const word of companyStartWords) {
+                                const idx = secondPart.indexOf(' ' + word);
+                                if (idx > 0) {
+                                    companyStart = idx + 1;
+                                    break;
+                                }
+                            }
+                            
+                            if (companyStart > 0) {
+                                name = secondPart.substring(0, companyStart - 1).trim();
+                                company = secondPart.substring(companyStart).trim();
+                            } else {
+                                name = secondPart;
+                                company = empNo; // Use team name as company
+                            }
+                        } else {
+                            name = secondPart;
+                            company = empNo; // Use team name as company
+                        }
+                    } else {
+                        name = secondPart;
+                        company = empNo; // Use team name as company
+                    }
+                } else if (empNo === '') {
+                    // Empty employee number - might be Todak Fusion entries
+                    name = secondPart;
+                    company = 'Todak Fusion Sdn Bhd';
+                } else {
+                    // Regular format
+                    name = secondPart;
+                    company = '';
+                }
             } else {
                 // Format with all parts separated
                 name = parts[1];
@@ -112,11 +166,16 @@ export default async (req, context) => {
             name = name.replace(/\s+/g, ' ').trim();
             company = company.replace(/\s+/g, ' ').trim();
             
-            // Skip if no name
-            if (!name || name === '') continue;
+            // Skip if no name or if it's just a number
+            if (!name || name === '' || /^\d+$/.test(name)) continue;
             
-            // Detect VIP status (you can customize this logic)
-            const isVIP = empNo.startsWith('TH0') && parseInt(empNo.substring(2)) <= 10;
+            // Clean up company names
+            if (company.includes('Sukan Elektronik Todak')) {
+                company = 'Kelab Sukan Elektronik Todak';
+            }
+            
+            // Detect VIP status (customize as needed)
+            const isVIP = empNo && empNo.startsWith('TH0') && parseInt(empNo.substring(2)) <= 10;
             
             participants.push({
                 name: name,

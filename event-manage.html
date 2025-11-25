@@ -281,13 +281,17 @@
         // Load participants from database
         async function loadFromDatabase() {
             try {
+                console.log('Loading participants for event:', currentEventId);
                 const response = await fetch(`/api/get-participants?eventId=${currentEventId}`);
                 const result = await response.json();
 
                 if (result.success) {
                     participants = result.participants || [];
                     tables = result.tables || [];
+                    console.log(`Loaded ${participants.length} participants from database`);
                     updateUI();
+                } else {
+                    console.error('Failed to load participants:', result);
                 }
             } catch (error) {
                 console.error('Error loading from database:', error);
@@ -718,6 +722,10 @@
                 console.log('API Result:', result);
 
                 if (result.success && result.participants && result.participants.length > 0) {
+                    console.log(`Adding ${result.participants.length} participants to database...`);
+                    console.log('Event ID:', currentEventId);
+                    console.log('Sample participants:', result.participants.slice(0, 3));
+                    
                     // Add participants to database
                     const addResponse = await fetch('/api/add-participants-bulk', {
                         method: 'POST',
@@ -730,13 +738,17 @@
                         })
                     });
 
+                    console.log('Add response status:', addResponse.status);
                     const addResult = await addResponse.json();
+                    console.log('Add result:', addResult);
                     
                     if (addResult.success) {
+                        console.log('Reloading data from database...');
                         await loadFromDatabase();
                         alert(`✅ Successfully added ${result.participants.length} participants!`);
                     } else {
-                        throw new Error(addResult.error);
+                        console.error('Failed to add participants:', addResult);
+                        throw new Error(addResult.error || 'Failed to add participants to database');
                     }
                 } else {
                     alert('No participants were extracted from the file. Please check the file format.');
