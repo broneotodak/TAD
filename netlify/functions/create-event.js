@@ -15,7 +15,9 @@ export default async (req, context) => {
             theme,
             timeStart,
             timeEnd,
-            features
+            features,
+            tentative,
+            menu
         } = await req.json();
 
         const sql = neon(process.env.NETLIFY_DATABASE_URL);
@@ -42,6 +44,8 @@ export default async (req, context) => {
         time_start,
         time_end,
         features,
+        tentative,
+        menu,
         is_active
       )
       VALUES (
@@ -53,6 +57,8 @@ export default async (req, context) => {
         ${timeStart || null},
         ${timeEnd || null},
         ${JSON.stringify(features || { attendance: true, tables: true, luckyDraw: true })},
+        ${tentative || null},
+        ${menu || null},
         true
       )
       RETURNING *
@@ -71,6 +77,8 @@ export default async (req, context) => {
                 timeStart: newEvent.time_start,
                 timeEnd: newEvent.time_end,
                 features: newEvent.features,
+                tentative: newEvent.tentative,
+                menu: newEvent.menu,
                 isActive: newEvent.is_active,
                 createdAt: newEvent.created_at
             }
