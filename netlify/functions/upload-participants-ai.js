@@ -9,10 +9,10 @@ export default async (req, context) => {
     try {
         const { eventId, fileContent, fileName } = await req.json();
 
-        if (!eventId || !fileContent) {
+        if (!fileContent) {
             return new Response(JSON.stringify({
                 success: false,
-                error: 'Event ID and file content are required'
+                error: 'File content is required'
             }), {
                 status: 400,
                 headers: { 'Content-Type': 'application/json' }
