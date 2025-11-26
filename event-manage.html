@@ -10,12 +10,22 @@
 <body>
     <div class="container">
         <div class="header">
-            <a href="admin-dashboard.html" class="back-btn">← Back to Dashboard</a>
-            <h1 id="eventTitle">Loading Event...</h1>
+            <div class="header-left">
+                <a href="admin-dashboard.html" class="back-btn">
+                    <span style="font-size: 1.2rem;">←</span> Back
+                </a>
+            </div>
+            <div class="header-title">
+                <h1 id="eventTitle">Loading Event...</h1>
+            </div>
             <div class="header-actions">
-                <button onclick="openEditEventModal()" class="btn-primary btn-small">✏️ Edit Event</button>
+                <button onclick="openEditEventModal()" class="btn-primary">
+                    <span>✏️</span> Edit
+                </button>
+                <button onclick="loadFromDatabase()" class="btn-secondary">
+                    <span>🔄</span> Refresh
+                </button>
                 <button onclick="toggleTheme()" class="theme-toggle" title="Toggle theme">🌓</button>
-                <button onclick="loadFromDatabase()" class="btn-secondary btn-small">🔄 Refresh</button>
                 <button onclick="logout()" class="logout-btn">Logout</button>
             </div>
         </div>
@@ -105,9 +115,13 @@
             <div class="admin-section">
                 <div class="section-header">
                     <h2>Participant Management</h2>
-                    <div>
-                        <button onclick="showUploadModal()" class="btn-primary" style="margin-right: 10px;">📤 Upload List</button>
-                        <button onclick="addNewParticipant()" class="btn-success">+ Add Participant</button>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="showUploadModal()" class="btn-primary">
+                            <span>📤</span> Upload List
+                        </button>
+                        <button onclick="addNewParticipant()" class="btn-success">
+                            <span>+</span> Add Participant
+                        </button>
                     </div>
                 </div>
                 <div class="search-bar">
