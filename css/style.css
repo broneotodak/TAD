@@ -171,6 +171,66 @@ body {
     animation: fadeIn 1.5s ease;
 }
 
+/* Login Section & Forms */
+.login-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 80vh;
+}
+
+.login-card {
+    background: var(--card-bg);
+    padding: 50px;
+    border-radius: 20px;
+    border: 2px solid var(--border-color);
+    max-width: 400px;
+    width: 100%;
+}
+
+.login-card h2 {
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-secondary);
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px;
+    background: var(--dark-bg);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.form-group textarea {
+    width: 100%;
+    padding: 12px;
+    background: var(--dark-bg);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-family: 'Inter', sans-serif;
+    resize: vertical;
+}
+
 /* Buttons - Standardized */
 .btn, .btn-primary, .btn-secondary, .btn-danger, .btn-success, .back-btn, .logout-btn {
     display: inline-flex;
