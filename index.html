@@ -103,6 +103,19 @@
             if (event.cardIconUrl) {
                 return `<img src="${event.cardIconUrl}" alt="${event.name}" onerror="this.parentElement.innerHTML='🎉'">`;
             }
+            
+            // Default icons based on type or name
+            const name = (event.name || '').toLowerCase();
+            const type = (event.eventType || '').toLowerCase();
+            
+            if (name.includes('dinner') || type.includes('dinner')) return '🍽️';
+            if (name.includes('townhall') || type.includes('townhall')) return '📢';
+            if (name.includes('meeting') || type.includes('meeting')) return '🤝';
+            if (name.includes('party') || type.includes('party')) return '🎉';
+            if (name.includes('hackathon') || type.includes('hackathon')) return '💻';
+            if (name.includes('workshop') || type.includes('workshop')) return '🛠️';
+            if (name.includes('sport') || type.includes('sport')) return '🏆';
+            
             return '🎉';
         }
 
@@ -135,7 +148,7 @@
                             </div>
                         </div>
                         <div class="event-actions">
-                            <a href="checkin.html?event=${event.id}" class="event-btn btn-primary-action">Check-in</a>
+                            <a href="qr-display.html?event=${event.id}" class="event-btn btn-primary-action">QR Check-in</a>
                             <a href="lucky-draw.html?event=${event.id}" class="event-btn btn-secondary-action">Lucky Draw</a>
                         </div>
                     </div>
@@ -157,7 +170,7 @@
                         </div>
                     </div>
                     <div class="event-actions">
-                        <a href="checkin.html?event=${event.id}" class="event-btn btn-primary-action">Check-in</a>
+                        <a href="qr-display.html?event=${event.id}" class="event-btn btn-primary-action">QR Check-in</a>
                         <a href="lucky-draw.html?event=${event.id}" class="event-btn btn-secondary-action">Lucky Draw</a>
                     </div>
                 </div>
