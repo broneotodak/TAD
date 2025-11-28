@@ -46,8 +46,8 @@ export default async (req, context) => {
 
     for (const t of tables) {
       await sql`
-        INSERT INTO tables_config (table_number, seats, event_id)
-        VALUES (${t.number}, ${t.seats}, ${eventId})
+        INSERT INTO tables_config (table_number, seats, event_id, is_vip)
+        VALUES (${t.number}, ${t.seats}, ${eventId}, ${t.isVip || false})
       `;
     }
 

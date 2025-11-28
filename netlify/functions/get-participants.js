@@ -44,7 +44,8 @@ export default async (req, context) => {
     const tables = await sql`
       SELECT 
         table_number as number,
-        seats
+        seats,
+        is_vip as "isVip"
       FROM tables_config
       WHERE event_id = ${eventId}
       ORDER BY table_number ASC

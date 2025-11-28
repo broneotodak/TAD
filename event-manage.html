@@ -102,10 +102,23 @@
             <div class="admin-section" id="tableSection">
                 <div class="section-header">
                     <h2>Table Setup</h2>
-                    <div class="table-config">
-                        <input type="number" id="numTables" placeholder="Number of tables" min="1">
-                        <input type="number" id="seatsPerTable" placeholder="Seats per table" min="1" value="10">
-                        <button onclick="generateTables()" class="btn-primary">Generate Tables</button>
+                    <div class="table-config" style="align-items: flex-end;">
+                        <div>
+                            <label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 5px;">Total Tables</label>
+                            <input type="number" id="numTables" placeholder="e.g. 20" min="1">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 5px;">VIP Tables</label>
+                            <input type="number" id="numVIPTables" placeholder="e.g. 5" min="0">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 5px;">Seats/Table</label>
+                            <input type="number" id="seatsPerTable" placeholder="e.g. 10" min="1" value="10">
+                        </div>
+                        <div style="display: flex; gap: 5px;">
+                            <button onclick="generateTables()" class="btn-primary">Generate</button>
+                            <button onclick="resetTablesToNormal()" class="btn-secondary" title="Set all to normal">Reset VIP</button>
+                        </div>
                     </div>
                 </div>
                 <div id="tablesContainer" class="tables-container"></div>
@@ -514,6 +527,7 @@
         // Generate tables
         function generateTables() {
             const numTables = parseInt(document.getElementById('numTables').value);
+            const numVIPTables = parseInt(document.getElementById('numVIPTables').value) || 0;
             const seatsPerTable = parseInt(document.getElementById('seatsPerTable').value) || 10;
 
             if (!numTables || numTables < 1) {
@@ -521,14 +535,31 @@
                 return;
             }
 
+            if (numVIPTables > numTables) {
+                alert('VIP tables cannot exceed total tables');
+                return;
+            }
+
             tables = [];
             for (let i = 1; i <= numTables; i++) {
                 tables.push({
                     number: i,
-                    seats: seatsPerTable
+                    seats: seatsPerTable,
+                    isVip: i <= numVIPTables
                 });
             }
 
+            saveToDatabase();
+            updateUI();
+        }
+
+        // Reset all tables to normal
+        function resetTablesToNormal() {
+            if (!confirm('Set all tables to "Normal"? This will remove VIP status from all tables.')) return;
+            
+            tables.forEach(t => t.isVip = false);
+            document.getElementById('numVIPTables').value = 0;
+            
             saveToDatabase();
             updateUI();
         }
@@ -544,14 +575,15 @@
             container.innerHTML = tables.map(table => {
                 const tableParticipants = participants.filter(p => p.table === table.number);
                 const vipCount = tableParticipants.filter(p => p.vip).length;
+                const isVip = table.isVip;
 
                 return `
-                    <div class="table-card">
+                    <div class="table-card" style="${isVip ? 'border-color: #FFD700; box-shadow: 0 0 15px rgba(255, 215, 0, 0.15);' : ''}">
                         <div class="table-header">
-                            <h3>Table ${table.number}</h3>
+                            <h3 style="${isVip ? 'color: #FFD700;' : ''}">Table ${table.number} ${isVip ? '<span class="badge-vip-small" style="margin-left: 5px; background: #FFD700; color: black !important; border: none;">VIP</span>' : ''}</h3>
                             <span class="table-capacity">${tableParticipants.length}/${table.seats} seats</span>
                         </div>
-                        ${vipCount > 0 ? `<div class="vip-badge">⭐ ${vipCount} VIP${vipCount > 1 ? 's' : ''}</div>` : ''}
+                        ${vipCount > 0 ? `<div class="vip-badge" style="font-size: 0.8rem; margin-bottom: 10px;">⭐ ${vipCount} VIP Guest${vipCount > 1 ? 's' : ''}</div>` : ''}
                         <div class="table-participants">
                             ${tableParticipants.length > 0 ? 
                                 tableParticipants.map(p => `
@@ -559,7 +591,7 @@
                                         ${p.vip ? '⭐ ' : ''}${p.name}
                                     </div>
                                 `).join('') : 
-                                '<p style="color: var(--text-secondary);">No participants assigned</p>'
+                                '<p style="color: var(--text-secondary); font-size: 0.9rem; font-style: italic; text-align: center; padding: 10px;">Empty</p>'
                             }
                         </div>
                     </div>
@@ -584,31 +616,67 @@
                 return;
             }
 
+            // Track table usage
+            const tableUsage = new Map();
+            tables.forEach(t => tableUsage.set(t.number, 0));
+
+            // Separate tables
+            const vipTables = tables.filter(t => t.isVip);
+            const normalTables = tables.filter(t => !t.isVip);
+
             // Sort participants: VIPs first
-            const sortedParticipants = [...participants].sort((a, b) => {
-                if (a.vip && !b.vip) return -1;
-                if (!a.vip && b.vip) return 1;
-                return 0;
-            });
+            const allParticipants = [...participants];
+            const vipParticipants = allParticipants.filter(p => p.vip);
+            const normalParticipants = allParticipants.filter(p => !p.vip);
 
-            let tableIndex = 0;
-            let seatCount = 0;
+            // Helper to find next available table
+            const getNextTable = (tableList) => {
+                for (const table of tableList) {
+                    const used = tableUsage.get(table.number);
+                    if (used < table.seats) {
+                        return table;
+                    }
+                }
+                return null;
+            };
 
-            sortedParticipants.forEach(participant => {
-                if (seatCount >= tables[tableIndex].seats) {
-                    tableIndex++;
-                    seatCount = 0;
+            // 1. Assign VIPs
+            for (const p of vipParticipants) {
+                // Try VIP tables first, then normal
+                let target = getNextTable(vipTables) || getNextTable(normalTables);
+                
+                if (target) {
+                    p.table = target.number;
+                    tableUsage.set(target.number, tableUsage.get(target.number) + 1);
+                } else {
+                    p.table = null; // No seats available
+                }
+            }
+
+            // 2. Assign Normals
+            for (const p of normalParticipants) {
+                // Try normal tables first
+                let target = getNextTable(normalTables);
+                
+                // If normal tables full, consider VIP tables only if NO normal tables existed originally 
+                // (assuming if you set VIP tables, you want them exclusive). 
+                // But to ensure everyone gets a seat, maybe allow overflow? 
+                // Let's keep exclusive for now unless there are ONLY VIP tables.
+                if (!target && normalTables.length === 0) {
+                    target = getNextTable(vipTables);
                 }
 
-                if (tableIndex < tables.length) {
-                    participant.table = tables[tableIndex].number;
-                    seatCount++;
+                if (target) {
+                    p.table = target.number;
+                    tableUsage.set(target.number, tableUsage.get(target.number) + 1);
+                } else {
+                    p.table = null;
                 }
-            });
+            }
 
             await saveToDatabase();
             updateUI();
-            alert('Tables auto-assigned successfully!');
+            alert('Tables auto-assigned successfully! VIPs prioritized for VIP tables.');
         }
 
         // Clear all table assignments
