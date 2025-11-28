@@ -2243,3 +2243,35 @@ body {
 .refresh-btn.loading {
     animation: rotate 1s linear infinite;
 }
+
+/* ========================================
+   Light Theme Specific Fixes
+   ======================================== */
+
+[data-theme="light"] .participant-chip {
+    background: #f5f5f5;
+    color: #000000;
+    border: 1px solid #e0e0e0;
+}
+
+[data-theme="light"] .participant-chip.vip {
+    background: #FFD700; /* Gold for VIP in light mode */
+    color: #000000 !important;
+    border: 1px solid #DAA520;
+    font-weight: 600;
+}
+
+[data-theme="light"] .table-card {
+    background: #ffffff;
+    border-color: #e0e0e0;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+[data-theme="light"] .table-header h3 {
+    color: #000000;
+}
+
+[data-theme="light"] .table-capacity {
+    background: #f0f0f0;
+    color: #666666;
+}
