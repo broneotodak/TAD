@@ -584,19 +584,95 @@
                             <span class="table-capacity">${tableParticipants.length}/${table.seats} seats</span>
                         </div>
                         ${vipCount > 0 ? `<div class="vip-badge" style="font-size: 0.8rem; margin-bottom: 10px;">⭐ ${vipCount} VIP Guest${vipCount > 1 ? 's' : ''}</div>` : ''}
-                        <div class="table-participants">
+                        <div class="table-participants" data-table="${table.number}">
                             ${tableParticipants.length > 0 ? 
                                 tableParticipants.map(p => `
-                                    <div class="participant-chip ${p.vip ? 'vip' : ''}">
+                                    <div class="participant-chip ${p.vip ? 'vip' : ''}"
+                                         draggable="true"
+                                         data-participant-id="${p.id}"
+                                         ondragstart="handleDragStart(event)"
+                                         ondragend="handleDragEnd(event)">
                                         ${p.vip ? '⭐ ' : ''}${p.name}
+                                        <span class="remove-from-table" onclick="updateParticipantTable(${p.id}, null)" style="cursor: pointer; margin-left: 8px; color: var(--danger-color); font-weight: bold;">×</span>
                                     </div>
                                 `).join('') : 
-                                '<p style="color: var(--text-secondary); font-size: 0.9rem; font-style: italic; text-align: center; padding: 10px;">Empty</p>'
+                                '<p style="color: var(--text-secondary); font-size: 0.9rem; font-style: italic; text-align: center; padding: 10px; pointer-events: none;">Empty</p>'
                             }
                         </div>
                     </div>
                 `;
             }).join('');
+
+            // Add Drop Zone Listeners
+            document.querySelectorAll('.table-participants').forEach(zone => {
+                zone.addEventListener('dragover', handleDragOver);
+                zone.addEventListener('drop', handleDrop);
+                zone.addEventListener('dragenter', handleDragEnter);
+                zone.addEventListener('dragleave', handleDragLeave);
+            });
+        }
+
+        // --- Drag and Drop Handlers ---
+        function handleDragStart(e) {
+            e.target.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('participantId', e.target.dataset.participantId);
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+        }
+
+        function handleDragOver(e) {
+            if (e.preventDefault) {
+                e.preventDefault();
+            }
+            e.dataTransfer.dropEffect = 'move';
+            return false;
+        }
+
+        function handleDragEnter(e) {
+            const tableCard = e.currentTarget.closest('.table-card');
+            if (tableCard) {
+                tableCard.classList.add('drag-over');
+            }
+        }
+
+        function handleDragLeave(e) {
+            const tableCard = e.currentTarget.closest('.table-card');
+            // Only remove if leaving the card entirely or moving to a non-container child
+            if (tableCard && !tableCard.contains(e.relatedTarget)) {
+                tableCard.classList.remove('drag-over');
+            }
+        }
+
+        function handleDrop(e) {
+            if (e.stopPropagation) {
+                e.stopPropagation();
+            }
+            e.preventDefault();
+            
+            const participantId = parseInt(e.dataTransfer.getData('participantId'));
+            const tableContainer = e.currentTarget.closest('.table-participants');
+            
+            if (!tableContainer) return false;
+            
+            const newTableNumber = parseInt(tableContainer.dataset.table);
+            
+            // Remove drag-over class from all cards
+            document.querySelectorAll('.table-card').forEach(card => {
+                card.classList.remove('drag-over');
+            });
+            
+            // Assign to new table if valid
+            if (participantId && newTableNumber) {
+                // Check capacity (optional, can block or warn)
+                // For now, allow drop but maybe warn if over capacity? 
+                // Existing logic didn't block, so let's allow.
+                updateParticipantTable(participantId, newTableNumber);
+            }
+            
+            return false;
         }
 
         // Update participant table
