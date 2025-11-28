@@ -17,170 +17,150 @@ export default async (req, context) => {
             });
         }
 
-        // Parse CSV content
-        const lines = fileContent.split(/\r?\n/).filter(line => line.trim());
+        // 1. Preprocess content to handle multiline quotes
+        const rawLines = fileContent.split(/\r?\n/);
+        const lines = [];
+        let currentLine = '';
+
+        for (let line of rawLines) {
+            if (!line.trim() && !currentLine) continue; // Skip empty lines if not building a line
+
+            if (currentLine) {
+                currentLine += '\n' + line;
+            } else {
+                currentLine = line;
+            }
+
+            // Count quotes to check if line is complete
+            // A complete CSV line typically has an even number of quotes
+            const quoteCount = (currentLine.match(/"/g) || []).length;
+            if (quoteCount % 2 === 0) {
+                lines.push(currentLine);
+                currentLine = '';
+            }
+        }
+        
+        // If anything remains in currentLine (e.g. file ended with unclosed quote?), push it
+        if (currentLine) {
+            lines.push(currentLine);
+        }
+
         if (lines.length < 2) {
-            throw new Error('CSV file appears to be empty');
+            throw new Error('CSV file appears to be empty or invalid');
         }
 
         const participants = [];
         
-        // Known company names mapping
-        const companyMap = {
-            'Holdings': 'Todak Holdings Sdn Bhd',
-            'Academy': 'Todak Academy Sdn Bhd',
-            'Studios': 'Todak Studios Sdn Bhd',
-            'Culture': 'Todak Culture Sdn Bhd',
-            'Digitech': 'Todak Digitech Sdn Bhd',
-            'Paygate': 'Todak Paygate Sdn Bhd',
-            'Tech': 'MyBarber Tech Sdn Bhd',
-            'Technology': 'Sarcom Technology Sdn Bhd',
-            'Esports Ventures': 'CG Esports Ventures',
-            'Enterprise': '10 Camp Enterprise',
-            'Hub': 'Muscle Hub',
-            'Enterprise': 'Todakrc Enterprise',
-            'Elektronik Todak': 'Kelab Sukan Elektronik Todak',
-            'Consultation & Management': 'Lan Todak Consultation & Management',
-            'Tadika Todak Kids': 'Tadika Todak Kids',
-            'Todak Fusion Sdn Bhd': 'Todak Fusion Sdn Bhd'
-        };
-
         // Process each line
-        for (let i = 1; i < lines.length; i++) {
+        for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
             if (!line) continue;
 
-            // Split by comma - be careful with commas in names
-            const parts = line.split(',').map(p => p.trim());
-            if (parts.length < 2) continue;
-
-            const empNo = parts[0];
+            // Simple CSV parser that respects quotes
+            // Regex to match: "quoted field" OR non-comma-sequence
+            const regex = /(?:^|,)(?:"([^"]*(?:""[^"]*)*)"|([^",]*))/g;
+            const parts = [];
+            let match;
+            while ((match = regex.exec(line)) !== null) {
+                // match[1] is quoted content, match[2] is unquoted
+                let val = match[1] !== undefined ? match[1].replace(/""/g, '"') : match[2];
+                parts.push(val);
+            }
+            // The regex might add an empty match at the end, filter if needed, or handle index carefully
+            // Actually, for ",1,Comp,Name", matches:
+            // 1. comma-empty -> parts[0] = undefined/empty
+            // 2. ,1 -> parts[1] = 1
             
-            // Handle the special format where name and company are mixed
+            // Let's stick to a simpler split if no quotes, but use regex if quotes found
+            // Or just use the regex parts.
+            // For ",1,THSB,Name", regex parts:
+            // match 0: "" (empty before first comma)
+            // match 1: "1"
+            // match 2: "THSB"
+            // match 3: "Name"
+            
+            // Note: regex.exec loop is tricky. 
+            // Alternative simple split if complex regex fails or just use split for simple lines
+            let csvParts = [];
+            if (line.includes('"')) {
+                // Complex parsing
+                let inQuote = false;
+                let currentPart = '';
+                for (let j = 0; j < line.length; j++) {
+                    const char = line[j];
+                    if (char === '"') {
+                        inQuote = !inQuote;
+                    } else if (char === ',' && !inQuote) {
+                        csvParts.push(currentPart);
+                        currentPart = '';
+                    } else {
+                        currentPart += char;
+                    }
+                }
+                csvParts.push(currentPart);
+                
+                // Clean up quotes
+                csvParts = csvParts.map(p => p.trim().replace(/^"|"$/g, '').replace(/""/g, '"'));
+            } else {
+                csvParts = line.split(',').map(p => p.trim());
+            }
+
+            // Skip header
+            if (csvParts.some(p => p.toLowerCase() === 'name' || p.toLowerCase() === 'company')) continue;
+
+            // FORMAT DETECTION
             let name = '';
             let company = '';
-            
-            if (parts.length >= 3) {
-                // Format like: "TH006,Khairul Azlan Bin Zainal Ariffin Todak,Holdings Sdn Bhd"
-                // Or special teams like: "MLBB,(MAL) Name Kelab,Sukan Elektronik Todak"
-                const namePart = parts[1];
-                const companySuffix = parts.slice(2).join(' '); // Join all remaining parts
-                
-                // Check for special prefixes in names (like team designations)
-                const specialPrefixes = ['(MAL)', '(Ladies)'];
-                let hasSpecialPrefix = false;
-                for (const prefix of specialPrefixes) {
-                    if (namePart.includes(prefix)) {
-                        hasSpecialPrefix = true;
-                        break;
-                    }
+            let empNo = '';
+
+            // Format 1: New format -> [, No, Company, Name]
+            // csvParts[0] is empty or ID, csvParts[1] is No, csvParts[2] is Company, csvParts[3] is Name
+            // Example: ["", "1", "THSB", "Khairul..."]
+            if (csvParts.length >= 4 && /^\d+$/.test(csvParts[1])) {
+                company = csvParts[2];
+                name = csvParts[3];
+                // If name is empty, maybe it's in column 4?
+                if (!name && csvParts.length > 4) name = csvParts[4];
+            } 
+            // Format 2: Old format -> [EmpNo, Name, Company...] (heuristic)
+            else if (csvParts[0] && csvParts[0].startsWith('TH0')) {
+                empNo = csvParts[0];
+                name = csvParts[1]; // Need more splitting logic if mixed
+                // ... existing logic for mixed name/company ...
+                // For simplicity in this rewrite, let's assume separated columns if comma present
+                if (csvParts.length > 2) {
+                    company = csvParts.slice(2).join(' ');
                 }
-                
-                if (hasSpecialPrefix) {
-                    // For special cases, the whole namePart is the name
-                    name = namePart;
-                    company = companySuffix;
-                } else {
-                    // Find where the company name starts
-                    const companyPrefixes = ['Todak', 'Mybarber', 'Sarcom', 'CG', 'Muscle', 'Tadika', 
-                                            'Lan Todak', 'Kelab', '10 Camp'];
-                    
-                    let foundPrefix = '';
-                    let nameEnd = namePart.length;
-                    
-                    for (const prefix of companyPrefixes) {
-                        const idx = namePart.lastIndexOf(' ' + prefix);
-                        if (idx > 0) {
-                            nameEnd = idx;
-                            foundPrefix = namePart.substring(idx + 1);
-                            break;
-                        }
-                    }
-                    
-                    name = namePart.substring(0, nameEnd).trim();
-                    
-                    // Build full company name
-                    if (foundPrefix && companySuffix) {
-                        company = `${foundPrefix} ${companySuffix}`;
-                    } else if (companySuffix) {
-                        company = companySuffix;
-                    } else {
-                        company = foundPrefix;
-                    }
-                }
-            } else if (parts.length === 2) {
-                // Simple format: "Employee No,Name" or "TeamName,PlayerName Company"
-                const secondPart = parts[1];
-                
-                // Check if this is a team/player entry
-                const teamPrefixes = ['Valorant', 'MLBB', 'Freefire', 'PUBGM', 'HOK', 'EFOOTBALL'];
-                if (teamPrefixes.includes(empNo)) {
-                    // This is a team entry - extract name and company
-                    const lastSpaceIdx = secondPart.lastIndexOf(' ');
-                    if (lastSpaceIdx > 0) {
-                        // Check if last word looks like a company
-                        const lastWord = secondPart.substring(lastSpaceIdx + 1);
-                        if (lastWord === 'Kelab' || lastWord === 'Todak' || lastWord.includes('Sdn')) {
-                            // Find where company starts (usually "Kelab Sukan Elektronik Todak")
-                            const companyStartWords = ['Kelab', 'Todak'];
-                            let companyStart = -1;
-                            for (const word of companyStartWords) {
-                                const idx = secondPart.indexOf(' ' + word);
-                                if (idx > 0) {
-                                    companyStart = idx + 1;
-                                    break;
-                                }
-                            }
-                            
-                            if (companyStart > 0) {
-                                name = secondPart.substring(0, companyStart - 1).trim();
-                                company = secondPart.substring(companyStart).trim();
-                            } else {
-                                name = secondPart;
-                                company = empNo; // Use team name as company
-                            }
-                        } else {
-                            name = secondPart;
-                            company = empNo; // Use team name as company
-                        }
-                    } else {
-                        name = secondPart;
-                        company = empNo; // Use team name as company
-                    }
-                } else if (empNo === '') {
-                    // Empty employee number - might be Todak Fusion entries
-                    name = secondPart;
-                    company = 'Todak Fusion Sdn Bhd';
-                } else {
-                    // Regular format
-                    name = secondPart;
-                    company = '';
-                }
-            } else {
-                // Format with all parts separated
-                name = parts[1];
-                company = parts.slice(2).join(' ');
             }
-            
-            // Clean up common issues
-            name = name.replace(/\s+/g, ' ').trim();
-            company = company.replace(/\s+/g, ' ').trim();
-            
-            // Skip if no name or if it's just a number
-            if (!name || name === '' || /^\d+$/.test(name)) continue;
-            
-            // Clean up company names
-            if (company.includes('Sukan Elektronik Todak')) {
-                company = 'Kelab Sukan Elektronik Todak';
+            // Format 3: Simple -> [No, Company, Name] (without leading comma)
+            else if (csvParts.length >= 3 && /^\d+$/.test(csvParts[0])) {
+                company = csvParts[1];
+                name = csvParts[2];
             }
-            
-            // Detect VIP status (customize as needed)
-            const isVIP = empNo && empNo.startsWith('TH0') && parseInt(empNo.substring(2)) <= 10;
-            
+            // Format 4: [Team, Name]
+            else if (csvParts.length === 2) {
+                // Try to guess which is name
+                name = csvParts[1];
+                company = csvParts[0]; // Team name as company?
+            } 
+            else if (csvParts.length > 0) {
+                // Fallback: last part is name?
+                // Let's assume the longest part is name if unclear?
+                // Safe fallback: skip ambiguous lines
+                if (csvParts.length < 2) continue;
+            }
+
+            // Clean up
+            if (name) name = name.replace(/\s+/g, ' ').trim();
+            if (company) company = company.replace(/\s+/g, ' ').trim();
+
+            // Validation
+            if (!name || name.toLowerCase() === 'name') continue; // Skip header or empty
+
             participants.push({
                 name: name,
                 company: company || 'Not specified',
-                vip: isVIP,
+                vip: false, // No VIP column in this CSV, user can manual set or we can add logic later
                 table: null
             });
         }
