@@ -21,17 +21,23 @@ class DatabaseAPI {
     }
 
     // Get all participants and tables
-    async getParticipants(useCache = true) {
+    async getParticipants(useCache = true, eventId = null) {
         try {
             // Check cache
             if (useCache && this.cache && this.cacheTime && 
-                (Date.now() - this.cacheTime < this.cacheDuration)) {
+                (Date.now() - this.cacheTime < this.cacheDuration) &&
+                (!eventId || this.cache.eventId === parseInt(eventId))) {
                 console.log('📦 Using cached data');
                 return this.cache;
             }
 
             console.log('⬇️ Fetching from database...');
-            const response = await fetch(`${this.baseURL}/get-participants`);
+            let url = `${this.baseURL}/get-participants`;
+            if (eventId) {
+                url += `?eventId=${eventId}`;
+            }
+            
+            const response = await fetch(url);
             const result = await response.json();
             
             if (result.success) {

@@ -132,10 +132,17 @@ function playCelebration() {
 
 // Load data from database
 if (window.dbAPI) {
-    window.dbAPI.getParticipants().then(result => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentEventId = urlParams.get('event');
+    
+    window.dbAPI.getParticipants(true, currentEventId).then(result => {
         if (result.success && result.data) {
-            participants = result.data.participants;
-            console.log(`✅ Loaded ${participants.length} participants from database`);
+            participants = result.data.participants || [];
+            console.log(`✅ Loaded ${participants.length} participants from database for event ${currentEventId}`);
+        } else if (result.success && result.participants) {
+             // Handle direct array return if structure differs
+            participants = result.participants || [];
+            console.log(`✅ Loaded ${participants.length} participants from database for event ${currentEventId}`);
         } else {
             loadData();
         }

@@ -203,7 +203,7 @@ body {
     color: var(--text-secondary);
 }
 
-.form-group input {
+.form-group input:not([type="checkbox"]):not([type="radio"]) {
     width: 100%;
     padding: 12px;
     background: var(--dark-bg);
@@ -211,6 +211,13 @@ body {
     border-radius: 8px;
     color: var(--text-primary);
     font-size: 1rem;
+}
+
+.form-group input[type="checkbox"],
+.form-group input[type="radio"] {
+    width: auto;
+    margin-right: 10px;
+    transform: scale(1.2); /* Make slightly larger for easier clicking */
 }
 
 .form-group input:focus,
@@ -619,16 +626,18 @@ body {
 }
 
 .checkbox-label {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 8px;
     cursor: pointer;
+    user-select: none;
 }
 
 .checkbox-label input[type="checkbox"] {
     width: 18px;
     height: 18px;
     cursor: pointer;
+    margin: 0;
 }
 
 /* Participants Table */
