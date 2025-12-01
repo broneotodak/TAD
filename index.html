@@ -134,6 +134,8 @@
 
         function displaySingleEvent(event) {
             const container = document.getElementById('eventsContainer');
+            const showLuckyDraw = event.features && (event.features.lucky_draw === true || event.features.luckyDraw === true);
+            
             container.innerHTML = `
                 <div class="events-grid">
                     <div class="${getCardClass(event)}" style="${getCardStyle(event)}">
@@ -149,7 +151,7 @@
                         </div>
                         <div class="event-actions">
                             <a href="qr-display.html?event=${event.id}" class="event-btn btn-primary-action">QR Check-in</a>
-                            <a href="lucky-draw.html?event=${event.id}" class="event-btn btn-secondary-action">Lucky Draw</a>
+                            ${showLuckyDraw ? `<a href="lucky-draw.html?event=${event.id}" class="event-btn btn-secondary-action">Lucky Draw</a>` : ''}
                         </div>
                     </div>
                 </div>
@@ -158,7 +160,10 @@
 
         function displayMultipleEvents(events) {
             const container = document.getElementById('eventsContainer');
-            const eventsHTML = events.map(event => `
+            const eventsHTML = events.map(event => {
+                const showLuckyDraw = event.features && (event.features.lucky_draw === true || event.features.luckyDraw === true);
+                
+                return `
                 <div class="${getCardClass(event)}" style="${getCardStyle(event)}">
                     <div class="event-icon">${getEventIcon(event)}</div>
                     <div class="event-content">
@@ -171,10 +176,10 @@
                     </div>
                     <div class="event-actions">
                         <a href="qr-display.html?event=${event.id}" class="event-btn btn-primary-action">QR Check-in</a>
-                        <a href="lucky-draw.html?event=${event.id}" class="event-btn btn-secondary-action">Lucky Draw</a>
+                        ${showLuckyDraw ? `<a href="lucky-draw.html?event=${event.id}" class="event-btn btn-secondary-action">Lucky Draw</a>` : ''}
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
 
             container.innerHTML = `<div class="events-grid">${eventsHTML}</div>`;
         }
