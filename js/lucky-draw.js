@@ -381,3 +381,21 @@ function confetti() {
     }, 50);
 }
 
+function toggleHistory() {
+    const section = document.getElementById('winnersSection');
+    const btn = document.querySelector('button[onclick="toggleHistory()"]');
+    
+    if (!section) return;
+    
+    // Check if currently hidden (either by inline style or css)
+    const isHidden = section.style.display === 'none' || getComputedStyle(section).display === 'none';
+    
+    if (isHidden) {
+        section.style.display = 'block';
+        if (btn) btn.textContent = 'Hide History';
+    } else {
+        section.style.display = 'none';
+        if (btn) btn.textContent = 'Show History';
+    }
+}
+

@@ -8,8 +8,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
-        <div class="header">
+    <div class="container-full">
+        <div class="header" style="max-width: 1400px; margin: 0 auto 30px auto;">
             <div class="header-left">
                 <a href="index.html" class="back-btn">
                     <span style="font-size: 1.2rem;">←</span> Home
@@ -58,11 +58,12 @@
                         <input type="checkbox" id="allowMultipleWins" onchange="updateEligibleCount()">
                         Allow previous winners to win again
                     </label>
-                    <button onclick="resetAllWinners()" class="btn-secondary">Reset All Winners</button>
+                    <button onclick="toggleHistory()" class="btn-secondary">Show History</button>
+                    <button onclick="resetAllWinners()" class="btn-secondary">Reset All</button>
                 </div>
             </div>
 
-            <div class="winners-section">
+            <div id="winnersSection" class="winners-section">
                 <h2>Today's Winners</h2>
                 <div id="winnersList" class="winners-list">
                     <p class="no-winners">No winners yet. Start the lucky draw!</p>
