@@ -1875,6 +1875,35 @@ body {
     color: #999999;
 }
 
+.delete-event-btn {
+    background: transparent;
+    border: 2px solid var(--danger-color);
+    color: var(--danger-color);
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.5rem;
+    font-weight: bold;
+    line-height: 1;
+    padding: 0;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.delete-event-btn:hover {
+    background: var(--danger-color);
+    color: #ffffff;
+    transform: scale(1.1);
+}
+
+.delete-event-btn:active {
+    transform: scale(0.95);
+}
+
 .event-meta {
     display: flex;
     flex-direction: column;

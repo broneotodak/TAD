@@ -167,9 +167,14 @@
                         <div>
                             <div class="event-card-title">${event.name}</div>
                         </div>
-                        <span class="event-badge ${event.isActive ? '' : 'inactive'}">
-                            ${event.isActive ? 'Active' : 'Inactive'}
-                        </span>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span class="event-badge ${event.isActive ? '' : 'inactive'}">
+                                ${event.isActive ? 'Active' : 'Inactive'}
+                            </span>
+                            <button class="delete-event-btn" onclick="deleteEvent(${event.id}, ${JSON.stringify(event.name)})" title="Delete event">
+                                ×
+                            </button>
+                        </div>
                     </div>
                     <div class="event-meta">
                         <div class="event-meta-item">
@@ -237,6 +242,35 @@
 
         function createNewEvent() {
             window.location.href = 'event-wizard.html';
+        }
+
+        // Delete event
+        async function deleteEvent(eventId, eventName) {
+            if (!confirm(`Are you sure you want to delete "${eventName}"?\n\nThis will permanently delete:\n- All participants\n- All table assignments\n- All lucky draw winners\n- The event itself\n\nThis action cannot be undone!`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/delete-event', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ id: eventId })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`✅ Event "${eventName}" has been deleted successfully!`);
+                    loadEvents(); // Reload the events list
+                } else {
+                    alert(`❌ Failed to delete event: ${result.error}`);
+                }
+            } catch (error) {
+                console.error('Error deleting event:', error);
+                alert(`❌ Error deleting event: ${error.message}`);
+            }
         }
 
         // Initialize
