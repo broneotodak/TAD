@@ -163,7 +163,7 @@
 
             const eventsHTML = events.map(event => `
                 <div class="event-card">
-                    <button class="delete-event-btn" onclick="event.stopPropagation(); deleteEvent(${event.id}, ${JSON.stringify(event.name)}); return false;" title="Delete event">
+                    <button class="delete-event-btn" data-event-id="${event.id}" data-event-name="${event.name.replace(/"/g, '&quot;')}" onclick="deleteEvent(this.dataset.eventId, this.dataset.eventName); return false;" title="Delete event">
                         ×
                     </button>
                     <div class="event-card-header">
