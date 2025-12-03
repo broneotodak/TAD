@@ -385,6 +385,11 @@
                 actionsHTML += '<button onclick="viewLuckyDraw()" class="btn-warning">🎰 Lucky Draw</button>';
             }
             
+            // Trivia action
+            if (features.trivia) {
+                actionsHTML += '<button onclick="viewTriviaAdmin()" class="btn-info">🧠 Trivia Challenge</button>';
+            }
+            
             // Always available export
             actionsHTML += '<button onclick="exportData()" class="btn-info">💾 Export Data</button>';
             
@@ -958,6 +963,11 @@
             window.open(`checkin-report.html?event=${currentEventId}`, '_blank');
         }
 
+        // View trivia admin
+        function viewTriviaAdmin() {
+            window.open(`trivia-admin.html?event=${currentEventId}`, '_blank');
+        }
+
         // Export data
         function exportData() {
             const data = {
@@ -1432,7 +1442,7 @@
                 <hr style="margin: 25px 0; border: 1px solid var(--border-color);">
                 
                 <h3 style="margin-bottom: 15px;">Event Features</h3>
-                <div class="checkbox-group" style="display: flex; gap: 30px; margin-bottom: 25px;">
+                <div class="checkbox-group" style="display: flex; gap: 30px; margin-bottom: 25px; flex-wrap: wrap;">
                     <label style="display: flex; align-items: center; gap: 10px;">
                         <input type="checkbox" id="editFeatureTables" onchange="toggleMenuField()">
                         <span>Table Assignment</span>
@@ -1440,6 +1450,10 @@
                     <label style="display: flex; align-items: center; gap: 10px;">
                         <input type="checkbox" id="editFeatureLuckyDraw">
                         <span>Lucky Draw</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" id="editFeatureTrivia">
+                        <span>Trivia Challenge</span>
                     </label>
                 </div>
                 
@@ -1504,6 +1518,7 @@ Beverages: Coffee, Tea, Soft Drinks"></textarea>
             document.getElementById('editFeatureTables').checked = currentEvent.features?.tables === true;
             document.getElementById('editFeatureLuckyDraw').checked = 
                 currentEvent.features?.lucky_draw === true || currentEvent.features?.luckyDraw === true;
+            document.getElementById('editFeatureTrivia').checked = currentEvent.features?.trivia === true;
             
             // Show/hide menu field based on context
             toggleMenuField();
@@ -1588,7 +1603,8 @@ Beverages: Coffee, Tea, Soft Drinks"></textarea>
                     cardBackgroundUrl: document.getElementById('editCardBackgroundUrl').value || null,
                     features: {
                         tables: document.getElementById('editFeatureTables').checked,
-                        lucky_draw: document.getElementById('editFeatureLuckyDraw').checked
+                        lucky_draw: document.getElementById('editFeatureLuckyDraw').checked,
+                        trivia: document.getElementById('editFeatureTrivia').checked
                     }
                 };
                 

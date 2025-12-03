@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trivia Challenge</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container-full">
+        <div class="header" style="max-width: 1400px; margin: 0 auto 30px auto;">
+            <div class="header-left">
+                <a href="index.html" class="back-btn">
+                    <span style="font-size: 1.2rem;">←</span> Home
+                </a>
+            </div>
+            <div class="header-title">
+                <h1>Trivia Challenge</h1>
+            </div>
+            <div class="header-actions">
+                <!-- Space for future controls -->
+            </div>
+        </div>
+
+        <div class="trivia-container">
+            <!-- Waiting State -->
+            <div id="waitingState" class="trivia-section">
+                <div class="waiting-message">
+                    <h2>⏳ Waiting for Trivia Session</h2>
+                    <p>The trivia session hasn't started yet. Please wait for the admin to begin.</p>
+                    <button onclick="checkSession()" class="btn-primary">Refresh</button>
+                </div>
+            </div>
+
+            <!-- Active Session -->
+            <div id="activeSession" class="trivia-section" style="display: none;">
+                <div class="session-header">
+                    <h2 id="sessionTitle">Trivia Challenge</h2>
+                    <div class="session-info">
+                        <span>Question <span id="currentQuestionNum">1</span> of <span id="totalQuestions">0</span></span>
+                        <span id="timerDisplay" class="timer">30s</span>
+                    </div>
+                </div>
+
+                <!-- Question Display -->
+                <div id="questionDisplay" class="question-display">
+                    <div class="question-card-large">
+                        <h3 id="questionText">Loading question...</h3>
+                        <div class="options-grid" id="optionsContainer">
+                            <!-- Options will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Answer Feedback -->
+                <div id="answerFeedback" class="answer-feedback" style="display: none;">
+                    <div id="feedbackMessage"></div>
+                    <div id="pointsEarned" class="points-display"></div>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="progress-section">
+                    <div class="progress-bar">
+                        <div id="progressFill" class="progress-fill"></div>
+                    </div>
+                    <div class="progress-text">
+                        <span>Your Score: <strong id="userScore">0</strong> points</span>
+                        <span>Correct: <strong id="userCorrect">0</strong> / <strong id="userTotal">0</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Completed State -->
+            <div id="completedState" class="trivia-section" style="display: none;">
+                <div class="completion-message">
+                    <h2>🎉 Trivia Complete!</h2>
+                    <div class="final-stats">
+                        <div class="stat-box">
+                            <div class="stat-value" id="finalScore">0</div>
+                            <div class="stat-label">Total Points</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value" id="finalCorrect">0</div>
+                            <div class="stat-label">Correct Answers</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value" id="finalTotal">0</div>
+                            <div class="stat-label">Questions Answered</div>
+                        </div>
+                    </div>
+                    <p class="leaderboard-note">Check the leaderboard to see how you rank!</p>
+                </div>
+            </div>
+
+            <!-- Leaderboard -->
+            <div id="leaderboardSection" class="trivia-section" style="display: none;">
+                <h2>Leaderboard</h2>
+                <div id="leaderboard" class="leaderboard-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/db-api.js"></script>
+    <script>
+        let currentEventId = null;
+        let currentSession = null;
+        let questions = [];
+        let currentQuestionIndex = 0;
+        let userAnswers = {};
+        let userScore = 0;
+        let userCorrect = 0;
+        let userTotal = 0;
+        let timerInterval = null;
+        let timeRemaining = 30;
+        let sessionCheckInterval = null;
+        let participantId = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            currentEventId = urlParams.get('event');
+            
+            if (!currentEventId) {
+                alert('No event ID provided');
+                window.location.href = 'index.html';
+                return;
+            }
+
+            // Get participant ID from localStorage or prompt
+            loadParticipantId();
+            checkSession();
+            
+            // Check for session updates every 3 seconds
+            sessionCheckInterval = setInterval(checkSession, 3000);
+        });
+
+        function loadParticipantId() {
+            // Try to get from localStorage (set during check-in)
+            const stored = localStorage.getItem('checkedInParticipant');
+            if (stored) {
+                const data = JSON.parse(stored);
+                participantId = data.id;
+                return;
+            }
+
+            // If not found, prompt user (fallback)
+            const name = prompt('Please enter your name to participate:');
+            if (name) {
+                // Try to find participant
+                // This is a simplified approach - in production, you'd verify check-in status
+                alert('Please check in first to participate in trivia.');
+                window.location.href = `checkin.html?event=${currentEventId}`;
+            }
+        }
+
+        async function checkSession() {
+            try {
+                const response = await fetch(`/api/get-trivia-session?eventId=${currentEventId}`);
+                const result = await response.json();
+
+                if (result.success && result.session) {
+                    if (result.session.isActive) {
+                        // Session is active
+                        currentSession = result.session;
+                        questions = result.questions || [];
+                        
+                        if (questions.length === 0) {
+                            showWaiting('Session has no questions yet.');
+                            return;
+                        }
+
+                        // Load user's answers
+                        await loadUserAnswers();
+                        
+                        // Show active session
+                        showActiveSession();
+                        
+                        // Load current question
+                        if (currentQuestionIndex < questions.length) {
+                            displayQuestion(questions[currentQuestionIndex], currentQuestionIndex);
+                        } else {
+                            showCompleted();
+                        }
+                    } else {
+                        // Session exists but not active
+                        showWaiting('The trivia session hasn\'t started yet. Please wait.');
+                    }
+                } else {
+                    // No session
+                    showWaiting('No trivia session available. Please wait for the admin to create one.');
+                }
+            } catch (error) {
+                console.error('Error checking session:', error);
+            }
+        }
+
+        async function loadUserAnswers() {
+            if (!participantId || questions.length === 0) return;
+
+            try {
+                // Get all user's answers for this session
+                const questionIds = questions.map(q => q.id);
+                // Note: We'd need a new endpoint for this, or check each question
+                // For now, we'll check answers as we go
+            } catch (error) {
+                console.error('Error loading answers:', error);
+            }
+        }
+
+        function showWaiting(message) {
+            document.getElementById('waitingState').style.display = 'block';
+            document.getElementById('activeSession').style.display = 'none';
+            document.getElementById('completedState').style.display = 'none';
+            document.getElementById('leaderboardSection').style.display = 'none';
+            
+            if (message) {
+                document.querySelector('.waiting-message p').textContent = message;
+            }
+        }
+
+        function showActiveSession() {
+            document.getElementById('waitingState').style.display = 'none';
+            document.getElementById('activeSession').style.display = 'block';
+            document.getElementById('completedState').style.display = 'none';
+            
+            document.getElementById('sessionTitle').textContent = currentSession.title;
+            document.getElementById('totalQuestions').textContent = questions.length;
+            updateProgress();
+        }
+
+        function displayQuestion(question, index) {
+            currentQuestionIndex = index;
+            document.getElementById('currentQuestionNum').textContent = index + 1;
+            document.getElementById('questionText').textContent = question.questionText;
+            
+            // Check if user already answered this question
+            const existingAnswer = userAnswers[question.id];
+            
+            const options = [
+                { letter: 'A', text: question.optionA },
+                { letter: 'B', text: question.optionB },
+                { letter: 'C', text: question.optionC },
+                { letter: 'D', text: question.optionD }
+            ];
+
+            const container = document.getElementById('optionsContainer');
+            container.innerHTML = options.map(opt => `
+                <button 
+                    class="option-button ${existingAnswer === opt.letter ? 'selected' : ''}"
+                    onclick="selectAnswer('${opt.letter}', ${question.id})"
+                    ${existingAnswer ? 'disabled' : ''}
+                >
+                    <span class="option-letter">${opt.letter}</span>
+                    <span class="option-text">${opt.text}</span>
+                </button>
+            `).join('');
+
+            // Start timer if not answered
+            if (!existingAnswer) {
+                timeRemaining = question.timeLimitSeconds || 30;
+                startTimer();
+            } else {
+                clearTimer();
+            }
+
+            // Hide feedback
+            document.getElementById('answerFeedback').style.display = 'none';
+        }
+
+        function startTimer() {
+            clearTimer();
+            updateTimerDisplay();
+            
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+                updateTimerDisplay();
+                
+                if (timeRemaining <= 0) {
+                    clearTimer();
+                    // Auto-submit if time runs out (optional)
+                    // For now, just disable buttons
+                    document.querySelectorAll('.option-button').forEach(btn => {
+                        if (!btn.disabled) btn.disabled = true;
+                    });
+                }
+            }, 1000);
+        }
+
+        function clearTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function updateTimerDisplay() {
+            const display = document.getElementById('timerDisplay');
+            display.textContent = `${timeRemaining}s`;
+            
+            if (timeRemaining <= 5) {
+                display.classList.add('timer-warning');
+            } else {
+                display.classList.remove('timer-warning');
+            }
+        }
+
+        async function selectAnswer(answer, questionId) {
+            if (!participantId) {
+                alert('Please check in first to participate.');
+                return;
+            }
+
+            // Disable all buttons
+            document.querySelectorAll('.option-button').forEach(btn => {
+                btn.disabled = true;
+            });
+
+            // Mark as selected
+            userAnswers[questionId] = answer;
+            clearTimer();
+
+            try {
+                const response = await fetch('/api/submit-trivia-answer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        questionId: questionId,
+                        participantId: participantId,
+                        answer: answer
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    // Update score
+                    if (result.answer.isCorrect) {
+                        userCorrect++;
+                        userScore += result.answer.pointsEarned;
+                    }
+                    userTotal++;
+
+                    // Show feedback
+                    showAnswerFeedback(result.answer.isCorrect, result.answer.pointsEarned);
+
+                    // Update progress
+                    updateProgress();
+
+                    // Move to next question after delay
+                    setTimeout(() => {
+                        if (currentQuestionIndex + 1 < questions.length) {
+                            displayQuestion(questions[currentQuestionIndex + 1], currentQuestionIndex + 1);
+                        } else {
+                            showCompleted();
+                        }
+                    }, 2000);
+                } else {
+                    alert('Error: ' + result.error);
+                    // Re-enable buttons
+                    document.querySelectorAll('.option-button').forEach(btn => {
+                        if (!userAnswers[questionId]) btn.disabled = false;
+                    });
+                }
+            } catch (error) {
+                console.error('Error submitting answer:', error);
+                alert('Failed to submit answer. Please try again.');
+                // Re-enable buttons
+                document.querySelectorAll('.option-button').forEach(btn => {
+                    if (!userAnswers[questionId]) btn.disabled = false;
+                });
+            }
+        }
+
+        function showAnswerFeedback(isCorrect, points) {
+            const feedback = document.getElementById('answerFeedback');
+            const message = document.getElementById('feedbackMessage');
+            const pointsDisplay = document.getElementById('pointsEarned');
+
+            feedback.style.display = 'block';
+            
+            if (isCorrect) {
+                message.innerHTML = '✅ <strong>Correct!</strong>';
+                message.className = 'feedback-correct';
+                pointsDisplay.textContent = `+${points} points`;
+                pointsDisplay.className = 'points-display points-earned';
+            } else {
+                message.innerHTML = '❌ <strong>Incorrect</strong>';
+                message.className = 'feedback-incorrect';
+                pointsDisplay.textContent = '+0 points';
+                pointsDisplay.className = 'points-display';
+            }
+        }
+
+        function updateProgress() {
+            const progress = (userTotal / questions.length) * 100;
+            document.getElementById('progressFill').style.width = `${progress}%`;
+            document.getElementById('userScore').textContent = userScore;
+            document.getElementById('userCorrect').textContent = userCorrect;
+            document.getElementById('userTotal').textContent = userTotal;
+        }
+
+        function showCompleted() {
+            document.getElementById('activeSession').style.display = 'none';
+            document.getElementById('completedState').style.display = 'block';
+            document.getElementById('leaderboardSection').style.display = 'block';
+
+            document.getElementById('finalScore').textContent = userScore;
+            document.getElementById('finalCorrect').textContent = userCorrect;
+            document.getElementById('finalTotal').textContent = userTotal;
+
+            loadLeaderboard();
+        }
+
+        async function loadLeaderboard() {
+            try {
+                const response = await fetch(`/api/get-trivia-leaderboard?sessionId=${currentSession.id}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    displayLeaderboard(result.leaderboard);
+                }
+            } catch (error) {
+                console.error('Error loading leaderboard:', error);
+            }
+        }
+
+        function displayLeaderboard(leaderboard) {
+            const container = document.getElementById('leaderboard');
+            if (leaderboard.length === 0) {
+                container.innerHTML = '<p>No participants yet.</p>';
+                return;
+            }
+
+            container.innerHTML = leaderboard.map((entry, index) => {
+                const isCurrentUser = entry.participantId === participantId;
+                return `
+                    <div class="leaderboard-entry ${isCurrentUser ? 'current-user' : ''}">
+                        <div class="rank">#${entry.rank}</div>
+                        <div class="participant-info">
+                            <div class="name">${entry.name} ${isCurrentUser ? '(You)' : ''}</div>
+                            <div class="company">${entry.company || ''}</div>
+                        </div>
+                        <div class="score">${entry.totalPoints} pts</div>
+                        <div class="stats">${entry.correctAnswers}/${entry.questionsAnswered}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            clearTimer();
+            if (sessionCheckInterval) {
+                clearInterval(sessionCheckInterval);
+            }
+        });
+    </script>
+
+    <style>
+        .trivia-container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .trivia-section {
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 20px;
+        }
+
+        .waiting-message {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .waiting-message h2 {
+            margin-bottom: 20px;
+            color: var(--text-secondary);
+        }
+
+        .session-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .session-info {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .timer {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            padding: 8px 20px;
+            background: var(--dark-bg);
+            border-radius: 10px;
+        }
+
+        .timer-warning {
+            color: #ff4444;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .question-display {
+            margin-bottom: 30px;
+        }
+
+        .question-card-large {
+            background: var(--dark-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 15px;
+            padding: 40px;
+        }
+
+        .question-card-large h3 {
+            font-size: 1.5rem;
+            margin-bottom: 30px;
+            line-height: 1.4;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .options-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .option-button {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 20px;
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+            font-size: 1.1rem;
+        }
+
+        .option-button:hover:not(:disabled) {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+
+        .option-button.selected {
+            border-color: var(--primary-color);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .option-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .option-letter {
+            width: 40px;
+            height: 40px;
+            background: var(--primary-color);
+            color: #000000;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .option-text {
+            flex: 1;
+        }
+
+        .answer-feedback {
+            text-align: center;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+        }
+
+        .feedback-correct {
+            color: #4CAF50;
+            font-size: 1.3rem;
+        }
+
+        .feedback-incorrect {
+            color: #ff4444;
+            font-size: 1.3rem;
+        }
+
+        .points-display {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .points-earned {
+            color: #4CAF50;
+        }
+
+        .progress-section {
+            margin-top: 30px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: var(--dark-bg);
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-secondary);
+        }
+
+        .completion-message {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .final-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin: 40px 0;
+        }
+
+        .stat-box {
+            background: var(--dark-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 15px;
+            padding: 30px;
+        }
+
+        .stat-value {
+            font-size: 3rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .leaderboard-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .leaderboard-entry {
+            display: grid;
+            grid-template-columns: 60px 1fr 100px 80px;
+            gap: 20px;
+            align-items: center;
+            padding: 15px;
+            background: var(--dark-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+        }
+
+        .leaderboard-entry.current-user {
+            border-color: var(--primary-color);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .rank {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .participant-info {
+            flex: 1;
+        }
+
+        .name {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .company {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .score {
+            font-size: 1.3rem;
+            font-weight: bold;
+            text-align: right;
+        }
+
+        .stats {
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        .leaderboard-note {
+            margin-top: 30px;
+            color: var(--text-secondary);
+        }
+    </style>
+</body>
+</html>
