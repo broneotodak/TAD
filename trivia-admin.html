@@ -163,8 +163,20 @@
 
         async function loadCurrentSession() {
             try {
-                const response = await fetch(`/api/get-trivia-session?eventId=${currentEventId}`);
-                const result = await response.json();
+                // First try to get active session
+                let response = await fetch(`/api/get-trivia-session?eventId=${currentEventId}`);
+                let result = await response.json();
+
+                // If no active session, try to get any session for this event
+                if (!result.success || !result.session) {
+                    // Try to get the most recent session (even if inactive)
+                    // We'll need to modify the API or use a different approach
+                    // For now, if we have a currentSessionId, use that
+                    if (currentSessionId) {
+                        response = await fetch(`/api/get-trivia-session?sessionId=${currentSessionId}`);
+                        result = await response.json();
+                    }
+                }
 
                 if (result.success && result.session) {
                     currentSession = result.session;
@@ -175,14 +187,27 @@
                     displayQuestions();
                     updateSessionControls();
                     
+                    // Show sections if we have a session
+                    if (currentSessionId) {
+                        document.getElementById('questionsSection').style.display = 'block';
+                        document.getElementById('sessionControls').style.display = 'block';
+                    }
+                    
                     if (result.session.isActive) {
                         startLeaderboardUpdates();
                     }
                 } else {
-                    displayNoSession();
+                    // Only show no session if we don't have a currentSessionId
+                    if (!currentSessionId) {
+                        displayNoSession();
+                    }
                 }
             } catch (error) {
                 console.error('Error loading session:', error);
+                // Don't reset UI if we have a session ID
+                if (currentSessionId) {
+                    console.log('Keeping current session state despite error');
+                }
             }
         }
 
