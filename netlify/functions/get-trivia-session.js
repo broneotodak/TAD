@@ -27,13 +27,23 @@ export default async (req, context) => {
         SELECT * FROM trivia_sessions WHERE id = ${sessionId}
       `;
     } else {
-      // Get active session for event
+      // Get active session for event first
       [session] = await sql`
         SELECT * FROM trivia_sessions 
         WHERE event_id = ${eventId} AND is_active = true
         ORDER BY created_at DESC
         LIMIT 1
       `;
+      
+      // If no active session, get the most recent session (even if inactive)
+      if (!session) {
+        [session] = await sql`
+          SELECT * FROM trivia_sessions 
+          WHERE event_id = ${eventId}
+          ORDER BY created_at DESC
+          LIMIT 1
+        `;
+      }
     }
 
     if (!session) {
@@ -41,7 +51,7 @@ export default async (req, context) => {
         success: false,
         error: 'Trivia session not found'
       }), {
-        status: 404,
+        status: 200, // Return 200 with success: false so frontend can handle gracefully
         headers: { 'Content-Type': 'application/json' }
       });
     }
