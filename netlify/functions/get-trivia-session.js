@@ -49,10 +49,15 @@ export default async (req, context) => {
     if (!session) {
       return new Response(JSON.stringify({
         success: false,
-        error: 'Trivia session not found'
+        error: 'Trivia session not found',
+        session: null,
+        questions: []
       }), {
         status: 200, // Return 200 with success: false so frontend can handle gracefully
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
       });
     }
 
