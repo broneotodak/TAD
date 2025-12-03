@@ -1318,12 +1318,33 @@
 
         .action-buttons {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(280px, 280px));
             gap: 10px;
         }
 
         .action-buttons button {
-            width: 100%;
+            width: 280px !important;
+            min-width: 280px !important;
+            max-width: 280px !important;
+            height: 54px !important;
+            padding: 15px 30px !important;
+            font-size: 1.1rem !important;
+            box-sizing: border-box;
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @media (max-width: 768px) {
+            .action-buttons {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-buttons button {
+                width: 100% !important;
+                min-width: 100% !important;
+                max-width: 100% !important;
+            }
         }
 
         @media print {
