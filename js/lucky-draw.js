@@ -212,7 +212,7 @@ function startDraw() {
     
     isDrawing = true;
     document.getElementById('startDrawBtn').style.display = 'none';
-    document.getElementById('stopDrawBtn').style.display = 'block';
+    document.getElementById('stopDrawBtn').style.display = 'none'; // Hide stop button
     document.getElementById('winnerDisplay').style.display = 'none';
     
     const rollingContainer = document.getElementById('rollingNames');
@@ -221,9 +221,22 @@ function startDraw() {
     // Start drumroll sound
     playDrumroll();
     
-    // Animate rolling names with tick sounds
+    // Animate rolling names with tick sounds - automatically slow down and pick winner
     let index = 0;
-    drawInterval = setInterval(() => {
+    let currentDelay = 50; // Start fast (50ms)
+    const minDelay = 2000; // End slow (2000ms = 2 seconds)
+    const totalDuration = 5000; // Total animation duration (5 seconds)
+    const startTime = Date.now();
+    
+    function updateName() {
+        if (!isDrawing) return;
+        
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / totalDuration, 1);
+        
+        // Gradually increase delay (slow down)
+        currentDelay = 50 + (progress * (minDelay - 50));
+        
         const randomParticipant = eligible[Math.floor(Math.random() * eligible.length)];
         rollingContainer.innerHTML = `
             <div class="rolling-name animate">
@@ -235,13 +248,77 @@ function startDraw() {
         // Play tick sound for each name change
         playTickSound();
         index++;
-    }, 100);
+        
+        // If we've reached the end, pick the final winner
+        if (progress >= 1) {
+            // Select final random winner
+            const finalWinner = eligible[Math.floor(Math.random() * eligible.length)];
+            setTimeout(() => {
+                revealWinner(finalWinner);
+            }, 500);
+        } else {
+            // Schedule next update
+            drawInterval = setTimeout(updateName, currentDelay);
+        }
+    }
+    
+    // Start the animation
+    updateName();
+}
+
+function revealWinner(winner) {
+    if (!isDrawing) return;
+    
+    // Clear any pending intervals/timeouts
+    if (drawInterval) {
+        clearTimeout(drawInterval);
+        drawInterval = null;
+    }
+    isDrawing = false;
+    
+    // Stop drumroll
+    stopDrumroll();
+    
+    // Add to winners list
+    winners.push({
+        ...winner,
+        wonAt: new Date().toISOString()
+    });
+    saveWinners();
+    
+    // Display winner
+    document.getElementById('rollingNames').style.display = 'none';
+    const winnerDisplay = document.getElementById('winnerDisplay');
+    winnerDisplay.style.display = 'block';
+    
+    document.getElementById('winnerName').textContent = winner.name;
+    document.getElementById('winnerCompany').textContent = winner.company;
+    document.getElementById('winnerTable').textContent = winner.table || 'Not Assigned';
+    
+    // Play celebration sound
+    playCelebration();
+    
+    // Celebration animation
+    confetti();
+    
+    // Update counts and display
+    updateCounts();
+    displayWinners();
+    
+    // Reset buttons after 3 seconds
+    setTimeout(() => {
+        resetDrawUI();
+    }, 3000);
 }
 
 function stopDraw() {
+    // This function is kept for backward compatibility but may not be used anymore
     if (!isDrawing) return;
     
-    clearInterval(drawInterval);
+    if (drawInterval) {
+        clearTimeout(drawInterval);
+        drawInterval = null;
+    }
     isDrawing = false;
     
     // Stop drumroll
@@ -257,39 +334,7 @@ function stopDraw() {
     
     // Select random winner
     const winner = eligible[Math.floor(Math.random() * eligible.length)];
-    
-    // Add to winners list
-    winners.push({
-        ...winner,
-        wonAt: new Date().toISOString()
-    });
-    saveWinners();
-    
-    // Display winner
-    setTimeout(() => {
-        document.getElementById('rollingNames').style.display = 'none';
-        const winnerDisplay = document.getElementById('winnerDisplay');
-        winnerDisplay.style.display = 'block';
-        
-        document.getElementById('winnerName').textContent = winner.name;
-        document.getElementById('winnerCompany').textContent = winner.company;
-        document.getElementById('winnerTable').textContent = winner.table || 'Not Assigned';
-        
-        // Play celebration sound
-        playCelebration();
-        
-        // Celebration animation
-        confetti();
-        
-        // Update counts and display
-        updateCounts();
-        displayWinners();
-        
-        // Reset buttons after 3 seconds
-        setTimeout(() => {
-            resetDrawUI();
-        }, 3000);
-    }, 500);
+    revealWinner(winner);
 }
 
 function resetDrawUI() {
@@ -334,6 +379,27 @@ function resetAllWinners() {
     
     winners = [];
     localStorage.setItem('luckyDrawWinners', JSON.stringify(winners));
+    
+    // Clear the winner display
+    document.getElementById('winnerDisplay').style.display = 'none';
+    document.getElementById('rollingNames').style.display = 'none';
+    document.getElementById('winnerName').textContent = '';
+    document.getElementById('winnerCompany').textContent = '';
+    document.getElementById('winnerTable').textContent = '';
+    
+    // Stop any ongoing draw
+    if (drawInterval) {
+        clearTimeout(drawInterval);
+        drawInterval = null;
+    }
+    if (isDrawing) {
+        isDrawing = false;
+        stopDrumroll();
+    }
+    
+    // Reset UI
+    resetDrawUI();
+    
     displayWinners();
     updateCounts();
     alert('✓ All winners have been reset!');
