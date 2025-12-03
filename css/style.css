@@ -302,6 +302,28 @@ body {
     border-color: #cccccc;
 }
 
+.btn-info {
+    background: transparent;
+    color: var(--text-primary);
+    border: 2px solid var(--border-color);
+}
+
+.btn-info:hover {
+    border-color: var(--primary-color);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.btn-warning {
+    background: transparent;
+    color: var(--text-primary);
+    border: 2px solid var(--border-color);
+}
+
+.btn-warning:hover {
+    border-color: var(--primary-color);
+    background: rgba(255, 255, 255, 0.05);
+}
+
 .btn-small {
     padding: 6px 12px;
     font-size: 0.85rem;
