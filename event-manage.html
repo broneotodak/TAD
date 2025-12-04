@@ -129,6 +129,9 @@
                 <div class="section-header">
                     <h2>Participant Management</h2>
                     <div style="display: flex; gap: 10px;">
+                        <button onclick="downloadCSVTemplate()" class="btn-secondary">
+                            <span>📥</span> Download CSV Template
+                        </button>
                         <button onclick="showUploadModal()" class="btn-primary">
                             <span>📤</span> Upload List
                         </button>
@@ -1019,6 +1022,35 @@
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+        }
+
+        // Download CSV template
+        function downloadCSVTemplate() {
+            // Fetch the template file
+            fetch('templates/participant-list-template.csv')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch template');
+                    }
+                    return response.text();
+                })
+                .then(csvContent => {
+                    // Create a blob and download
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement('a');
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute('href', url);
+                    link.setAttribute('download', 'participant-list-template.csv');
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                })
+                .catch(error => {
+                    console.error('Error downloading template:', error);
+                    alert('Failed to download template. Please try again or download directly from the upload modal.');
+                });
         }
 
         // Upload modal functions
