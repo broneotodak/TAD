@@ -646,6 +646,10 @@
                                 nextQuestionBtn.textContent = '➡️ Next Question';
                                 nextQuestionBtn.disabled = false;
                             }
+                            // Refresh questions list to show correct answer
+                            if (isManagingQuestions) {
+                                displayQuestions();
+                            }
                         } else {
                             nextQuestionBtn.style.display = 'none';
                         }
