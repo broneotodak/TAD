@@ -450,7 +450,7 @@ function viewEventDetails() {
 }
 
 // Check in another guest
-function checkInAnother() {
+async function checkInAnother() {
     // Clear selected participant but keep session for current user
     selectedParticipant = null;
     
