@@ -62,13 +62,24 @@
                 </div>
             </div>
 
-            <!-- Manage Questions -->
+            <!-- Manage Questions (only shown when Manage button is clicked) -->
             <div class="admin-section" id="questionsSection" style="display: none;">
                 <div class="section-header">
                     <h2>Questions</h2>
                     <button onclick="showAddQuestionModal()" class="btn-success">+ Add Question</button>
                 </div>
                 <div id="questionsList" class="questions-list"></div>
+            </div>
+            
+            <!-- Start First Question Button (shown when session is activated but no question started) -->
+            <div class="admin-section" id="startFirstQuestionSection" style="display: none;">
+                <div style="text-align: center; padding: 40px;">
+                    <h2 style="margin-bottom: 20px;">Session Activated</h2>
+                    <p style="color: var(--text-secondary); margin-bottom: 30px;">Ready to start the trivia session. Click below to begin the first question.</p>
+                    <button onclick="startFirstQuestion()" class="btn-success btn-large" style="font-size: 1.3rem; padding: 15px 40px;">
+                        ▶️ Start First Question
+                    </button>
+                </div>
             </div>
 
             <!-- Session Controls -->
@@ -193,6 +204,7 @@
         let leaderboardInterval = null;
         let questionCheckInterval = null;
         let bigScreenInterval = null;
+        let isManagingQuestions = false; // Track if admin clicked "Manage" button
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -279,7 +291,7 @@
                         <div class="session-card-actions">
                             ${!isCurrent ? `<button onclick="selectSession(${session.id})" class="btn-primary btn-small">Select</button>` : ''}
                             ${isCurrent && !isActive ? `<button onclick="startSession()" class="btn-success btn-small">Activate</button>` : ''}
-                            ${isCurrent ? `<button onclick="loadCurrentSession()" class="btn-secondary btn-small">Manage</button>` : ''}
+                            ${isCurrent ? `<button onclick="manageSession()" class="btn-secondary btn-small">Manage</button>` : ''}
                         </div>
                     </div>
                 `;
@@ -288,8 +300,15 @@
 
         async function selectSession(sessionId) {
             currentSessionId = sessionId;
+            isManagingQuestions = false; // Reset manage state
             await loadCurrentSession();
             await loadSessions(); // Refresh list
+        }
+        
+        async function manageSession() {
+            isManagingQuestions = true;
+            await loadCurrentSession();
+            await loadSessions(); // Refresh list to update button states
         }
 
         function showCreateSessionModal() {
@@ -335,20 +354,41 @@
                     displayQuestions();
                     updateSessionControls();
                     
-                    // Always show sections if we have a session (active or inactive)
-                    document.getElementById('questionsSection').style.display = 'block';
+                    // Show questions section only if Manage button was clicked
+                    if (isManagingQuestions && !result.session.isActive) {
+                        document.getElementById('questionsSection').style.display = 'block';
+                    } else {
+                        document.getElementById('questionsSection').style.display = 'none';
+                    }
+                    
                     document.getElementById('sessionControls').style.display = 'block';
                     
                     if (result.session.isActive) {
+                        const currentIndex = result.session.currentQuestionIndex ?? -1;
+                        
+                        // Hide questions section when session is active
+                        document.getElementById('questionsSection').style.display = 'none';
+                        
+                        // Show "Start First Question" button only if no question has been started
+                        if (currentIndex === -1) {
+                            document.getElementById('startFirstQuestionSection').style.display = 'block';
+                            document.getElementById('questionControlSection').style.display = 'none';
+                            document.getElementById('bigScreenDisplay').style.display = 'none';
+                        } else {
+                            // Question has been started - show question control and big screen
+                            document.getElementById('startFirstQuestionSection').style.display = 'none';
+                            document.getElementById('questionControlSection').style.display = 'block';
+                            document.getElementById('bigScreenDisplay').style.display = 'block';
+                        }
+                        
                         document.getElementById('leaderboardSection').style.display = 'block';
-                        document.getElementById('questionControlSection').style.display = 'block';
-                        document.getElementById('bigScreenDisplay').style.display = 'block';
                         startLeaderboardUpdates();
                         startQuestionMonitoring();
                         startBigScreenUpdates();
                         updateQuestionControl();
                         updateBigScreenDisplay();
                     } else {
+                        document.getElementById('startFirstQuestionSection').style.display = 'none';
                         document.getElementById('leaderboardSection').style.display = 'none';
                         document.getElementById('questionControlSection').style.display = 'none';
                         document.getElementById('bigScreenDisplay').style.display = 'none';
@@ -485,7 +525,22 @@
                 return;
             }
 
-            container.innerHTML = questions.map((q, index) => `
+            // Check if session is active and get current question index
+            const currentIndex = currentSession?.currentQuestionIndex ?? -1;
+            const questionStartedAt = currentSession?.questionStartedAt ? new Date(currentSession.questionStartedAt) : null;
+            const now = new Date();
+            
+            container.innerHTML = questions.map((q, index) => {
+                // Determine if we should show correct answer:
+                // 1. Session is not active (always show in manage mode)
+                // 2. This question has been completed (timer ended)
+                const isCurrentQuestion = index === currentIndex;
+                const shouldShowAnswer = !currentSession?.isActive || 
+                    (isCurrentQuestion && questionStartedAt && 
+                     (now.getTime() - questionStartedAt.getTime()) / 1000 >= q.timeLimitSeconds) ||
+                    (currentIndex > index); // Previous questions can show answers
+                
+                return `
                 <div class="question-card">
                     <div class="question-header">
                         <span class="question-number">Q${index + 1}</span>
@@ -493,14 +548,16 @@
                     </div>
                     <p class="question-text">${q.questionText}</p>
                     <div class="options">
-                        <div class="option ${q.correctAnswer === 'A' ? 'correct' : ''}">A. ${q.optionA}</div>
-                        <div class="option ${q.correctAnswer === 'B' ? 'correct' : ''}">B. ${q.optionB}</div>
-                        <div class="option ${q.correctAnswer === 'C' ? 'correct' : ''}">C. ${q.optionC}</div>
-                        <div class="option ${q.correctAnswer === 'D' ? 'correct' : ''}">D. ${q.optionD}</div>
+                        <div class="option ${shouldShowAnswer && q.correctAnswer === 'A' ? 'correct' : ''}">A. ${q.optionA}</div>
+                        <div class="option ${shouldShowAnswer && q.correctAnswer === 'B' ? 'correct' : ''}">B. ${q.optionB}</div>
+                        <div class="option ${shouldShowAnswer && q.correctAnswer === 'C' ? 'correct' : ''}">C. ${q.optionC}</div>
+                        <div class="option ${shouldShowAnswer && q.correctAnswer === 'D' ? 'correct' : ''}">D. ${q.optionD}</div>
                     </div>
                     <small>Time limit: ${q.timeLimitSeconds}s</small>
+                    ${!shouldShowAnswer && isCurrentQuestion && currentSession?.isActive ? '<small style="color: var(--warning-color); display: block; margin-top: 5px;">⏳ Answer will be shown after timer ends</small>' : ''}
                 </div>
-            `).join('');
+            `;
+            }).join('');
         }
 
         function updateSessionControls() {
@@ -509,13 +566,11 @@
             if (currentSession.isActive) {
                 document.getElementById('startSessionBtn').style.display = 'none';
                 document.getElementById('endSessionBtn').style.display = 'block';
-                document.getElementById('leaderboardSection').style.display = 'block';
-                document.getElementById('questionControlSection').style.display = 'block';
-                loadLeaderboard();
-                updateQuestionControl();
+                // Don't show question control here - it's handled in loadCurrentSession based on question index
             } else {
                 document.getElementById('startSessionBtn').style.display = 'block';
                 document.getElementById('endSessionBtn').style.display = 'none';
+                document.getElementById('startFirstQuestionSection').style.display = 'none';
                 document.getElementById('leaderboardSection').style.display = 'none';
                 document.getElementById('questionControlSection').style.display = 'none';
             }
@@ -538,6 +593,7 @@
                 const currentQuestionTextEl = document.getElementById('currentQuestionText');
                 const questionTimerStatusEl = document.getElementById('questionTimerStatus');
                 const startQuestionBtn = document.getElementById('startQuestionBtn');
+                const nextQuestionBtn = document.getElementById('nextQuestionBtn');
                 
                 if (currentQuestionTextEl) {
                     currentQuestionTextEl.innerHTML = `
@@ -548,21 +604,56 @@
                     `;
                 }
                 
-                // Show timer status
+                // Show timer status and check if timer has ended
                 if (currentSession.questionStartedAt) {
                     const startedAt = new Date(currentSession.questionStartedAt);
                     const elapsed = Math.floor((Date.now() - startedAt.getTime()) / 1000);
                     const remaining = Math.max(0, question.timeLimitSeconds - elapsed);
+                    const timerEnded = remaining <= 0;
                     
                     if (questionTimerStatusEl) {
-                        questionTimerStatusEl.innerHTML = `
-                            Timer: <strong>${remaining}s</strong> remaining
-                        `;
+                        if (timerEnded) {
+                            questionTimerStatusEl.innerHTML = `
+                                <div style="color: var(--warning-color); font-weight: bold; margin-bottom: 15px;">
+                                    ⏱️ Timer Ended
+                                </div>
+                                <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin-top: 10px;">
+                                    <strong>Correct Answer:</strong> ${question.correctAnswer}<br>
+                                    <div style="margin-top: 10px;">
+                                        <div class="option ${question.correctAnswer === 'A' ? 'correct' : ''}" style="margin: 5px 0;">A. ${question.optionA}</div>
+                                        <div class="option ${question.correctAnswer === 'B' ? 'correct' : ''}" style="margin: 5px 0;">B. ${question.optionB}</div>
+                                        <div class="option ${question.correctAnswer === 'C' ? 'correct' : ''}" style="margin: 5px 0;">C. ${question.optionC}</div>
+                                        <div class="option ${question.correctAnswer === 'D' ? 'correct' : ''}" style="margin: 5px 0;">D. ${question.optionD}</div>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            questionTimerStatusEl.innerHTML = `
+                                Timer: <strong>${remaining}s</strong> remaining
+                            `;
+                        }
                     }
                     if (startQuestionBtn) startQuestionBtn.style.display = 'none';
+                    
+                    // Show "Next Question" button only after timer ends
+                    if (nextQuestionBtn) {
+                        if (timerEnded) {
+                            nextQuestionBtn.style.display = 'inline-block';
+                            if (currentIndex >= totalQuestions - 1) {
+                                nextQuestionBtn.textContent = '✅ Session Complete';
+                                nextQuestionBtn.disabled = true;
+                            } else {
+                                nextQuestionBtn.textContent = '➡️ Next Question';
+                                nextQuestionBtn.disabled = false;
+                            }
+                        } else {
+                            nextQuestionBtn.style.display = 'none';
+                        }
+                    }
                 } else {
                     if (questionTimerStatusEl) questionTimerStatusEl.textContent = 'Timer not started';
                     if (startQuestionBtn) startQuestionBtn.style.display = 'inline-block';
+                    if (nextQuestionBtn) nextQuestionBtn.style.display = 'none';
                 }
                 
                 // Update big screen display
@@ -580,10 +671,19 @@
             // Update button states
             const nextQuestionBtn = document.getElementById('nextQuestionBtn');
             const previousQuestionBtn = document.getElementById('previousQuestionBtn');
-            if (nextQuestionBtn) nextQuestionBtn.disabled = currentIndex >= totalQuestions - 1;
+            if (nextQuestionBtn && nextQuestionBtn.style.display !== 'none') {
+                // Only update if button is visible (timer ended)
+                if (currentIndex >= totalQuestions - 1) {
+                    nextQuestionBtn.disabled = true;
+                }
+            }
             if (previousQuestionBtn) previousQuestionBtn.disabled = currentIndex <= 0;
         }
 
+        async function startFirstQuestion() {
+            await advanceToQuestion(0);
+        }
+        
         async function startCurrentQuestion() {
             const currentIndex = currentSession.currentQuestionIndex ?? 0;
             await advanceToQuestion(currentIndex);
@@ -619,7 +719,10 @@
                     // Reload session to get updated state
                     await loadCurrentSession();
                     updateBigScreenDisplay(); // Update big screen immediately
-                    alert(`Question ${questionIndex + 1} started! Participants can now see and answer.`);
+                    // Hide "Start First Question" section and show question control
+                    document.getElementById('startFirstQuestionSection').style.display = 'none';
+                    document.getElementById('questionControlSection').style.display = 'block';
+                    document.getElementById('bigScreenDisplay').style.display = 'block';
                 } else {
                     alert('Error: ' + result.error);
                 }
