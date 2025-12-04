@@ -73,32 +73,81 @@ export default async (req, context) => {
         // --- Extract Participants ---
         const participants = [];
         
-        for (const row of rows) {
+        // Check if first row contains headers (header-based format)
+        let hasHeaders = false;
+        let nameIndex = -1;
+        let companyIndex = -1;
+        let vipIndex = -1;
+        let tableIndex = -1;
+        
+        if (rows.length > 0) {
+            const firstRow = rows[0].map(c => c.toLowerCase().trim());
+            // Check if this looks like a header row
+            if (firstRow.some(c => c.includes('name') || c.includes('nama') || c.includes('full name'))) {
+                hasHeaders = true;
+                // Find column indices
+                nameIndex = firstRow.findIndex(h => h.includes('name') || h.includes('nama') || h.includes('full name'));
+                companyIndex = firstRow.findIndex(h => h.includes('company') || h.includes('organization') || h.includes('syarikat'));
+                vipIndex = firstRow.findIndex(h => h.includes('vip') || h.includes('status'));
+                tableIndex = firstRow.findIndex(h => h.includes('table') || h.includes('meja'));
+                
+                if (nameIndex === -1) {
+                    hasHeaders = false; // Invalid header format, fall back to old format
+                }
+            }
+        }
+        
+        // Start from row 1 if headers detected, otherwise start from row 0
+        const startRow = hasHeaders ? 1 : 0;
+        
+        for (let i = startRow; i < rows.length; i++) {
+            const row = rows[i];
             // Skip empty rows
             if (row.length === 0 || (row.length === 1 && !row[0])) continue;
 
             let name = '';
             let company = '';
+            let vip = false;
+            let table = null;
 
-            // Format: [, No, Company, Name] (Leading comma results in empty first element)
-            if (row.length >= 4 && row[0] === '' && /^\d+$/.test(row[1])) {
-                company = row[2];
-                name = row[3];
-            }
-            // Format: [No, Company, Name] (Simple)
-            else if (row.length >= 3 && /^\d+$/.test(row[0])) {
-                company = row[1];
-                name = row[2];
-            }
-            // Fallback: Check for Name/Company headers to skip
-            else if (row.some(c => c.toLowerCase() === 'name' || c.toLowerCase() === 'company')) {
-                continue;
-            }
-            // Fallback: Look for text fields
-            else if (row.length >= 2) {
-                // Heuristic: Name is usually longest or last text field?
-                // Safe default: Skip unknown formats to avoid junk
-                continue;
+            if (hasHeaders) {
+                // Header-based format: Name, Company, VIP, Table
+                if (nameIndex >= 0 && nameIndex < row.length) {
+                    name = row[nameIndex];
+                }
+                if (companyIndex >= 0 && companyIndex < row.length) {
+                    company = row[companyIndex] || '';
+                }
+                if (vipIndex >= 0 && vipIndex < row.length) {
+                    const vipValue = row[vipIndex]?.toLowerCase();
+                    vip = vipValue === 'true' || vipValue === '1' || vipValue === 'yes' || vipValue === 'vip' || vipValue === 'vvip';
+                }
+                if (tableIndex >= 0 && tableIndex < row.length && row[tableIndex]) {
+                    const tableNum = parseInt(row[tableIndex]);
+                    if (!isNaN(tableNum)) {
+                        table = tableNum;
+                    }
+                }
+            } else {
+                // Old format: No, Company, Name or , No, Company, Name
+                // Format: [, No, Company, Name] (Leading comma results in empty first element)
+                if (row.length >= 4 && row[0] === '' && /^\d+$/.test(row[1])) {
+                    company = row[2];
+                    name = row[3];
+                }
+                // Format: [No, Company, Name] (Simple)
+                else if (row.length >= 3 && /^\d+$/.test(row[0])) {
+                    company = row[1];
+                    name = row[2];
+                }
+                // Skip header-like rows
+                else if (row.some(c => c.toLowerCase() === 'name' || c.toLowerCase() === 'company')) {
+                    continue;
+                }
+                // Skip unknown formats
+                else if (row.length >= 2) {
+                    continue;
+                }
             }
 
             // Clean up
@@ -109,8 +158,8 @@ export default async (req, context) => {
                 participants.push({
                     name: name,
                     company: company || 'Not specified',
-                    vip: false,
-                    table: null
+                    vip: vip,
+                    table: table
                 });
             }
         }

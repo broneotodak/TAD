@@ -581,13 +581,42 @@
                 <p class="step-description">Upload a participant list or add them manually later</p>
 
                 <div id="uploadSection">
+                    <!-- Template Download Section -->
+                    <div style="background: var(--bg-secondary); border-radius: 8px; padding: 15px; margin-bottom: 20px; border: 1px solid var(--border-color);">
+                        <p style="margin: 0 0 10px 0; font-weight: 600; color: var(--text-primary); font-size: 0.95rem;">📋 Need a Template?</p>
+                        <p style="margin: 0 0 10px 0; font-size: 0.85rem; color: var(--text-secondary);">
+                            For best results, use CSV format. Download our template:
+                        </p>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <a href="templates/participant-list-template.csv" download style="text-decoration: none;">
+                                <button class="btn-secondary" style="font-size: 0.85rem; padding: 8px 12px;">
+                                    📥 Download CSV Template
+                                </button>
+                            </a>
+                            <a href="templates/PARTICIPANT_UPLOAD_GUIDE.md" download style="text-decoration: none;">
+                                <button class="btn-secondary" style="font-size: 0.85rem; padding: 8px 12px;">
+                                    📖 Upload Guide
+                                </button>
+                            </a>
+                        </div>
+                    </div>
+
                     <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
                         <div class="upload-icon">📤</div>
                         <div class="upload-text">Drag & Drop your file here</div>
                         <div class="upload-hint">or click to browse (PDF, CSV, Excel supported)</div>
+                        <div style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 8px; font-style: italic;">
+                            ⚠️ CSV format recommended for reliable uploads
+                        </div>
                     </div>
                     <input type="file" id="fileInput" class="file-input" accept=".pdf,.csv,.xlsx,.xls"
                         onchange="handleFileUpload(event)">
+
+                    <!-- Format Info -->
+                    <div style="margin-top: 15px; padding: 12px; background: var(--bg-secondary); border-radius: 8px; font-size: 0.85rem; color: var(--text-secondary); text-align: center;">
+                        <strong>CSV Format:</strong> Number, Company, Full Name<br>
+                        <strong>Example:</strong> 1, Acme Corporation, John Doe
+                    </div>
 
                     <div class="or-divider">
                         <span>OR</span>

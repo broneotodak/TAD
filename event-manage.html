@@ -196,15 +196,47 @@
 
     <!-- Upload Modal -->
     <div id="uploadModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 1000;">
-        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--card-bg); border: 2px solid var(--border-color); border-radius: 15px; padding: 30px; max-width: 500px; width: 90%;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--card-bg); border: 2px solid var(--border-color); border-radius: 15px; padding: 30px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;">
             <h2 style="margin-bottom: 20px;">Upload Participant List</h2>
+            
+            <!-- Template Download Section -->
+            <div style="background: var(--bg-secondary); border-radius: 8px; padding: 15px; margin-bottom: 20px; border: 1px solid var(--border-color);">
+                <p style="margin: 0 0 10px 0; font-weight: 600; color: var(--text-primary);">📋 Need a Template?</p>
+                <p style="margin: 0 0 10px 0; font-size: 0.9rem; color: var(--text-secondary);">
+                    For best results, use CSV format. Download our template:
+                </p>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <a href="templates/participant-list-template.csv" download style="text-decoration: none;">
+                        <button class="btn-secondary" style="font-size: 0.85rem; padding: 8px 12px;">
+                            📥 Download CSV Template
+                        </button>
+                    </a>
+                    <a href="templates/PARTICIPANT_UPLOAD_GUIDE.md" download style="text-decoration: none;">
+                        <button class="btn-secondary" style="font-size: 0.85rem; padding: 8px 12px;">
+                            📖 Upload Guide
+                        </button>
+                    </a>
+                </div>
+            </div>
+
+            <!-- File Upload Area -->
             <div style="border: 2px dashed var(--border-color); border-radius: 10px; padding: 40px; text-align: center; cursor: pointer;" onclick="document.getElementById('fileInput').click()">
                 <p style="font-size: 2rem; margin-bottom: 10px;">📤</p>
                 <p>Click to browse or drag & drop</p>
-                <p style="color: var(--text-secondary); font-size: 0.9rem;">PDF, CSV, Excel supported</p>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 5px;">PDF, CSV, Excel supported</p>
+                <p style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 10px; font-style: italic;">
+                    ⚠️ CSV format recommended for reliable uploads
+                </p>
             </div>
             <input type="file" id="fileInput" style="display: none;" accept=".pdf,.csv,.xlsx,.xls" onchange="handleFileUpload(event)">
-            <div style="margin-top: 20px; text-align: right;">
+            
+            <!-- Format Info -->
+            <div style="margin-top: 15px; padding: 12px; background: var(--bg-secondary); border-radius: 8px; font-size: 0.85rem; color: var(--text-secondary);">
+                <strong>CSV Format:</strong> Number, Company, Full Name<br>
+                <strong>Example:</strong> 1, Acme Corporation, John Doe
+            </div>
+            
+            <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
                 <button onclick="closeUploadModal()" class="btn-secondary">Cancel</button>
             </div>
         </div>
