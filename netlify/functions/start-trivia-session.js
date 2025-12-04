@@ -52,23 +52,15 @@ export default async (req, context) => {
     }
 
     // Clear all previous answers for questions in this session (reset leaderboard)
-    // First get the question IDs
-    const questionIds = await sql`
-      SELECT id FROM trivia_questions WHERE session_id = ${sessionId}
+    const deleteResult = await sql`
+      DELETE FROM trivia_answers
+      WHERE EXISTS (
+        SELECT 1 FROM trivia_questions tq 
+        WHERE tq.id = trivia_answers.question_id 
+        AND tq.session_id = ${sessionId}
+      )
     `;
-    
-    if (questionIds.length > 0) {
-      // Delete answers for each question (Neon doesn't support array parameters well)
-      for (const question of questionIds) {
-        await sql`
-          DELETE FROM trivia_answers
-          WHERE question_id = ${question.id}
-        `;
-      }
-      console.log(`Cleared trivia answers for ${questionIds.length} questions in session ${sessionId}`);
-    } else {
-      console.log(`No questions found for session ${sessionId}, nothing to clear`);
-    }
+    console.log(`Cleared trivia answers for session ${sessionId}`);
 
     // Activate this session and reset question index
     const [updated] = await sql`
