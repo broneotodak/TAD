@@ -770,11 +770,13 @@
                             nextQuestionBtn.style.width = '100%';
                             nextQuestionBtn.style.maxWidth = '400px';
                             if (currentIndex >= totalQuestions - 1) {
-                                nextQuestionBtn.textContent = '✅ Session Complete';
-                                nextQuestionBtn.disabled = true;
+                                nextQuestionBtn.textContent = '✅ Complete Session';
+                                nextQuestionBtn.disabled = false;
+                                nextQuestionBtn.onclick = () => completeSession();
                             } else {
                                 nextQuestionBtn.textContent = '➡️ Next Question';
                                 nextQuestionBtn.disabled = false;
+                                nextQuestionBtn.onclick = () => advanceToNextQuestion();
                             }
                             // Scroll to result section when timer ends (only once)
                             if (!hasScrolledToResult) {

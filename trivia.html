@@ -170,6 +170,15 @@
                 const result = await response.json();
 
                 if (result.success && result.session) {
+                    // Check if session is completed (ended)
+                    if (!result.session.isActive && result.session.endedAt) {
+                        // Session completed - show final leaderboard and winner
+                        currentSession = result.session;
+                        questions = result.questions || [];
+                        showCompleted();
+                        return;
+                    }
+                    
                     // Only show if session is ACTIVE (admin has started it)
                     if (result.session.isActive) {
                         // Session is active
@@ -499,14 +508,16 @@
             if (userTotalEl) userTotalEl.textContent = userTotal;
         }
 
-        function showCompleted() {
+        async function showCompleted() {
             const activeSessionEl = document.getElementById('activeSession');
             const completedStateEl = document.getElementById('completedState');
             const leaderboardSectionEl = document.getElementById('leaderboardSection');
+            const waitingStateEl = document.getElementById('waitingState');
             const finalScoreEl = document.getElementById('finalScore');
             const finalCorrectEl = document.getElementById('finalCorrect');
             const finalTotalEl = document.getElementById('finalTotal');
             
+            if (waitingStateEl) waitingStateEl.style.display = 'none';
             if (activeSessionEl) activeSessionEl.style.display = 'none';
             if (completedStateEl) completedStateEl.style.display = 'block';
             if (leaderboardSectionEl) leaderboardSectionEl.style.display = 'block';
@@ -515,7 +526,8 @@
             if (finalCorrectEl) finalCorrectEl.textContent = userCorrect;
             if (finalTotalEl) finalTotalEl.textContent = userTotal;
 
-            loadLeaderboard();
+            // Load and display leaderboard with winner
+            await loadLeaderboard();
         }
 
         async function loadLeaderboard() {
@@ -538,20 +550,43 @@
                 return;
             }
 
-            container.innerHTML = leaderboard.map((entry, index) => {
-                const isCurrentUser = entry.participantId === participantId;
-                return `
-                    <div class="leaderboard-entry ${isCurrentUser ? 'current-user' : ''}">
-                        <div class="rank">#${entry.rank}</div>
-                        <div class="participant-info">
-                            <div class="name">${entry.name} ${isCurrentUser ? '(You)' : ''}</div>
-                            <div class="company">${entry.company || ''}</div>
-                        </div>
-                        <div class="score">${entry.totalPoints} pts</div>
-                        <div class="stats">${entry.correctAnswers}/${entry.questionsAnswered}</div>
+            // Get winner (first place)
+            const winner = leaderboard[0];
+            const isCurrentUserWinner = winner && winner.participantId === participantId;
+
+            container.innerHTML = `
+                ${winner ? `
+                <div class="winner-announcement" style="text-align: center; padding: 30px; margin-bottom: 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; color: white;">
+                    <div style="font-size: 3rem; margin-bottom: 15px;">🏆</div>
+                    <h2 style="font-size: 2rem; margin-bottom: 10px; font-weight: bold;">Winner!</h2>
+                    <div style="font-size: 1.5rem; margin-bottom: 5px; font-weight: 600;">${winner.name}</div>
+                    ${winner.company ? `<div style="font-size: 1rem; opacity: 0.9;">${winner.company}</div>` : ''}
+                    <div style="font-size: 1.3rem; margin-top: 15px; font-weight: bold;">
+                        ${winner.totalPoints} Points • ${winner.correctAnswers} Correct
                     </div>
-                `;
-            }).join('');
+                </div>
+                ` : ''}
+                <h3 style="margin-bottom: 20px; text-align: center;">Final Leaderboard</h3>
+                ${leaderboard.map((entry, index) => {
+                    const isCurrentUser = entry.participantId === participantId;
+                    const isWinner = index === 0;
+                    return `
+                        <div class="leaderboard-entry ${isCurrentUser ? 'current-user' : ''} ${isWinner ? 'winner-entry' : ''}" style="${isWinner ? 'background: rgba(102, 126, 234, 0.1); border: 2px solid #667eea;' : ''}">
+                            <div class="rank" style="${isWinner ? 'font-size: 1.5rem; font-weight: bold; color: #667eea;' : ''}">
+                                ${isWinner ? '👑' : `#${entry.rank}`}
+                            </div>
+                            <div class="participant-info">
+                                <div class="name" style="${isWinner ? 'font-weight: bold; font-size: 1.1rem;' : ''}">
+                                    ${entry.name} ${isCurrentUser ? '(You)' : ''}
+                                </div>
+                                <div class="company">${entry.company || ''}</div>
+                            </div>
+                            <div class="score" style="${isWinner ? 'font-weight: bold; font-size: 1.1rem;' : ''}">${entry.totalPoints} pts</div>
+                            <div class="stats">${entry.correctAnswers}/${entry.questionsAnswered}</div>
+                        </div>
+                    `;
+                }).join('')}
+            `;
         }
 
         // Cleanup on page unload
