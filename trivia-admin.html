@@ -269,9 +269,23 @@
         }
 
         async function loadCurrentSession() {
+            // If no session selected, try to find active session first
             if (!currentSessionId) {
-                displayNoSession();
-                return;
+                try {
+                    const response = await fetch(`/api/get-trivia-session?eventId=${currentEventId}`);
+                    const result = await response.json();
+                    
+                    if (result.success && result.session) {
+                        currentSessionId = result.session.id;
+                        // Continue to load this session
+                    } else {
+                        displayNoSession();
+                        return;
+                    }
+                } catch (error) {
+                    displayNoSession();
+                    return;
+                }
             }
             
             try {
