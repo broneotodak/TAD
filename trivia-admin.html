@@ -116,7 +116,7 @@
 
             <!-- Question Control (shown when session is active) -->
                 <div id="questionControlSection" style="display: none; margin-top: 30px; padding: 20px; background: var(--dark-bg); border-radius: 10px;">
-                    <h3>Current Question Control</h3>
+                    <h3 id="questionControlHeader">Current Question Control</h3>
                     <div id="currentQuestionDisplay" style="margin: 20px 0;">
                         <p><strong>Question:</strong> <span id="currentQuestionNum">-</span> of <span id="totalQuestionsDisplay">0</span></p>
                         <div id="currentQuestionText" style="font-size: 1.1rem; margin: 15px 0; padding: 15px; background: var(--card-bg); border-radius: 8px;"></div>
@@ -384,6 +384,13 @@
                             document.getElementById('startFirstQuestionSection').style.display = 'none';
                             document.getElementById('questionControlSection').style.display = 'block';
                             document.getElementById('bigScreenDisplay').style.display = 'block';
+                            // Scroll to big screen display when session starts
+                            setTimeout(() => {
+                                const bigScreenDisplay = document.getElementById('bigScreenDisplay');
+                                if (bigScreenDisplay) {
+                                    bigScreenDisplay.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                }
+                            }, 300);
                         }
                         
                         document.getElementById('sessionControls').style.display = 'block';
@@ -624,6 +631,12 @@
                     const remaining = Math.max(0, question.timeLimitSeconds - elapsed);
                     const timerEnded = remaining <= 0;
                     
+                    // Update header based on timer status
+                    const questionControlHeader = document.getElementById('questionControlHeader');
+                    if (questionControlHeader) {
+                        questionControlHeader.textContent = timerEnded ? 'RESULT' : 'Current Question Control';
+                    }
+                    
                     if (questionTimerStatusEl) {
                         if (timerEnded) {
                             // Load answer breakdown when timer ends
@@ -693,21 +706,6 @@
                                                     `;
                                                 }).join('')}
                                             </div>
-                                            
-                                            <!-- Options Display -->
-                                            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
-                                                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
-                                                    ${['A', 'B', 'C', 'D'].map(option => {
-                                                        const optionText = question[`option${option}`];
-                                                        const isCorrect = question.correctAnswer === option;
-                                                        return `
-                                                            <div class="option ${isCorrect ? 'correct' : ''}" style="margin: 5px 0; padding: 10px; border-radius: 6px; ${isCorrect ? 'background: rgba(76, 175, 80, 0.2); border: 2px solid #4CAF50;' : 'background: var(--dark-bg);'}">
-                                                                <strong>${option}.</strong> ${optionText}
-                                                            </div>
-                                                        `;
-                                                    }).join('')}
-                                                </div>
-                                            </div>
                                         </div>
                                     `;
                                 } else {
@@ -717,13 +715,7 @@
                                             ⏱️ Timer Ended
                                         </div>
                                         <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin-top: 10px;">
-                                            <strong>Correct Answer:</strong> ${question.correctAnswer}<br>
-                                            <div style="margin-top: 10px;">
-                                                <div class="option ${question.correctAnswer === 'A' ? 'correct' : ''}" style="margin: 5px 0;">A. ${question.optionA}</div>
-                                                <div class="option ${question.correctAnswer === 'B' ? 'correct' : ''}" style="margin: 5px 0;">B. ${question.optionB}</div>
-                                                <div class="option ${question.correctAnswer === 'C' ? 'correct' : ''}" style="margin: 5px 0;">C. ${question.optionC}</div>
-                                                <div class="option ${question.correctAnswer === 'D' ? 'correct' : ''}" style="margin: 5px 0;">D. ${question.optionD}</div>
-                                            </div>
+                                            <strong>Correct Answer:</strong> ${question.correctAnswer}
                                         </div>
                                     `;
                                 }
@@ -735,13 +727,7 @@
                                         ⏱️ Timer Ended
                                     </div>
                                     <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin-top: 10px;">
-                                        <strong>Correct Answer:</strong> ${question.correctAnswer}<br>
-                                        <div style="margin-top: 10px;">
-                                            <div class="option ${question.correctAnswer === 'A' ? 'correct' : ''}" style="margin: 5px 0;">A. ${question.optionA}</div>
-                                            <div class="option ${question.correctAnswer === 'B' ? 'correct' : ''}" style="margin: 5px 0;">B. ${question.optionB}</div>
-                                            <div class="option ${question.correctAnswer === 'C' ? 'correct' : ''}" style="margin: 5px 0;">C. ${question.optionC}</div>
-                                            <div class="option ${question.correctAnswer === 'D' ? 'correct' : ''}" style="margin: 5px 0;">D. ${question.optionD}</div>
-                                        </div>
+                                        <strong>Correct Answer:</strong> ${question.correctAnswer}
                                     </div>
                                 `;
                             }
@@ -757,9 +743,11 @@
                     if (nextQuestionBtn) {
                         if (timerEnded) {
                             nextQuestionBtn.style.display = 'inline-block';
-                            nextQuestionBtn.style.fontSize = '1.2rem';
-                            nextQuestionBtn.style.padding = '12px 30px';
-                            nextQuestionBtn.style.marginTop = '20px';
+                            nextQuestionBtn.style.fontSize = '1.3rem';
+                            nextQuestionBtn.style.padding = '15px 40px';
+                            nextQuestionBtn.style.marginTop = '30px';
+                            nextQuestionBtn.style.width = '100%';
+                            nextQuestionBtn.style.maxWidth = '400px';
                             if (currentIndex >= totalQuestions - 1) {
                                 nextQuestionBtn.textContent = '✅ Session Complete';
                                 nextQuestionBtn.disabled = true;
@@ -767,7 +755,13 @@
                                 nextQuestionBtn.textContent = '➡️ Next Question';
                                 nextQuestionBtn.disabled = false;
                             }
-                            // Don't auto-scroll - let user scroll naturally
+                            // Scroll to result section when timer ends
+                            setTimeout(() => {
+                                const questionControlSection = document.getElementById('questionControlSection');
+                                if (questionControlSection) {
+                                    questionControlSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                }
+                            }, 500);
                             // Refresh questions list to show correct answer
                             if (isManagingQuestions) {
                                 displayQuestions();
@@ -850,6 +844,13 @@
                     document.getElementById('startFirstQuestionSection').style.display = 'none';
                     document.getElementById('questionControlSection').style.display = 'block';
                     document.getElementById('bigScreenDisplay').style.display = 'block';
+                    // Scroll to big screen display when first question starts
+                    setTimeout(() => {
+                        const bigScreenDisplay = document.getElementById('bigScreenDisplay');
+                        if (bigScreenDisplay) {
+                            bigScreenDisplay.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                    }, 300);
                 } else {
                     alert('Error: ' + result.error);
                 }
