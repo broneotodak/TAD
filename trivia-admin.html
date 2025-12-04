@@ -222,6 +222,8 @@
             loadTheme();
             loadSessions();
             loadCurrentSession();
+            // Load checked-in count immediately
+            loadCheckedInCount();
         });
 
         function loadTheme() {
@@ -968,18 +970,30 @@
         }
 
         async function loadCheckedInCount() {
-            if (!currentEventId) return;
+            if (!currentEventId) {
+                console.log('loadCheckedInCount: No currentEventId');
+                return;
+            }
             
             try {
+                console.log('loadCheckedInCount: Fetching participants for eventId:', currentEventId);
                 const response = await fetch(`/api/get-participants?eventId=${currentEventId}`);
                 const result = await response.json();
                 
+                console.log('loadCheckedInCount: API response:', result);
+                
                 if (result.success && result.participants) {
                     const checkedInCount = result.participants.filter(p => p.checkedIn).length;
+                    console.log('loadCheckedInCount: Total participants:', result.participants.length, 'Checked in:', checkedInCount);
                     const participantCountEl = document.getElementById('participantCount');
                     if (participantCountEl) {
                         participantCountEl.textContent = checkedInCount;
+                        console.log('loadCheckedInCount: Updated participant count to', checkedInCount);
+                    } else {
+                        console.error('loadCheckedInCount: participantCount element not found');
                     }
+                } else {
+                    console.error('loadCheckedInCount: API call failed or no participants:', result);
                 }
             } catch (error) {
                 console.error('Error loading checked-in count:', error);
