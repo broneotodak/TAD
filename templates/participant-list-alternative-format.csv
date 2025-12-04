@@ -1,6 +1,6 @@
-Number,Company,Full Name
-1,Acme Corporation,John Doe
-2,Tech Solutions Inc.,Jane Smith
-3,Global Industries,Bob Johnson
-4,VIP Guest,Alice Williams
-5,Startup Co.,Michael Brown
+Number,Company,Full Name,VIP
+1,Acme Corporation,John Doe,false
+2,Tech Solutions Inc.,Jane Smith,false
+3,Global Industries,Bob Johnson,false
+4,VIP Guest,Alice Williams,true
+5,Startup Co.,Michael Brown,false

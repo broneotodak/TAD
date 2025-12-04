@@ -26,43 +26,51 @@ Your CSV file must include these columns in this exact order:
    - Column header: `Full Name`, `Name`, or `Nama`
    - Contains the participant's complete name
 
+4. **VIP** (Optional)
+   - Column header: `VIP` or `Status`
+   - Mark VIP participants with: `true`, `1`, `yes`, `VIP`, or `VVIP` (case-insensitive)
+   - Mark non-VIP with: `false`, `0`, `no`, or leave empty
+   - Default: `false` if not specified
+
 ### Standard CSV Format (With Headers)
 
 ```csv
-Number,Company,Full Name
-1,Acme Corporation,John Doe
-2,Tech Solutions Inc.,Jane Smith
-3,Global Industries,Bob Johnson
-4,VIP Guest,Alice Williams
-5,Startup Co.,Michael Brown
+Number,Company,Full Name,VIP
+1,Acme Corporation,John Doe,false
+2,Tech Solutions Inc.,Jane Smith,false
+3,Global Industries,Bob Johnson,false
+4,VIP Guest,Alice Williams,true
+5,Startup Co.,Michael Brown,false
 ```
 
 ### Alternative Format (Without Headers)
 If you prefer a simpler format without headers:
 
 ```csv
-1,Acme Corporation,John Doe
-2,Tech Solutions Inc.,Jane Smith
-3,Global Industries,Bob Johnson
+1,Acme Corporation,John Doe,false
+2,Tech Solutions Inc.,Jane Smith,false
+3,Global Industries,Bob Johnson,false
 ```
 
-**Format:** `Number, Company, Full Name`
+**Format:** `Number, Company, Full Name, VIP` (VIP is optional)
 
 ## Excel Template Format
 
 When creating an Excel file, follow the same column structure:
 
-| Number | Company | Full Name |
-|--------|---------|-----------|
-| 1 | Acme Corporation | John Doe |
-| 2 | Tech Solutions Inc. | Jane Smith |
-| 3 | Global Industries | Bob Johnson |
+| Number | Company | Full Name | VIP |
+|--------|---------|-----------|-----|
+| 1 | Acme Corporation | John Doe | false |
+| 2 | Tech Solutions Inc. | Jane Smith | false |
+| 3 | Global Industries | Bob Johnson | false |
+| 4 | VIP Guest | Alice Williams | true |
 
 ### Excel Tips
-- Use the first row for column headers: `Number`, `Company`, `Full Name`
+- Use the first row for column headers: `Number`, `Company`, `Full Name`, `VIP`
 - Number column should be numeric (1, 2, 3, ...)
+- VIP column: Use `true`/`false`, `yes`/`no`, `1`/`0`, or `VIP`/`VVIP` (case-insensitive)
 - Avoid merged cells or complex formatting
-- Keep it simple - only these three columns are needed
+- VIP column is optional - you can leave it empty or use `false` for non-VIP participants
 
 ## Common Issues & Solutions
 
@@ -81,15 +89,16 @@ When creating an Excel file, follow the same column structure:
 ## Best Practices
 
 1. ✅ **Use CSV format** for best reliability
-2. ✅ **Include column headers** in the first row: `Number, Company, Full Name`
-3. ✅ **Follow the exact column order**: Number, Company, Full Name
+2. ✅ **Include column headers** in the first row: `Number, Company, Full Name, VIP`
+3. ✅ **Follow the exact column order**: Number, Company, Full Name, VIP
 4. ✅ **Save as UTF-8** encoding to avoid character issues
 5. ✅ **Test with a small file first** (5-10 participants)
 6. ✅ **Use sequential numbering** starting from 1
-7. ❌ **Avoid special characters** in names/companies that might break CSV parsing
-8. ❌ **Don't use merged cells** in Excel files
-9. ❌ **Don't include empty rows** between data
-10. ❌ **Don't add extra columns** - only Number, Company, and Full Name are needed
+7. ✅ **Mark VIP status** using: `true`, `1`, `yes`, `VIP`, or `VVIP` (case-insensitive)
+8. ❌ **Avoid special characters** in names/companies that might break CSV parsing
+9. ❌ **Don't use merged cells** in Excel files
+10. ❌ **Don't include empty rows** between data
+11. ❌ **VIP column is optional** - you can leave it empty or use `false` for non-VIP participants
 
 ## Quick Start
 

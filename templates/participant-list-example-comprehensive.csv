@@ -1,11 +1,11 @@
-Number,Company,Full Name
-1,Acme Corporation,John Doe
-2,Tech Solutions Inc.,Jane Smith
-3,Global Industries,Bob Johnson
-4,VIP Guest,Alice Williams
-5,Startup Co.,Michael Brown
-6,Corporate Ltd.,Sarah Davis
-7,VVIP Member,David Lee
-8,Small Business,Lisa Chen
-9,Enterprise Corp.,Tom Wilson
-10,Independent,Emma Taylor
+Number,Company,Full Name,VIP
+1,Acme Corporation,John Doe,false
+2,Tech Solutions Inc.,Jane Smith,false
+3,Global Industries,Bob Johnson,false
+4,VIP Guest,Alice Williams,true
+5,Startup Co.,Michael Brown,false
+6,Corporate Ltd.,Sarah Davis,true
+7,VVIP Member,David Lee,true
+8,Small Business,Lisa Chen,false
+9,Enterprise Corp.,Tom Wilson,false
+10,Independent,Emma Taylor,false
