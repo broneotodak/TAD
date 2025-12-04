@@ -343,7 +343,21 @@
                 if (timerDisplayEl) timerDisplayEl.style.display = 'none';
                 clearTimer();
             } else {
-                // Already answered - show answer but don't show timer
+                // Already answered - check if timer has ended to show correct answer
+                const questionStarted = currentSession.questionStartedAt && 
+                                       currentSession.currentQuestionIndex === index;
+                
+                if (questionStarted) {
+                    const startedAt = new Date(currentSession.questionStartedAt);
+                    const elapsed = Math.floor((Date.now() - startedAt.getTime()) / 1000);
+                    const timerEnded = elapsed >= question.timeLimitSeconds;
+                    
+                    if (timerEnded) {
+                        // Timer ended - show correct answer
+                        showCorrectAnswerAfterTimer(question);
+                    }
+                }
+                
                 if (waitingEl) waitingEl.style.display = 'none';
                 if (timerDisplayEl) timerDisplayEl.style.display = 'none';
                 clearTimer();
@@ -351,6 +365,47 @@
 
             // Hide feedback
             document.getElementById('answerFeedback').style.display = 'none';
+        }
+        
+        function showCorrectAnswerAfterTimer(question) {
+            const container = document.getElementById('optionsContainer');
+            if (!container) return;
+            
+            // Highlight the correct answer
+            const options = [
+                { letter: 'A', text: question.optionA, color: '#FF6B6B' },
+                { letter: 'B', text: question.optionB, color: '#4ECDC4' },
+                { letter: 'C', text: question.optionC, color: '#45B7D1' },
+                { letter: 'D', text: question.optionD, color: '#FFA07A' }
+            ];
+            
+            container.innerHTML = options.map(opt => {
+                const isCorrect = question.correctAnswer === opt.letter;
+                const userSelected = userAnswers[question.id] === opt.letter;
+                
+                let borderStyle = 'none';
+                let bgStyle = opt.color;
+                
+                if (isCorrect) {
+                    borderStyle = '4px solid #4CAF50';
+                    bgStyle = opt.color;
+                } else if (userSelected && !isCorrect) {
+                    borderStyle = '4px solid #f44336';
+                    bgStyle = opt.color;
+                }
+                
+                return `
+                    <button 
+                        class="option-button-kahoot"
+                        disabled
+                        style="background: ${bgStyle}; border: ${borderStyle}; opacity: ${isCorrect ? '1' : '0.6'};"
+                    >
+                        <span class="option-letter-kahoot">${opt.letter}</span>
+                        <span class="option-text-kahoot">${opt.text}</span>
+                        ${isCorrect ? '<span style="font-size: 2rem; margin-left: 10px;">✓</span>' : ''}
+                    </button>
+                `;
+            }).join('');
         }
 
         function startTimer() {
@@ -442,15 +497,15 @@
 
                 const result = await response.json();
                 if (result.success) {
-                    // Update score
+                    // Update score silently (don't show feedback to prevent sharing answers)
                     if (result.answer.isCorrect) {
                         userCorrect++;
                         userScore += result.answer.pointsEarned;
                     }
                     userTotal++;
 
-                    // Show feedback
-                    showAnswerFeedback(result.answer.isCorrect, result.answer.pointsEarned);
+                    // Don't show feedback - wait until timer ends to show results
+                    // This prevents users from sharing correct answers with others
 
                     // Update progress
                     updateProgress();
