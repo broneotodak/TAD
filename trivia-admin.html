@@ -388,6 +388,7 @@
                             document.getElementById('questionControlSection').style.display = 'block';
                             document.getElementById('bigScreenDisplay').style.display = 'block';
                             // Scroll to big screen display when session starts (only once per question)
+                            // Smooth scroll to big screen (only once when first question starts)
                             if (!hasScrolledToBigScreen) {
                                 hasScrolledToBigScreen = true;
                                 setTimeout(() => {
@@ -778,16 +779,8 @@
                                 nextQuestionBtn.disabled = false;
                                 nextQuestionBtn.onclick = () => advanceToNextQuestion();
                             }
-                            // Scroll to result section when timer ends (only once)
-                            if (!hasScrolledToResult) {
-                                hasScrolledToResult = true;
-                                setTimeout(() => {
-                                    const questionControlSection = document.getElementById('questionControlSection');
-                                    if (questionControlSection) {
-                                        questionControlSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                    }
-                                }, 500);
-                            }
+                            // Don't auto-scroll to result - let user scroll manually
+                            // This prevents locking the scroll
                             // Refresh questions list to show correct answer
                             if (isManagingQuestions) {
                                 displayQuestions();
@@ -868,6 +861,10 @@
 
                 const result = await response.json();
                 if (result.success) {
+                    // Reset scroll flags when advancing to new question
+                    hasScrolledToResult = false;
+                    hasScrolledToBigScreen = false;
+                    
                     // Reload session to get updated state
                     await loadCurrentSession();
                     updateBigScreenDisplay(); // Update big screen immediately
@@ -875,16 +872,14 @@
                     document.getElementById('startFirstQuestionSection').style.display = 'none';
                     document.getElementById('questionControlSection').style.display = 'block';
                     document.getElementById('bigScreenDisplay').style.display = 'block';
-                    // Scroll to big screen display when first question starts (only once)
-                    if (!hasScrolledToBigScreen) {
-                        hasScrolledToBigScreen = true;
-                        setTimeout(() => {
-                            const bigScreenDisplay = document.getElementById('bigScreenDisplay');
-                            if (bigScreenDisplay) {
-                                bigScreenDisplay.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                            }
-                        }, 300);
-                    }
+                    
+                    // Smooth scroll to big screen display (always when clicking Next Question)
+                    setTimeout(() => {
+                        const bigScreenDisplay = document.getElementById('bigScreenDisplay');
+                        if (bigScreenDisplay) {
+                            bigScreenDisplay.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                    }, 300);
                 } else {
                     alert('Error: ' + result.error);
                 }
@@ -1107,6 +1102,43 @@
         // Keep startSession for backward compatibility (if needed)
         async function startSession() {
             await activateSession(currentSessionId);
+        }
+
+        async function completeSession() {
+            if (!currentSessionId) {
+                alert('Please select a session first');
+                return;
+            }
+
+            if (!confirm('Complete this trivia session? This will end the session and show the final leaderboard to all participants.')) return;
+
+            try {
+                const response = await fetch('/api/end-trivia-session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionId: currentSessionId })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    isManagingQuestions = false;
+                    await loadCurrentSession();
+                    await loadSessions();
+                    document.getElementById('sessionsListSection').style.display = 'block';
+                    document.getElementById('currentSessionStatusSection').style.display = 'block';
+                    
+                    // Open user trivia page in new tab to show leaderboard and winner
+                    const userTriviaUrl = `trivia.html?event=${currentEventId}`;
+                    window.open(userTriviaUrl, '_blank');
+                    
+                    alert('Session completed! The leaderboard and winner are now visible to participants.');
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error completing session:', error);
+                alert('Failed to complete session');
+            }
         }
 
         async function endSession() {
