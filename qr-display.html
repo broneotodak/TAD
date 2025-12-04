@@ -22,8 +22,8 @@
             background: var(--card-bg);
             border: 2px solid var(--border-color);
             border-radius: 20px;
-            padding: 60px;
-            max-width: 800px;
+            padding: 40px;
+            max-width: 1000px;
             width: 100%;
             animation: fadeIn 0.5s ease;
         }
@@ -40,33 +40,33 @@
         }
 
         .event-logo {
-            width: 150px;
-            height: 150px;
-            margin: 0 auto 30px;
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 15px;
             display: flex;
             align-items: center;
             justify-content: center;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border-radius: 20px;
-            font-size: 4rem;
+            font-size: 2rem;
         }
 
         .event-name {
-            font-size: 2.5rem;
+            font-size: 1.5rem;
             font-weight: 700;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
             color: var(--text-primary);
         }
 
         .event-details {
-            font-size: 1.2rem;
+            font-size: 0.9rem;
             color: var(--text-secondary);
-            margin-bottom: 40px;
+            margin-bottom: 20px;
         }
 
         .qr-wrapper {
             background: white;
-            padding: 30px;
+            padding: 40px;
             border-radius: 15px;
             display: inline-block;
             margin: 20px auto;
@@ -84,17 +84,17 @@
         }
 
         .instruction-text {
-            font-size: 1.8rem;
+            font-size: 1.2rem;
             font-weight: 600;
-            margin: 30px 0 15px;
+            margin: 20px 0 10px;
             color: var(--text-primary);
         }
 
         .instruction-steps {
-            font-size: 1.1rem;
+            font-size: 0.9rem;
             color: var(--text-secondary);
-            line-height: 1.8;
-            margin: 20px 0;
+            line-height: 1.6;
+            margin: 15px 0;
         }
 
         .url-display {
@@ -178,23 +178,30 @@
 
             .back-link,
             .theme-toggle,
+            .fullscreen-toggle,
             .instruction-steps,
-            .url-display {
+            .url-display,
+            .event-logo,
+            .event-name,
+            .event-details {
                 display: none !important;
             }
 
             .qr-container {
                 border: none;
                 box-shadow: none;
+                padding: 0;
+                max-width: 100%;
+            }
+
+            .qr-wrapper {
                 padding: 20px;
+                margin: 0;
+                box-shadow: none;
             }
 
-            .event-name {
-                color: black;
-            }
-
-            .instruction-text {
-                color: black;
+            #qrcode {
+                margin: 0 auto;
             }
         }
 
@@ -270,7 +277,7 @@
                 <div>4. Confirm check-in</div>
             </div>
 
-            <div class="url-display" id="urlDisplay"></div>
+            <div class="url-display" id="urlDisplay" style="display: none;"></div>
         </div>
     </div>
 
@@ -388,11 +395,11 @@
             // Display URL
             document.getElementById('urlDisplay').textContent = checkinUrl;
             
-            // Generate QR code with high quality
+            // Generate QR code with high quality - make it much bigger
             new QRCode(qrcodeDiv, {
                 text: checkinUrl,
-                width: 300,
-                height: 300,
+                width: 600,
+                height: 600,
                 colorDark: '#000000',
                 colorLight: '#ffffff',
                 correctLevel: QRCode.CorrectLevel.H
