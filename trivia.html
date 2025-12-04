@@ -212,7 +212,26 @@
                                 currentQuestionIndex = activeQuestionIndex;
                                 userAnswers = {}; // Reset answers for new question
                             }
-                            displayQuestion(questions[activeQuestionIndex], activeQuestionIndex);
+                            
+                            const currentQuestion = questions[activeQuestionIndex];
+                            const questionStarted = currentSession.questionStartedAt;
+                            
+                            // Check if timer has ended for this question
+                            if (questionStarted) {
+                                const startedAt = new Date(questionStarted);
+                                const elapsed = Math.floor((Date.now() - startedAt.getTime()) / 1000);
+                                const timerEnded = elapsed >= currentQuestion.timeLimitSeconds;
+                                
+                                if (timerEnded && userAnswers[currentQuestion.id]) {
+                                    // Timer ended and user has answered - show correct answer
+                                    displayQuestion(questions[activeQuestionIndex], activeQuestionIndex);
+                                    showCorrectAnswerAfterTimer(currentQuestion);
+                                } else {
+                                    displayQuestion(questions[activeQuestionIndex], activeQuestionIndex);
+                                }
+                            } else {
+                                displayQuestion(questions[activeQuestionIndex], activeQuestionIndex);
+                            }
                         } else if (activeQuestionIndex === -1 && questions.length > 0) {
                             // No question started yet, show waiting
                             const waitingEl = document.getElementById('waitingForQuestion');
@@ -435,6 +454,11 @@
                     document.querySelectorAll('.option-button-kahoot').forEach(btn => {
                         if (!btn.disabled) btn.disabled = true;
                     });
+                    // Show correct answer after timer ends
+                    const currentQuestion = questions[currentQuestionIndex];
+                    if (currentQuestion) {
+                        showCorrectAnswerAfterTimer(currentQuestion);
+                    }
                 }
             }, 1000);
         }
