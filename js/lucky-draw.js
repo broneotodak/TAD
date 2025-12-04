@@ -131,10 +131,11 @@ function playCelebration() {
 }
 
 // Load data from database
-if (window.dbAPI) {
-    const urlParams = new URLSearchParams(window.location.search);
-    const currentEventId = urlParams.get('event');
-    
+const urlParams = new URLSearchParams(window.location.search);
+const currentEventId = urlParams.get('event');
+
+if (window.dbAPI && currentEventId) {
+    // Load participants
     window.dbAPI.getParticipants(true, currentEventId).then(result => {
         if (result.success && result.data) {
             participants = result.data.participants || [];
@@ -146,11 +147,37 @@ if (window.dbAPI) {
         } else {
             loadData();
         }
+        
+        // Load winners from database
+        loadWinnersFromDatabase();
         updateCounts();
     });
 } else {
     loadData();
     updateCounts();
+}
+
+async function loadWinnersFromDatabase() {
+    if (!currentEventId) return;
+    
+    try {
+        const response = await fetch(`/api/get-lucky-draw-winners?eventId=${currentEventId}`);
+        const result = await response.json();
+        
+        if (result.success) {
+            winners = result.winners || [];
+            displayWinners();
+            console.log(`✅ Loaded ${winners.length} winners from database`);
+        }
+    } catch (error) {
+        console.error('Error loading winners from database:', error);
+        // Fallback to localStorage
+        const savedWinners = localStorage.getItem('luckyDrawWinners');
+        if (savedWinners) {
+            winners = JSON.parse(savedWinners);
+            displayWinners();
+        }
+    }
 }
 
 function loadData() {
@@ -168,8 +195,31 @@ function loadData() {
     }
 }
 
-function saveWinners() {
+async function saveWinners() {
+    // Save to localStorage as backup
     localStorage.setItem('luckyDrawWinners', JSON.stringify(winners));
+    
+    // Save latest winner to database if we have event ID
+    if (currentEventId && winners.length > 0 && window.dbAPI) {
+        const latestWinner = winners[winners.length - 1];
+        try {
+            const response = await fetch('/api/save-lucky-draw-winner', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    participantId: latestWinner.id,
+                    eventId: currentEventId
+                })
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                console.log('✅ Winner saved to database');
+            }
+        } catch (error) {
+            console.error('Error saving winner to database:', error);
+        }
+    }
 }
 
 function updateCounts() {
@@ -266,7 +316,7 @@ function startDraw() {
     updateName();
 }
 
-function revealWinner(winner) {
+async function revealWinner(winner) {
     if (!isDrawing) return;
     
     // Clear any pending intervals/timeouts
@@ -280,11 +330,36 @@ function revealWinner(winner) {
     stopDrumroll();
     
     // Add to winners list
-    winners.push({
+    const winnerData = {
         ...winner,
         wonAt: new Date().toISOString()
-    });
+    };
+    winners.push(winnerData);
     saveWinners();
+    
+    // Save to database if event ID is available
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentEventId = urlParams.get('event');
+    if (currentEventId && window.dbAPI) {
+        try {
+            const response = await fetch('/api/save-lucky-draw-winner', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    eventId: currentEventId,
+                    participantId: winner.id
+                })
+            });
+            const result = await response.json();
+            if (result.success) {
+                console.log('Winner saved to database');
+            } else {
+                console.warn('Failed to save winner to database:', result.error);
+            }
+        } catch (error) {
+            console.error('Error saving winner to database:', error);
+        }
+    }
     
     // Display winner
     document.getElementById('rollingNames').style.display = 'none';

@@ -948,9 +948,10 @@
             }
         }
 
-        // Generate QR Code - redirect to QR display page
+        // Generate QR Code - redirect directly to check-in page
         function generateQRCode() {
-            window.open(`qr-display.html?event=${currentEventId}`, '_blank');
+            // Redirect to check-in page instead of QR display
+            window.open(`checkin.html?event=${currentEventId}`, '_blank');
         }
 
         // View lucky draw

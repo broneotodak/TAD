@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lucky Draw Winners</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container-full">
+        <div class="header" style="max-width: 1400px; margin: 0 auto 30px auto;">
+            <div class="header-left">
+                <a href="index.html" class="back-btn">
+                    <span style="font-size: 1.2rem;">←</span> Home
+                </a>
+            </div>
+            <div class="header-title">
+                <h1>Lucky Draw Winners</h1>
+            </div>
+            <div class="header-actions">
+                <!-- Space for future controls -->
+            </div>
+        </div>
+
+        <div class="lucky-draw-public-container">
+            <!-- Check Your Status -->
+            <div class="admin-section">
+                <h2>Check Your Status</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                    Enter your name to check if you're eligible or if you've won
+                </p>
+                <div class="status-check-form">
+                    <input type="text" id="participantSearch" placeholder="Enter your name..." class="search-input">
+                    <button onclick="checkParticipantStatus()" class="btn-primary">Check Status</button>
+                </div>
+                <div id="participantStatus" class="participant-status" style="display: none;"></div>
+            </div>
+
+            <!-- Winners List -->
+            <div class="admin-section">
+                <h2>Winners History</h2>
+                <div id="winnersList" class="winners-list-public">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Loading winners...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/db-api.js"></script>
+    <script>
+        let currentEventId = null;
+        let winners = [];
+        let participants = [];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            currentEventId = urlParams.get('event');
+            
+            if (!currentEventId) {
+                alert('No event ID provided');
+                window.location.href = 'index.html';
+                return;
+            }
+
+            loadWinners();
+            loadParticipants();
+        });
+
+        async function loadParticipants() {
+            try {
+                const response = await fetch(`/api/get-participants?eventId=${currentEventId}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    participants = result.participants || [];
+                }
+            } catch (error) {
+                console.error('Error loading participants:', error);
+            }
+        }
+
+        async function loadWinners() {
+            try {
+                const response = await fetch(`/api/get-lucky-draw-winners?eventId=${currentEventId}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    winners = result.winners || [];
+                    displayWinners();
+                } else {
+                    document.getElementById('winnersList').innerHTML = 
+                        '<p class="no-winners">Failed to load winners.</p>';
+                }
+            } catch (error) {
+                console.error('Error loading winners:', error);
+                document.getElementById('winnersList').innerHTML = 
+                    '<p class="no-winners">Failed to load winners.</p>';
+            }
+        }
+
+        function displayWinners() {
+            const container = document.getElementById('winnersList');
+            
+            if (winners.length === 0) {
+                container.innerHTML = '<p class="no-winners">No winners yet. Stay tuned!</p>';
+                return;
+            }
+
+            container.innerHTML = winners.map((winner, index) => {
+                const wonDate = new Date(winner.wonAt);
+                return `
+                    <div class="winner-card-public">
+                        <div class="winner-rank">#${winners.length - index}</div>
+                        <div class="winner-info">
+                            <div class="winner-name-public">${winner.name}</div>
+                            <div class="winner-details-public">
+                                ${winner.company ? `<span>${winner.company}</span>` : ''}
+                                ${winner.table ? `<span>Table ${winner.table}</span>` : ''}
+                                ${winner.vip ? '<span class="vip-badge-public">⭐ VIP</span>' : ''}
+                            </div>
+                            <div class="winner-meta">
+                                <span class="won-time">Won on ${wonDate.toLocaleDateString()} at ${wonDate.toLocaleTimeString()}</span>
+                                ${winner.checkedIn ? '<span class="checked-in-badge">✓ Checked In</span>' : '<span class="not-checked-badge">Not Checked In</span>'}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function checkParticipantStatus() {
+            const searchTerm = document.getElementById('participantSearch').value.trim().toLowerCase();
+            const statusDiv = document.getElementById('participantStatus');
+            
+            if (!searchTerm) {
+                alert('Please enter your name');
+                return;
+            }
+
+            // Find participant
+            const participant = participants.find(p => 
+                p.name.toLowerCase().includes(searchTerm)
+            );
+
+            if (!participant) {
+                statusDiv.innerHTML = `
+                    <div class="status-message error">
+                        <p>❌ Name not found. Please check your spelling or contact event staff.</p>
+                    </div>
+                `;
+                statusDiv.style.display = 'block';
+                return;
+            }
+
+            // Check if they've won
+            const hasWon = winners.some(w => w.participantId === participant.id);
+            const isEligible = participant.checkedIn;
+
+            let statusHTML = `
+                <div class="status-message ${hasWon ? 'winner' : isEligible ? 'eligible' : 'not-eligible'}">
+                    <h3>${participant.name}</h3>
+                    ${participant.company ? `<p>${participant.company}</p>` : ''}
+            `;
+
+            if (hasWon) {
+                const winInfo = winners.find(w => w.participantId === participant.id);
+                statusHTML += `
+                    <div class="winner-status">
+                        <p class="congratulations">🎉 Congratulations! You are a winner!</p>
+                        <p>Won on: ${new Date(winInfo.wonAt).toLocaleString()}</p>
+                    </div>
+                `;
+            } else if (isEligible) {
+                statusHTML += `
+                    <div class="eligible-status">
+                        <p>✅ You are eligible for the lucky draw!</p>
+                        <p>You have checked in and are part of the draw.</p>
+                    </div>
+                `;
+            } else {
+                statusHTML += `
+                    <div class="not-eligible-status">
+                        <p>⚠️ You need to check in first to be eligible for the lucky draw.</p>
+                        <a href="checkin.html?event=${currentEventId}" class="btn-primary" style="margin-top: 10px; display: inline-block;">Go to Check-in</a>
+                    </div>
+                `;
+            }
+
+            statusHTML += '</div>';
+            statusDiv.innerHTML = statusHTML;
+            statusDiv.style.display = 'block';
+        }
+
+        // Allow Enter key to search
+        document.getElementById('participantSearch').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                checkParticipantStatus();
+            }
+        });
+    </script>
+
+    <style>
+        .lucky-draw-public-container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .status-check-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .status-check-form input {
+            flex: 1;
+        }
+
+        .participant-status {
+            margin-top: 20px;
+            padding: 20px;
+            background: var(--dark-bg);
+            border-radius: 10px;
+            border: 2px solid var(--border-color);
+        }
+
+        .status-message {
+            text-align: center;
+        }
+
+        .status-message h3 {
+            margin-bottom: 10px;
+            color: var(--primary-color);
+        }
+
+        .status-message.winner {
+            border-color: #4CAF50;
+        }
+
+        .status-message.eligible {
+            border-color: var(--primary-color);
+        }
+
+        .status-message.error,
+        .status-message.not-eligible {
+            border-color: #ff9800;
+        }
+
+        .congratulations {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #4CAF50;
+            margin: 15px 0;
+        }
+
+        .winner-status,
+        .eligible-status,
+        .not-eligible-status {
+            margin-top: 15px;
+            padding: 15px;
+            background: var(--card-bg);
+            border-radius: 8px;
+        }
+
+        .winners-list-public {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .winner-card-public {
+            background: var(--dark-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 15px;
+            padding: 25px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .winner-card-public:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+
+        .winner-rank {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .winner-info {
+            flex: 1;
+        }
+
+        .winner-name-public {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--primary-color);
+        }
+
+        .winner-details-public {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+            color: var(--text-secondary);
+        }
+
+        .winner-meta {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .won-time {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .checked-in-badge {
+            background: #4CAF50;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .not-checked-badge {
+            background: var(--border-color);
+            color: var(--text-secondary);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+        }
+
+        .vip-badge-public {
+            background: #FFD700;
+            color: #000000;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .no-winners {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+    </style>
+</body>
+</html>

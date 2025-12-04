@@ -154,9 +154,9 @@
                         </div>
                         <div class="event-actions" onclick="event.stopPropagation()">
                             ${features.attendance !== false ? `<a href="checkin.html?event=${event.id}" class="event-btn btn-primary-action">📱 Check-in</a>` : ''}
-                            ${showLuckyDraw ? `<a href="lucky-draw.html?event=${event.id}" class="event-btn btn-secondary-action">🎰 Lucky Draw</a>` : ''}
+                            ${showLuckyDraw ? `<a href="lucky-draw-public.html?event=${event.id}" class="event-btn btn-secondary-action">🎰 Lucky Draw</a>` : ''}
                             ${showTrivia ? `<a href="trivia.html?event=${event.id}" class="event-btn btn-secondary-action">🧠 Trivia</a>` : ''}
-                            ${showTables ? `<a href="checkin.html?event=${event.id}" class="event-btn btn-secondary-action">🪑 My Table</a>` : ''}
+                            ${showTables ? `<a href="my-table.html?event=${event.id}" class="event-btn btn-secondary-action">🪑 My Table</a>` : ''}
                         </div>
                     </div>
                 </div>
@@ -185,9 +185,9 @@
                     </div>
                     <div class="event-actions" onclick="event.stopPropagation()">
                         ${features.attendance !== false ? `<a href="checkin.html?event=${event.id}" class="event-btn btn-primary-action">📱 Check-in</a>` : ''}
-                        ${showLuckyDraw ? `<a href="lucky-draw.html?event=${event.id}" class="event-btn btn-secondary-action">🎰 Lucky Draw</a>` : ''}
+                        ${showLuckyDraw ? `<a href="lucky-draw-public.html?event=${event.id}" class="event-btn btn-secondary-action">🎰 Lucky Draw</a>` : ''}
                         ${showTrivia ? `<a href="trivia.html?event=${event.id}" class="event-btn btn-secondary-action">🧠 Trivia</a>` : ''}
-                        ${showTables ? `<a href="checkin.html?event=${event.id}" class="event-btn btn-secondary-action">🪑 My Table</a>` : ''}
+                        ${showTables ? `<a href="my-table.html?event=${event.id}" class="event-btn btn-secondary-action">🪑 My Table</a>` : ''}
                     </div>
                 </div>
             `}).join('');
