@@ -1084,8 +1084,9 @@ body {
 
 .checkin-actions-top {
     display: flex;
+    flex-direction: column;
     gap: 15px;
-    justify-content: center;
+    align-items: center;
     margin: 25px 0 30px 0;
     padding: 20px 0;
     border-bottom: 2px solid var(--border-color);
@@ -1095,6 +1096,13 @@ body {
     font-size: 1.2rem;
     padding: 15px 40px;
     font-weight: 600;
+    width: 100%;
+    max-width: 300px;
+}
+
+.checkin-actions-top .btn-secondary {
+    width: 100%;
+    max-width: 300px;
 }
 
 .checkin-success {
