@@ -91,6 +91,9 @@ if (window.dbAPI) {
                 participants = result.participants || [];
                 console.log(`✅ Loaded ${participants.length} participants for event ${currentEventId}`);
                 
+                // Always update stats first, even if showing checked-in view
+                updateStats();
+                
                 // Check for existing session
                 const sessionId = checkExistingSession();
                 if (sessionId) {
@@ -381,7 +384,7 @@ async function confirmCheckin() {
     showCheckedInView(selectedParticipant);
 }
 
-function resetCheckin() {
+async function resetCheckin() {
     selectedParticipant = null;
     
     // Reset displays
@@ -395,8 +398,29 @@ function resetCheckin() {
     document.getElementById('participantSearch').value = '';
     document.getElementById('searchResults').innerHTML = '';
     
-    // Reload data to get latest updates
-    loadData();
+    // Reload data from database to get latest updates
+    if (window.dbAPI) {
+        const apiUrl = currentEventId ? 
+            `/api/get-participants?eventId=${currentEventId}` : 
+            '/api/get-participants';
+            
+        try {
+            const response = await fetch(apiUrl);
+            const result = await response.json();
+            
+            if (result.success) {
+                participants = result.participants || [];
+                console.log(`✅ Reloaded ${participants.length} participants for event ${currentEventId}`);
+            } else {
+                console.error('Failed to reload participants:', result.error);
+            }
+        } catch (error) {
+            console.error('Failed to reload data:', error);
+        }
+    } else {
+        loadData();
+    }
+    
     updateStats();
     
     // Focus on search input
@@ -442,7 +466,29 @@ function checkInAnother() {
     document.getElementById('participantSearch').focus();
     document.getElementById('searchResults').innerHTML = '';
     
-    // Reload data to get latest updates
-    loadFromDatabase();
+    // Reload data from database to get latest updates
+    if (window.dbAPI) {
+        const apiUrl = currentEventId ? 
+            `/api/get-participants?eventId=${currentEventId}` : 
+            '/api/get-participants';
+            
+        try {
+            const response = await fetch(apiUrl);
+            const result = await response.json();
+            
+            if (result.success) {
+                participants = result.participants || [];
+                console.log(`✅ Reloaded ${participants.length} participants for event ${currentEventId}`);
+                updateStats();
+            } else {
+                console.error('Failed to reload participants:', result.error);
+            }
+        } catch (error) {
+            console.error('Failed to reload data:', error);
+        }
+    } else {
+        loadData();
+        updateStats();
+    }
 }
 
