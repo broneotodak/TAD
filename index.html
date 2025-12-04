@@ -134,11 +134,14 @@
 
         function displaySingleEvent(event) {
             const container = document.getElementById('eventsContainer');
-            const showLuckyDraw = event.features && (event.features.lucky_draw === true || event.features.luckyDraw === true);
+            const features = event.features || {};
+            const showLuckyDraw = features.lucky_draw === true || features.luckyDraw === true;
+            const showTrivia = features.trivia === true;
+            const showTables = features.tables === true;
             
             container.innerHTML = `
                 <div class="events-grid">
-                    <div class="${getCardClass(event)}" style="${getCardStyle(event)}">
+                    <div class="${getCardClass(event)}" style="${getCardStyle(event)}" onclick="showEventDetails(${event.id})">
                         <div class="event-icon">${getEventIcon(event)}</div>
                         <div class="event-content">
                             <div class="event-title">${event.name}</div>
@@ -149,9 +152,11 @@
                                 ${event.timeStart ? `<div>⏰ ${formatTime(event.timeStart)} - ${formatTime(event.timeEnd)}</div>` : ''}
                             </div>
                         </div>
-                        <div class="event-actions">
-                            <a href="qr-display.html?event=${event.id}" class="event-btn btn-primary-action">QR Check-in</a>
-                            ${showLuckyDraw ? `<a href="lucky-draw.html?event=${event.id}" class="event-btn btn-secondary-action">Lucky Draw</a>` : ''}
+                        <div class="event-actions" onclick="event.stopPropagation()">
+                            ${features.attendance !== false ? `<a href="checkin.html?event=${event.id}" class="event-btn btn-primary-action">📱 Check-in</a>` : ''}
+                            ${showLuckyDraw ? `<a href="lucky-draw.html?event=${event.id}" class="event-btn btn-secondary-action">🎰 Lucky Draw</a>` : ''}
+                            ${showTrivia ? `<a href="trivia.html?event=${event.id}" class="event-btn btn-secondary-action">🧠 Trivia</a>` : ''}
+                            ${showTables ? `<a href="checkin.html?event=${event.id}" class="event-btn btn-secondary-action">🪑 My Table</a>` : ''}
                         </div>
                     </div>
                 </div>
@@ -161,10 +166,13 @@
         function displayMultipleEvents(events) {
             const container = document.getElementById('eventsContainer');
             const eventsHTML = events.map(event => {
-                const showLuckyDraw = event.features && (event.features.lucky_draw === true || event.features.luckyDraw === true);
+                const features = event.features || {};
+                const showLuckyDraw = features.lucky_draw === true || features.luckyDraw === true;
+                const showTrivia = features.trivia === true;
+                const showTables = features.tables === true;
                 
                 return `
-                <div class="${getCardClass(event)}" style="${getCardStyle(event)}">
+                <div class="${getCardClass(event)}" style="${getCardStyle(event)}" onclick="showEventDetails(${event.id})">
                     <div class="event-icon">${getEventIcon(event)}</div>
                     <div class="event-content">
                         <div class="event-title">${event.name}</div>
@@ -172,11 +180,14 @@
                         <div class="event-details">
                             <div>📅 ${formatDate(event.date)}</div>
                             ${event.venue ? `<div>📍 ${event.venue}</div>` : ''}
+                            ${event.timeStart ? `<div>⏰ ${formatTime(event.timeStart)} - ${formatTime(event.timeEnd)}</div>` : ''}
                         </div>
                     </div>
-                    <div class="event-actions">
-                        <a href="qr-display.html?event=${event.id}" class="event-btn btn-primary-action">QR Check-in</a>
-                        ${showLuckyDraw ? `<a href="lucky-draw.html?event=${event.id}" class="event-btn btn-secondary-action">Lucky Draw</a>` : ''}
+                    <div class="event-actions" onclick="event.stopPropagation()">
+                        ${features.attendance !== false ? `<a href="checkin.html?event=${event.id}" class="event-btn btn-primary-action">📱 Check-in</a>` : ''}
+                        ${showLuckyDraw ? `<a href="lucky-draw.html?event=${event.id}" class="event-btn btn-secondary-action">🎰 Lucky Draw</a>` : ''}
+                        ${showTrivia ? `<a href="trivia.html?event=${event.id}" class="event-btn btn-secondary-action">🧠 Trivia</a>` : ''}
+                        ${showTables ? `<a href="checkin.html?event=${event.id}" class="event-btn btn-secondary-action">🪑 My Table</a>` : ''}
                     </div>
                 </div>
             `}).join('');
@@ -226,9 +237,258 @@
             return timeString.substring(0, 5);
         }
 
+        // Show event details modal
+        async function showEventDetails(eventId) {
+            try {
+                const response = await fetch(`/api/get-event?id=${eventId}`);
+                const result = await response.json();
+
+                if (result.success && result.event) {
+                    const event = result.event;
+                    const modal = createEventDetailsModal(event);
+                    document.body.appendChild(modal);
+                    modal.style.display = 'flex';
+                } else {
+                    alert('Failed to load event details');
+                }
+            } catch (error) {
+                console.error('Error loading event details:', error);
+                alert('Failed to load event details');
+            }
+        }
+
+        // Create event details modal
+        function createEventDetailsModal(event) {
+            const modal = document.createElement('div');
+            modal.className = 'event-details-modal';
+            modal.innerHTML = `
+                <div class="modal-backdrop" onclick="closeEventDetailsModal(this)"></div>
+                <div class="modal-content-event">
+                    <div class="modal-header-event">
+                        <h2>${event.name || 'Event Details'}</h2>
+                        <button class="close-btn-event" onclick="closeEventDetailsModal(this.closest('.event-details-modal'))">&times;</button>
+                    </div>
+                    <div class="modal-body-event">
+                        <div class="event-detail-section">
+                            <h3>📅 Date & Time</h3>
+                            <p>${formatDate(event.date)}</p>
+                            ${event.timeStart ? `<p>⏰ ${formatTime(event.timeStart)} - ${formatTime(event.timeEnd)}</p>` : ''}
+                        </div>
+                        ${event.venue ? `
+                        <div class="event-detail-section">
+                            <h3>📍 Venue</h3>
+                            <p>${event.venue}</p>
+                        </div>
+                        ` : ''}
+                        ${event.theme ? `
+                        <div class="event-detail-section">
+                            <h3>🎭 Theme</h3>
+                            <p>${event.theme}</p>
+                        </div>
+                        ` : ''}
+                        ${event.tentative ? `
+                        <div class="event-detail-section">
+                            <h3>📋 Event Program</h3>
+                            <div class="event-program">${event.tentative.replace(/\n/g, '<br>')}</div>
+                        </div>
+                        ` : ''}
+                        ${event.menu ? `
+                        <div class="event-detail-section">
+                            <h3>🍽️ Menu</h3>
+                            <div class="event-menu">${event.menu.replace(/\n/g, '<br>')}</div>
+                        </div>
+                        ` : ''}
+                        <div class="event-detail-section">
+                            <h3>🎯 Available Features</h3>
+                            <div class="features-list">
+                                ${event.features?.attendance !== false ? '<span class="feature-badge">📱 Check-in</span>' : ''}
+                                ${event.features?.tables ? '<span class="feature-badge">🪑 Table Assignment</span>' : ''}
+                                ${event.features?.lucky_draw || event.features?.luckyDraw ? '<span class="feature-badge">🎰 Lucky Draw</span>' : ''}
+                                ${event.features?.trivia ? '<span class="feature-badge">🧠 Trivia Challenge</span>' : ''}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer-event">
+                        <button onclick="closeEventDetailsModal(this.closest('.event-details-modal'))" class="btn-secondary">Close</button>
+                    </div>
+                </div>
+            `;
+            return modal;
+        }
+
+        function closeEventDetailsModal(modal) {
+            if (modal) {
+                modal.style.display = 'none';
+                setTimeout(() => modal.remove(), 300);
+            }
+        }
+
         // Load events on page load
         loadEvents();
     </script>
+
+    <style>
+        .event-card {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .event-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .event-actions {
+            pointer-events: auto;
+        }
+
+        .event-actions a {
+            pointer-events: auto;
+        }
+
+        .event-details-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-backdrop {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            cursor: pointer;
+        }
+
+        .modal-content-event {
+            position: relative;
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 20px;
+            max-width: 700px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            z-index: 1001;
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header-event {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 30px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .modal-header-event h2 {
+            margin: 0;
+            color: var(--primary-color);
+        }
+
+        .close-btn-event {
+            background: transparent;
+            border: none;
+            font-size: 2rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .close-btn-event:hover {
+            background: var(--dark-bg);
+            color: var(--primary-color);
+        }
+
+        .modal-body-event {
+            padding: 30px;
+        }
+
+        .event-detail-section {
+            margin-bottom: 30px;
+        }
+
+        .event-detail-section h3 {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        .event-detail-section p {
+            color: var(--text-primary);
+            margin: 8px 0;
+            line-height: 1.6;
+        }
+
+        .event-program,
+        .event-menu {
+            background: var(--dark-bg);
+            padding: 20px;
+            border-radius: 10px;
+            color: var(--text-primary);
+            line-height: 1.8;
+            white-space: pre-wrap;
+        }
+
+        .features-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .feature-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            background: var(--dark-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 20px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .modal-footer-event {
+            padding: 20px 30px;
+            border-top: 2px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        @media (max-width: 768px) {
+            .modal-content-event {
+                width: 95%;
+                max-height: 95vh;
+            }
+
+            .modal-header-event,
+            .modal-body-event,
+            .modal-footer-event {
+                padding: 20px;
+            }
+        }
+    </style>
 </body>
 
 </html>
