@@ -203,10 +203,15 @@
                             displayQuestion(questions[activeQuestionIndex], activeQuestionIndex);
                         } else if (activeQuestionIndex === -1 && questions.length > 0) {
                             // No question started yet, show waiting
-                            document.getElementById('waitingForQuestion').style.display = 'block';
-                            document.getElementById('questionText').textContent = 'Waiting for admin to start the first question...';
-                            document.getElementById('optionsContainer').innerHTML = '';
-                            document.getElementById('timerDisplay').style.display = 'none';
+                            const waitingEl = document.getElementById('waitingForQuestion');
+                            const questionTextEl = document.getElementById('questionText');
+                            const optionsContainer = document.getElementById('optionsContainer');
+                            const timerDisplay = document.getElementById('timerDisplay');
+                            
+                            if (waitingEl) waitingEl.style.display = 'block';
+                            if (questionTextEl) questionTextEl.textContent = 'Waiting for admin to start the first question...';
+                            if (optionsContainer) optionsContainer.innerHTML = '';
+                            if (timerDisplay) timerDisplay.style.display = 'none';
                         } else if (activeQuestionIndex >= questions.length) {
                             // All questions completed
                             showCompleted();
@@ -254,15 +259,22 @@
             document.getElementById('activeSession').style.display = 'block';
             document.getElementById('completedState').style.display = 'none';
             
-            document.getElementById('sessionTitle').textContent = currentSession.title;
-            document.getElementById('totalQuestions').textContent = questions.length;
+            // Update total questions count (sessionTitle element removed in Kahoot redesign)
+            const totalQuestionsEl = document.getElementById('totalQuestions');
+            if (totalQuestionsEl) {
+                totalQuestionsEl.textContent = questions.length;
+            }
             updateProgress();
         }
 
         function displayQuestion(question, index) {
             currentQuestionIndex = index;
-            document.getElementById('currentQuestionNum').textContent = index + 1;
-            document.getElementById('questionText').textContent = question.questionText;
+            
+            const currentQuestionNumEl = document.getElementById('currentQuestionNum');
+            const questionTextEl = document.getElementById('questionText');
+            
+            if (currentQuestionNumEl) currentQuestionNumEl.textContent = index + 1;
+            if (questionTextEl) questionTextEl.textContent = question.questionText;
             
             // Check if user already answered this question
             const existingAnswer = userAnswers[question.id];
@@ -450,21 +462,35 @@
         }
 
         function updateProgress() {
+            if (questions.length === 0) return;
+            
             const progress = (userTotal / questions.length) * 100;
-            document.getElementById('progressFill').style.width = `${progress}%`;
-            document.getElementById('userScore').textContent = userScore;
-            document.getElementById('userCorrect').textContent = userCorrect;
-            document.getElementById('userTotal').textContent = userTotal;
+            const progressFill = document.getElementById('progressFill');
+            const userScoreEl = document.getElementById('userScore');
+            const userCorrectEl = document.getElementById('userCorrect');
+            const userTotalEl = document.getElementById('userTotal');
+            
+            if (progressFill) progressFill.style.width = `${progress}%`;
+            if (userScoreEl) userScoreEl.textContent = userScore;
+            if (userCorrectEl) userCorrectEl.textContent = userCorrect;
+            if (userTotalEl) userTotalEl.textContent = userTotal;
         }
 
         function showCompleted() {
-            document.getElementById('activeSession').style.display = 'none';
-            document.getElementById('completedState').style.display = 'block';
-            document.getElementById('leaderboardSection').style.display = 'block';
+            const activeSessionEl = document.getElementById('activeSession');
+            const completedStateEl = document.getElementById('completedState');
+            const leaderboardSectionEl = document.getElementById('leaderboardSection');
+            const finalScoreEl = document.getElementById('finalScore');
+            const finalCorrectEl = document.getElementById('finalCorrect');
+            const finalTotalEl = document.getElementById('finalTotal');
+            
+            if (activeSessionEl) activeSessionEl.style.display = 'none';
+            if (completedStateEl) completedStateEl.style.display = 'block';
+            if (leaderboardSectionEl) leaderboardSectionEl.style.display = 'block';
 
-            document.getElementById('finalScore').textContent = userScore;
-            document.getElementById('finalCorrect').textContent = userCorrect;
-            document.getElementById('finalTotal').textContent = userTotal;
+            if (finalScoreEl) finalScoreEl.textContent = userScore;
+            if (finalCorrectEl) finalCorrectEl.textContent = userCorrect;
+            if (finalTotalEl) finalTotalEl.textContent = userTotal;
 
             loadLeaderboard();
         }
