@@ -166,9 +166,15 @@
                         <div>
                             <span id="selectedCount" style="font-weight: 600;">0 selected</span>
                         </div>
-                        <div>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
                             <button onclick="selectAll()" class="btn-secondary btn-small">Select All</button>
                             <button onclick="deselectAll()" class="btn-secondary btn-small">Deselect All</button>
+                            <div style="border-left: 1px solid var(--border-color); height: 30px; margin: 0 5px;"></div>
+                            <button onclick="bulkSetVIP(true)" class="btn-warning btn-small">⭐ Mark as VIP</button>
+                            <button onclick="bulkSetVIP(false)" class="btn-secondary btn-small">Remove VIP</button>
+                            <button onclick="bulkSetCheckedIn(true)" class="btn-success btn-small">✓ Check In</button>
+                            <button onclick="bulkSetCheckedIn(false)" class="btn-secondary btn-small">Check Out</button>
+                            <div style="border-left: 1px solid var(--border-color); height: 30px; margin: 0 5px;"></div>
                             <button onclick="deleteSelected()" class="btn-danger btn-small">🗑️ Delete Selected</button>
                         </div>
                     </div>
@@ -191,14 +197,6 @@
                         </thead>
                         <tbody id="participantsTableBody"></tbody>
                     </table>
-                </div>
-            </div>
-
-            <!-- Quick Actions Section -->
-            <div class="admin-section">
-                <h2>Quick Actions</h2>
-                <div class="action-buttons" id="quickActionsContainer">
-                    <!-- Actions will be populated based on event features -->
                 </div>
             </div>
 
@@ -1307,6 +1305,108 @@
             } else {
                 selectAllCheckbox.checked = false;
                 selectAllCheckbox.indeterminate = false;
+            }
+        }
+        
+        // Bulk set VIP status
+        async function bulkSetVIP(isVIP) {
+            const count = selectedParticipants.size;
+            if (count === 0) {
+                alert('Please select at least one participant');
+                return;
+            }
+            
+            const action = isVIP ? 'mark as VIP' : 'remove VIP status from';
+            if (!confirm(`Are you sure you want to ${action} ${count} participant${count > 1 ? 's' : ''}?`)) {
+                return;
+            }
+            
+            try {
+                const updatePromises = Array.from(selectedParticipants).map(async (id) => {
+                    const participant = participants.find(p => p.id === id);
+                    if (!participant) return { success: false };
+                    
+                    const response = await fetch('/api/update-participant', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            id: id,
+                            name: participant.name,
+                            company: participant.company || '',
+                            vip: isVIP,
+                            table: participant.table || null,
+                            checked_in: participant.checkedIn || false
+                        })
+                    });
+                    return response.json();
+                });
+                
+                const results = await Promise.all(updatePromises);
+                const successCount = results.filter(r => r.success).length;
+                
+                if (successCount > 0) {
+                    selectedParticipants.clear();
+                    await loadFromDatabase();
+                    alert(`✅ Successfully ${isVIP ? 'marked' : 'removed VIP from'} ${successCount} participant${successCount > 1 ? 's' : ''}!`);
+                } else {
+                    alert('Failed to update participants. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error updating VIP status:', error);
+                alert('Failed to update VIP status: ' + error.message);
+            }
+        }
+        
+        // Bulk set check-in status
+        async function bulkSetCheckedIn(isCheckedIn) {
+            const count = selectedParticipants.size;
+            if (count === 0) {
+                alert('Please select at least one participant');
+                return;
+            }
+            
+            const action = isCheckedIn ? 'check in' : 'check out';
+            if (!confirm(`Are you sure you want to ${action} ${count} participant${count > 1 ? 's' : ''}?`)) {
+                return;
+            }
+            
+            try {
+                const updatePromises = Array.from(selectedParticipants).map(async (id) => {
+                    const participant = participants.find(p => p.id === id);
+                    if (!participant) return { success: false };
+                    
+                    const response = await fetch('/api/update-participant', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            id: id,
+                            name: participant.name,
+                            company: participant.company || '',
+                            vip: participant.vip || false,
+                            table: participant.table || null,
+                            checked_in: isCheckedIn
+                        })
+                    });
+                    return response.json();
+                });
+                
+                const results = await Promise.all(updatePromises);
+                const successCount = results.filter(r => r.success).length;
+                
+                if (successCount > 0) {
+                    selectedParticipants.clear();
+                    await loadFromDatabase();
+                    alert(`✅ Successfully ${isCheckedIn ? 'checked in' : 'checked out'} ${successCount} participant${successCount > 1 ? 's' : ''}!`);
+                } else {
+                    alert('Failed to update participants. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error updating check-in status:', error);
+                alert('Failed to update check-in status: ' + error.message);
             }
         }
         
