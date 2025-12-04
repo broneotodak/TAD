@@ -51,6 +51,12 @@
                     <div class="success-animation">✓</div>
                     <h2>Welcome, <span id="participantName"></span>!</h2>
                     
+                    <!-- Check-in Actions at the top for immediate visibility -->
+                    <div class="checkin-actions-top">
+                        <button onclick="confirmCheckin()" class="btn-success btn-large">✓ Confirm Check-in</button>
+                        <button onclick="resetCheckin()" class="btn-secondary">Search Again</button>
+                    </div>
+                    
                     <!-- Table info only shown if tables feature is enabled -->
                     <div id="tableInfoSection" style="display: none;">
                         <div class="table-info">
@@ -64,11 +70,6 @@
                             <h3>Your Tablemates</h3>
                             <div id="tablematesList" class="tablemates-list"></div>
                         </div>
-                    </div>
-
-                    <div class="checkin-actions">
-                        <button onclick="confirmCheckin()" class="btn-success">Confirm Check-in</button>
-                        <button onclick="resetCheckin()" class="btn-secondary">Search Again</button>
                     </div>
                 </div>
 

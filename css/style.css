@@ -1069,6 +1069,21 @@ body {
     margin-top: 30px;
 }
 
+.checkin-actions-top {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin: 25px 0 30px 0;
+    padding: 20px 0;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.checkin-actions-top .btn-success {
+    font-size: 1.2rem;
+    padding: 15px 40px;
+    font-weight: 600;
+}
+
 .checkin-success {
     text-align: center;
     animation: fadeIn 0.5s ease;
