@@ -787,19 +787,34 @@
                 
                 // Update options display
                 if (bigScreenOptions) {
+                    const startedAt = currentSession.questionStartedAt ? new Date(currentSession.questionStartedAt) : null;
+                    const now = new Date();
+                    const elapsed = startedAt ? Math.floor((now.getTime() - startedAt.getTime()) / 1000) : 0;
+                    const remaining = Math.max(0, question.timeLimitSeconds - elapsed);
+                    const timerEnded = remaining <= 0 && startedAt;
+                    
                     const options = [
-                        { letter: 'A', text: question.optionA, color: '#FF6B6B' },
-                        { letter: 'B', text: question.optionB, color: '#4ECDC4' },
-                        { letter: 'C', text: question.optionC, color: '#45B7D1' },
-                        { letter: 'D', text: question.optionD, color: '#FFA07A' }
+                        { letter: 'A', text: question.optionA, color: '#FF6B6B', isCorrect: question.correctAnswer === 'A' },
+                        { letter: 'B', text: question.optionB, color: '#4ECDC4', isCorrect: question.correctAnswer === 'B' },
+                        { letter: 'C', text: question.optionC, color: '#45B7D1', isCorrect: question.correctAnswer === 'C' },
+                        { letter: 'D', text: question.optionD, color: '#FFA07A', isCorrect: question.correctAnswer === 'D' }
                     ];
                     
-                    bigScreenOptions.innerHTML = options.map(opt => `
-                        <div style="padding: 25px; background: ${opt.color}; border-radius: 15px; color: #ffffff; font-size: 1.5rem; font-weight: 600;">
-                            <div style="font-size: 2rem; margin-bottom: 10px;">${opt.letter}</div>
-                            <div>${opt.text}</div>
+                    bigScreenOptions.innerHTML = options.map(opt => {
+                        // Highlight correct answer only after timer ends
+                        const borderStyle = timerEnded && opt.isCorrect ? '5px solid #4CAF50' : 'none';
+                        const checkmark = timerEnded && opt.isCorrect ? '<div style="font-size: 2rem; margin-left: 10px;">✓</div>' : '';
+                        
+                        return `
+                        <div style="padding: 25px; background: ${opt.color}; border-radius: 15px; color: #ffffff; font-size: 1.5rem; font-weight: 600; border: ${borderStyle}; display: flex; align-items: center; justify-content: space-between;">
+                            <div>
+                                <div style="font-size: 2rem; margin-bottom: 10px;">${opt.letter}</div>
+                                <div>${opt.text}</div>
+                            </div>
+                            ${checkmark}
                         </div>
-                    `).join('');
+                    `;
+                    }).join('');
                 }
                 
                 // Update answer count
