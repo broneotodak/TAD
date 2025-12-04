@@ -170,6 +170,7 @@
                 const result = await response.json();
 
                 if (result.success && result.session) {
+                    // Only show if session is ACTIVE (admin has started it)
                     if (result.session.isActive) {
                         // Session is active
                         currentSession = result.session;
@@ -193,15 +194,16 @@
                             showCompleted();
                         }
                     } else {
-                        // Session exists but not active
-                        showWaiting('The trivia session hasn\'t started yet. Please wait.');
+                        // Session exists but not active - show waiting message
+                        showWaiting('The trivia session hasn\'t started yet. Please wait for the admin to activate it.');
                     }
                 } else {
-                    // No session
-                    showWaiting('No trivia session available. Please wait for the admin to create one.');
+                    // No session found
+                    showWaiting('No trivia session available. Please wait for the admin to create and start a session.');
                 }
             } catch (error) {
                 console.error('Error checking session:', error);
+                showWaiting('Unable to load trivia session. Please try again later.');
             }
         }
 
