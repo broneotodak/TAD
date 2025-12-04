@@ -6,18 +6,6 @@
     <title>Check-in QR Code</title>
     <link rel="stylesheet" href="css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script>
-        // Redirect to check-in page immediately
-        (function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const eventId = urlParams.get('event');
-            if (eventId) {
-                window.location.href = `checkin.html?event=${eventId}`;
-            } else {
-                window.location.href = 'index.html';
-            }
-        })();
-    </script>
     <style>
         body {
             display: flex;
