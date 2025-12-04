@@ -18,63 +18,59 @@
             <div class="header-title">
                 <h1>My Table</h1>
             </div>
+            <div class="header-actions">
+                <!-- Space for future controls -->
+            </div>
         </div>
 
         <div class="my-table-container">
-            <div id="notCheckedInMessage" class="status-message" style="display: none;">
-                <div class="message-icon">⚠️</div>
-                <h2>Please Check In First</h2>
-                <p>You need to check in to see your table assignment.</p>
-                <a href="#" id="checkinLink" class="btn-primary btn-large">Go to Check-in</a>
-            </div>
-
-            <div id="loadingState" class="status-message">
-                <div class="spinner"></div>
-                <p>Loading your table information...</p>
-            </div>
-
-            <div id="tableInfoDisplay" class="table-info-display" style="display: none;">
-                <div class="table-card-large">
-                    <div class="table-header-large">
-                        <h2>Your Table Assignment</h2>
-                    </div>
-                    
-                    <div class="table-number-display">
-                        <div class="table-label">Table Number</div>
-                        <div class="table-number-big" id="tableNumberDisplay">-</div>
-                    </div>
-
-                    <div class="participant-info-card">
-                        <h3>Your Information</h3>
-                        <div class="info-row">
-                            <span class="info-label">Name:</span>
-                            <span class="info-value" id="participantNameDisplay">-</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Company:</span>
-                            <span class="info-value" id="participantCompanyDisplay">-</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Status:</span>
-                            <span class="info-value">
-                                <span class="status-badge checked-in-badge">✅ Checked In</span>
-                            </span>
-                        </div>
-                    </div>
-
-                    <div class="tablemates-section-large">
-                        <h3>Your Tablemates</h3>
-                        <div id="tablematesList" class="tablemates-list-large">
-                            <div class="loading">Loading tablemates...</div>
-                        </div>
-                    </div>
+            <!-- Not Checked In State -->
+            <div id="notCheckedIn" class="table-section">
+                <div class="message-card">
+                    <div style="font-size: 4rem; margin-bottom: 20px;">🪑</div>
+                    <h2>Check In First</h2>
+                    <p>Please check in to see your table assignment.</p>
+                    <a href="checkin.html" id="checkinLink" class="btn-primary btn-large">Go to Check-in</a>
                 </div>
             </div>
 
-            <div id="noTableMessage" class="status-message" style="display: none;">
-                <div class="message-icon">🪑</div>
-                <h2>No Table Assigned Yet</h2>
-                <p>Your table assignment hasn't been set up yet. Please check back later or contact the event organizer.</p>
+            <!-- Table Information -->
+            <div id="tableInfo" class="table-section" style="display: none;">
+                <div class="table-display-card">
+                    <div class="table-number-display">
+                        <div class="table-label">Your Table</div>
+                        <div class="table-number-big" id="tableNumberDisplay">-</div>
+                    </div>
+                    
+                    <div class="participant-info-card">
+                        <h3>Your Information</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Name:</span>
+                                <span class="info-value" id="participantName">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Company:</span>
+                                <span class="info-value" id="participantCompany">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Status:</span>
+                                <span class="status-badge checked-in">✓ Checked In</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tablemates Section -->
+                <div class="tablemates-section">
+                    <h3>Your Tablemates</h3>
+                    <div id="tablematesList" class="tablemates-grid">
+                        <div class="loading-small">
+                            <div class="spinner-small"></div>
+                            <p>Loading tablemates...</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -83,10 +79,11 @@
     <script src="js/db-api.js"></script>
     <script>
         let currentEventId = null;
-        let participantId = null;
-        let participantData = null;
+        let currentParticipantId = null;
+        let participant = null;
         let tablemates = [];
 
+        // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
             currentEventId = urlParams.get('event');
@@ -97,76 +94,87 @@
                 return;
             }
 
-            checkParticipantStatus();
+            // Update check-in link
+            document.getElementById('checkinLink').href = `checkin.html?event=${currentEventId}`;
+
+            // Check if user is checked in
+            checkCheckInStatus();
         });
 
-        async function checkParticipantStatus() {
-            try {
-                const sessionKey = `userCheckedInId_event_${currentEventId}`;
-                const storedId = localStorage.getItem(sessionKey);
-                
-                if (!storedId) {
-                    document.getElementById('loadingState').style.display = 'none';
-                    document.getElementById('notCheckedInMessage').style.display = 'block';
-                    document.getElementById('checkinLink').href = `checkin.html?event=${currentEventId}`;
-                    return;
-                }
-
-                participantId = parseInt(storedId);
-
-                const response = await fetch(`/api/get-participants?eventId=${currentEventId}`);
-                const result = await response.json();
-
-                if (result.success && result.participants) {
-                    participantData = result.participants.find(p => p.id === participantId);
-                    
-                    if (participantData && participantData.checkedIn) {
-                        displayTableInfo();
-                    } else {
-                        document.getElementById('loadingState').style.display = 'none';
-                        document.getElementById('notCheckedInMessage').style.display = 'block';
-                        document.getElementById('checkinLink').href = `checkin.html?event=${currentEventId}`;
-                    }
-                } else {
-                    document.getElementById('loadingState').style.display = 'none';
-                    document.getElementById('notCheckedInMessage').style.display = 'block';
-                    document.getElementById('checkinLink').href = `checkin.html?event=${currentEventId}`;
-                }
-            } catch (error) {
-                console.error('Error checking participant status:', error);
-                document.getElementById('loadingState').style.display = 'none';
-                document.getElementById('notCheckedInMessage').style.display = 'block';
-                document.getElementById('checkinLink').href = `checkin.html?event=${currentEventId}`;
-            }
-        }
-
-        async function displayTableInfo() {
-            if (!participantData) return;
-
-            document.getElementById('loadingState').style.display = 'none';
-
-            if (!participantData.table) {
-                document.getElementById('noTableMessage').style.display = 'block';
+        async function checkCheckInStatus() {
+            // Check localStorage for check-in session
+            const sessionKey = `userCheckedInId_event_${currentEventId}`;
+            const participantId = localStorage.getItem(sessionKey);
+            
+            if (!participantId) {
+                // Not checked in
+                document.getElementById('notCheckedIn').style.display = 'block';
+                document.getElementById('tableInfo').style.display = 'none';
                 return;
             }
 
-            document.getElementById('participantNameDisplay').textContent = participantData.name;
-            document.getElementById('participantCompanyDisplay').textContent = participantData.company || 'Not provided';
-            document.getElementById('tableNumberDisplay').textContent = participantData.table;
-
-            await loadTablemates();
-            document.getElementById('tableInfoDisplay').style.display = 'block';
-        }
-
-        async function loadTablemates() {
+            currentParticipantId = parseInt(participantId);
+            
+            // Load participant data
             try {
                 const response = await fetch(`/api/get-participants?eventId=${currentEventId}`);
                 const result = await response.json();
 
                 if (result.success && result.participants) {
+                    participant = result.participants.find(p => p.id === currentParticipantId);
+                    
+                    if (participant && participant.checkedIn) {
+                        // User is checked in, show table info
+                        displayTableInfo();
+                        loadTablemates();
+                    } else {
+                        // Session invalid or not checked in
+                        localStorage.removeItem(sessionKey);
+                        document.getElementById('notCheckedIn').style.display = 'block';
+                        document.getElementById('tableInfo').style.display = 'none';
+                    }
+                } else {
+                    showError('Failed to load your information');
+                }
+            } catch (error) {
+                console.error('Error checking status:', error);
+                showError('Failed to load your information');
+            }
+        }
+
+        function displayTableInfo() {
+            document.getElementById('notCheckedIn').style.display = 'none';
+            document.getElementById('tableInfo').style.display = 'block';
+
+            // Display participant info
+            document.getElementById('participantName').textContent = participant.name;
+            document.getElementById('participantCompany').textContent = participant.company || 'Not provided';
+            
+            // Display table number
+            if (participant.table) {
+                document.getElementById('tableNumberDisplay').textContent = participant.table;
+            } else {
+                document.getElementById('tableNumberDisplay').textContent = 'Not Assigned';
+                document.getElementById('tableNumberDisplay').style.color = 'var(--text-secondary)';
+            }
+        }
+
+        async function loadTablemates() {
+            if (!participant || !participant.table) {
+                document.getElementById('tablematesList').innerHTML = 
+                    '<p class="no-tablemates">No table assignment yet.</p>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/get-participants?eventId=${currentEventId}`);
+                const result = await response.json();
+
+                if (result.success && result.participants) {
+                    // Get all participants at the same table
                     tablemates = result.participants.filter(p => 
-                        p.table === participantData.table && 
-                        p.id !== participantId &&
+                        p.table === participant.table && 
+                        p.id !== participant.id &&
                         p.checkedIn
                     );
 
@@ -174,163 +182,163 @@
                 }
             } catch (error) {
                 console.error('Error loading tablemates:', error);
-                document.getElementById('tablematesList').innerHTML = '<p class="error-message">Failed to load tablemates</p>';
+                document.getElementById('tablematesList').innerHTML = 
+                    '<p class="error-text">Failed to load tablemates.</p>';
             }
         }
 
         function displayTablemates() {
             const container = document.getElementById('tablematesList');
-
+            
             if (tablemates.length === 0) {
-                container.innerHTML = '<p class="no-tablemates">No other tablemates have checked in yet.</p>';
+                container.innerHTML = `
+                    <div class="no-tablemates-card">
+                        <p>You're the first one at your table!</p>
+                        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 10px;">
+                            More guests will appear here as they check in.
+                        </p>
+                    </div>
+                `;
                 return;
             }
 
             container.innerHTML = tablemates.map(mate => `
-                <div class="tablemate-card">
-                    <div class="tablemate-info">
-                        <div class="tablemate-name">${mate.name}</div>
-                        ${mate.company ? `<div class="tablemate-company">${mate.company}</div>` : ''}
+                <div class="tablemate-card ${mate.vip ? 'vip' : ''}">
+                    <div class="tablemate-name">
+                        ${mate.vip ? '<span class="vip-star">⭐</span>' : ''}
+                        ${mate.name}
                     </div>
-                    ${mate.vip ? '<span class="vip-badge-tablemate">⭐ VIP</span>' : ''}
+                    <div class="tablemate-company">${mate.company || ''}</div>
                 </div>
             `).join('');
+        }
+
+        function showError(message) {
+            document.getElementById('notCheckedIn').style.display = 'block';
+            document.getElementById('tableInfo').style.display = 'none';
+            const card = document.querySelector('.message-card');
+            card.innerHTML = `
+                <div style="font-size: 4rem; margin-bottom: 20px;">⚠️</div>
+                <h2>Error</h2>
+                <p>${message}</p>
+                <button onclick="checkCheckInStatus()" class="btn-primary btn-large">Retry</button>
+            `;
         }
     </script>
 
     <style>
         .my-table-container {
-            max-width: 800px;
+            max-width: 1000px;
             margin: 0 auto;
-            padding: 20px;
         }
 
-        .status-message {
-            background: var(--card-bg);
-            border: 2px solid var(--border-color);
-            border-radius: 20px;
-            padding: 60px 40px;
-            text-align: center;
-        }
-
-        .message-icon {
-            font-size: 5rem;
-            margin-bottom: 20px;
-        }
-
-        .status-message h2 {
-            color: var(--primary-color);
-            margin-bottom: 15px;
-        }
-
-        .status-message p {
-            color: var(--text-secondary);
-            margin: 10px 0;
-        }
-
-        .table-info-display {
+        .table-section {
             background: var(--card-bg);
             border: 2px solid var(--border-color);
             border-radius: 20px;
             padding: 40px;
         }
 
-        .table-card-large {
+        .message-card {
             text-align: center;
+            padding: 60px 20px;
         }
 
-        .table-header-large {
+        .message-card h2 {
+            margin: 20px 0 10px;
+            color: var(--text-primary);
+        }
+
+        .message-card p {
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+        }
+
+        .table-display-card {
+            text-align: center;
             margin-bottom: 40px;
         }
 
-        .table-header-large h2 {
-            color: var(--primary-color);
-            font-size: 2rem;
-        }
-
         .table-number-display {
-            margin: 40px 0;
-            padding: 40px;
-            background: var(--dark-bg);
-            border-radius: 20px;
-            border: 3px solid var(--primary-color);
+            margin-bottom: 40px;
         }
 
         .table-label {
             font-size: 1.2rem;
             color: var(--text-secondary);
-            margin-bottom: 15px;
             text-transform: uppercase;
             letter-spacing: 2px;
+            margin-bottom: 15px;
         }
 
         .table-number-big {
-            font-size: 6rem;
+            font-size: 8rem;
             font-weight: 900;
             color: var(--primary-color);
             line-height: 1;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.2);
         }
 
         .participant-info-card {
             background: var(--dark-bg);
+            border: 2px solid var(--border-color);
             border-radius: 15px;
             padding: 30px;
-            margin: 30px 0;
-            text-align: left;
+            margin-top: 30px;
         }
 
         .participant-info-card h3 {
-            color: var(--primary-color);
             margin-bottom: 20px;
-            text-align: center;
+            color: var(--primary-color);
         }
 
-        .info-row {
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .info-item {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 0;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .info-row:last-child {
-            border-bottom: none;
+            flex-direction: column;
+            gap: 8px;
         }
 
         .info-label {
             color: var(--text-secondary);
-            font-weight: 500;
+            font-size: 0.9rem;
         }
 
         .info-value {
             color: var(--text-primary);
+            font-size: 1.1rem;
             font-weight: 600;
         }
 
-        .status-badge.checked-in-badge {
+        .status-badge {
             display: inline-block;
-            padding: 6px 16px;
-            background: rgba(76, 175, 80, 0.2);
-            color: #4CAF50;
-            border: 1px solid #4CAF50;
-            border-radius: 12px;
+            padding: 6px 12px;
+            border-radius: 20px;
             font-size: 0.9rem;
             font-weight: 600;
         }
 
-        .tablemates-section-large {
+        .status-badge.checked-in {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4CAF50;
+            border: 2px solid #4CAF50;
+        }
+
+        .tablemates-section {
             margin-top: 40px;
-            padding-top: 30px;
-            border-top: 2px solid var(--border-color);
         }
 
-        .tablemates-section-large h3 {
+        .tablemates-section h3 {
+            margin-bottom: 20px;
             color: var(--primary-color);
-            margin-bottom: 25px;
-            text-align: center;
         }
 
-        .tablemates-list-large {
+        .tablemates-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
             gap: 15px;
@@ -341,60 +349,78 @@
             border: 2px solid var(--border-color);
             border-radius: 12px;
             padding: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             transition: all 0.3s ease;
         }
 
         .tablemate-card:hover {
-            border-color: var(--primary-color);
-            transform: translateY(-2px);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
 
-        .tablemate-info {
-            flex: 1;
+        .tablemate-card.vip {
+            border-color: #FFD700;
+            background: rgba(255, 215, 0, 0.1);
         }
 
         .tablemate-name {
+            font-size: 1.1rem;
             font-weight: 600;
             color: var(--text-primary);
-            margin-bottom: 5px;
+            margin-bottom: 8px;
         }
 
         .tablemate-company {
+            color: var(--text-secondary);
             font-size: 0.9rem;
-            color: var(--text-secondary);
         }
 
-        .vip-badge-tablemate {
-            background: #FFD700;
-            color: #000000;
-            padding: 4px 10px;
-            border-radius: 8px;
-            font-size: 0.75rem;
-            font-weight: 600;
+        .vip-star {
+            margin-right: 5px;
         }
 
-        .no-tablemates {
+        .no-tablemates-card {
+            grid-column: 1 / -1;
             text-align: center;
+            padding: 40px 20px;
             color: var(--text-secondary);
-            padding: 20px;
-            font-style: italic;
         }
 
-        .error-message {
+        .loading-small {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .spinner-small {
+            border: 2px solid var(--border-color);
+            border-top: 2px solid var(--primary-color);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        .error-text {
             color: var(--danger-color);
             text-align: center;
-            padding: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
         @media (max-width: 768px) {
             .table-number-big {
-                font-size: 4rem;
+                font-size: 5rem;
             }
 
-            .tablemates-list-large {
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .tablemates-grid {
                 grid-template-columns: 1fr;
             }
         }

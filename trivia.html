@@ -137,31 +137,22 @@
         });
 
         function loadParticipantId() {
-            // Try to get from localStorage (set during check-in) - event specific
-            const sessionKey = `userCheckedInId_event_${currentEventId}`;
-            const storedId = localStorage.getItem(sessionKey);
-            if (storedId) {
-                participantId = parseInt(storedId);
-                console.log('Found participant ID from check-in session:', participantId);
+            // Try to get from localStorage (set during check-in)
+            const stored = localStorage.getItem('checkedInParticipant');
+            if (stored) {
+                const data = JSON.parse(stored);
+                participantId = data.id;
                 return;
             }
 
-            // Also try the old format for backward compatibility
-            const stored = localStorage.getItem('checkedInParticipant');
-            if (stored) {
-                try {
-                    const data = JSON.parse(stored);
-                    participantId = data.id;
-                    console.log('Found participant ID from old format:', participantId);
-                    return;
-                } catch (e) {
-                    // Ignore parse errors
-                }
+            // If not found, prompt user (fallback)
+            const name = prompt('Please enter your name to participate:');
+            if (name) {
+                // Try to find participant
+                // This is a simplified approach - in production, you'd verify check-in status
+                alert('Please check in first to participate in trivia.');
+                window.location.href = `checkin.html?event=${currentEventId}`;
             }
-
-            // If not found, show message
-            console.log('No participant ID found. User needs to check in first.');
-            // Don't redirect automatically - let them try to participate and show message if needed
         }
 
         async function checkSession() {
@@ -198,8 +189,8 @@
                         showWaiting('The trivia session hasn\'t started yet. Please wait for the admin to activate it.');
                     }
                 } else {
-                    // No session found
-                    showWaiting('No trivia session available. Please wait for the admin to create and start a session.');
+                    // No session
+                    showWaiting('No trivia session available. Please wait for the admin to create and start one.');
                 }
             } catch (error) {
                 console.error('Error checking session:', error);

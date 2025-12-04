@@ -25,14 +25,14 @@ export default async (req, context) => {
     const winners = await sql`
       SELECT 
         ldw.id,
-        ldw.participant_id as "participantId",
-        ldw.won_at as "wonAt",
+        ldw.won_at,
+        p.id as participant_id,
         p.name,
         p.company,
         p.table_number as "table",
-        p.checked_in as "checkedIn"
+        p.vip
       FROM lucky_draw_winners ldw
-      INNER JOIN participants p ON p.id = ldw.participant_id
+      JOIN participants p ON p.id = ldw.participant_id
       WHERE p.event_id = ${eventId}
       ORDER BY ldw.won_at DESC
     `;
@@ -40,12 +40,13 @@ export default async (req, context) => {
     return new Response(JSON.stringify({
       success: true,
       winners: winners.map(w => ({
-        id: w.participantId,
+        id: w.id,
+        participantId: w.participant_id,
         name: w.name,
-        company: w.company || '',
-        table: w.table || null,
-        wonAt: w.wonAt,
-        checkedIn: w.checkedIn
+        company: w.company,
+        table: w.table,
+        vip: w.vip,
+        wonAt: w.won_at
       }))
     }), {
       status: 200,
