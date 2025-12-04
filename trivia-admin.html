@@ -32,14 +32,34 @@
                 </div>
             </div>
 
-            <!-- Create New Session -->
+            <!-- Session Selection/Management -->
             <div class="admin-section">
-                <h2>Create New Trivia Session</h2>
-                <div class="form-group">
-                    <label>Session Title</label>
-                    <input type="text" id="sessionTitle" placeholder="e.g., Round 1 - General Knowledge" style="width: 100%; padding: 12px; background: var(--dark-bg); border: 2px solid var(--border-color); border-radius: 8px; color: var(--text-primary);">
+                <div class="section-header">
+                    <h2>Trivia Sessions</h2>
+                    <button onclick="showCreateSessionModal()" class="btn-success">+ Create New Session</button>
                 </div>
-                <button onclick="createSession()" class="btn-primary">Create Session</button>
+                
+                <!-- List of Sessions -->
+                <div id="sessionsList" class="sessions-list">
+                    <p style="color: var(--text-secondary); text-align: center; padding: 20px;">Loading sessions...</p>
+                </div>
+            </div>
+
+            <!-- Create Session Modal -->
+            <div id="createSessionModal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <h2>Create New Trivia Session</h2>
+                    <form id="createSessionForm" onsubmit="createSession(event)">
+                        <div class="form-group">
+                            <label>Session Title *</label>
+                            <input type="text" id="sessionTitle" required placeholder="e.g., Round 1 - General Knowledge" style="width: 100%; padding: 12px; background: var(--dark-bg); border: 2px solid var(--border-color); border-radius: 8px; color: var(--text-primary);">
+                        </div>
+                        <div class="modal-buttons">
+                            <button type="button" onclick="closeCreateSessionModal()" class="btn-secondary">Cancel</button>
+                            <button type="submit" class="btn-primary">Create Session</button>
+                        </div>
+                    </form>
+                </div>
             </div>
 
             <!-- Manage Questions -->
@@ -58,6 +78,22 @@
                     <button id="startSessionBtn" onclick="startSession()" class="btn-success btn-large">▶️ Start Session</button>
                     <button id="endSessionBtn" onclick="endSession()" class="btn-danger btn-large" style="display: none;">⏹️ End Session</button>
                 </div>
+                
+                <!-- Question Control (shown when session is active) -->
+                <div id="questionControlSection" style="display: none; margin-top: 30px; padding: 20px; background: var(--dark-bg); border-radius: 10px;">
+                    <h3>Current Question Control</h3>
+                    <div id="currentQuestionDisplay" style="margin: 20px 0;">
+                        <p><strong>Question:</strong> <span id="currentQuestionNum">-</span> of <span id="totalQuestionsDisplay">0</span></p>
+                        <div id="currentQuestionText" style="font-size: 1.1rem; margin: 15px 0; padding: 15px; background: var(--card-bg); border-radius: 8px;"></div>
+                        <div id="questionTimerStatus" style="margin: 10px 0; color: var(--text-secondary);"></div>
+                    </div>
+                    <div class="control-buttons" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button id="startQuestionBtn" onclick="startCurrentQuestion()" class="btn-primary">▶️ Start Question Timer</button>
+                        <button id="nextQuestionBtn" onclick="advanceToNextQuestion()" class="btn-success">➡️ Next Question</button>
+                        <button id="previousQuestionBtn" onclick="goToPreviousQuestion()" class="btn-secondary">⬅️ Previous Question</button>
+                    </div>
+                </div>
+                
                 <div id="sessionStats" class="session-stats" style="margin-top: 20px;">
                     <p>Participants: <strong id="participantCount">0</strong></p>
                 </div>
@@ -130,6 +166,7 @@
         let currentSession = null;
         let questions = [];
         let leaderboardInterval = null;
+        let questionCheckInterval = null;
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -146,6 +183,7 @@
             document.getElementById('backBtn').href = `event-manage.html?id=${currentEventId}`;
 
             loadTheme();
+            loadSessions();
             loadCurrentSession();
         });
 
@@ -161,10 +199,84 @@
             localStorage.setItem('theme', newTheme);
         }
 
-        async function loadCurrentSession() {
+        async function loadSessions() {
             try {
-                // Try to get session (API now returns inactive sessions too)
-                const response = await fetch(`/api/get-trivia-session?eventId=${currentEventId}`);
+                const response = await fetch(`/api/list-trivia-sessions?eventId=${currentEventId}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    displaySessionsList(result.sessions || []);
+                } else {
+                    document.getElementById('sessionsList').innerHTML = 
+                        '<p style="color: var(--text-secondary); text-align: center; padding: 20px;">No sessions found. Create one to get started.</p>';
+                }
+            } catch (error) {
+                console.error('Error loading sessions:', error);
+                document.getElementById('sessionsList').innerHTML = 
+                    '<p style="color: var(--danger-color); text-align: center; padding: 20px;">Error loading sessions.</p>';
+            }
+        }
+
+        function displaySessionsList(sessions) {
+            const container = document.getElementById('sessionsList');
+            
+            if (sessions.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 20px;">No sessions found. Create one to get started.</p>';
+                return;
+            }
+            
+            container.innerHTML = sessions.map(session => {
+                const isActive = session.isActive;
+                const isCurrent = session.id === currentSessionId;
+                const questionCount = session.questionCount || 0;
+                
+                return `
+                    <div class="session-card ${isCurrent ? 'current-session' : ''} ${isActive ? 'active-session' : ''}">
+                        <div class="session-card-header">
+                            <h3>${session.title}</h3>
+                            <div class="session-badges">
+                                ${isActive ? '<span class="badge-active">🟢 Active</span>' : ''}
+                                ${isCurrent ? '<span class="badge-current">Current</span>' : ''}
+                            </div>
+                        </div>
+                        <div class="session-card-info">
+                            <p>Questions: <strong>${questionCount}</strong></p>
+                            <p>Created: ${new Date(session.createdAt).toLocaleDateString()}</p>
+                        </div>
+                        <div class="session-card-actions">
+                            ${!isCurrent ? `<button onclick="selectSession(${session.id})" class="btn-primary btn-small">Select</button>` : ''}
+                            ${isCurrent && !isActive ? `<button onclick="startSession()" class="btn-success btn-small">Activate</button>` : ''}
+                            ${isCurrent ? `<button onclick="loadCurrentSession()" class="btn-secondary btn-small">Manage</button>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function selectSession(sessionId) {
+            currentSessionId = sessionId;
+            await loadCurrentSession();
+            await loadSessions(); // Refresh list
+        }
+
+        function showCreateSessionModal() {
+            document.getElementById('createSessionModal').style.display = 'flex';
+        }
+
+        function closeCreateSessionModal() {
+            document.getElementById('createSessionModal').style.display = 'none';
+            document.getElementById('createSessionForm').reset();
+        }
+
+        async function loadCurrentSession() {
+            if (!currentSessionId) {
+                displayNoSession();
+                return;
+            }
+            
+            try {
+                // Get specific session by ID
+                const response = await fetch(`/api/get-trivia-session?sessionId=${currentSessionId}`);
                 const result = await response.json();
 
                 if (result.success && result.session) {
@@ -182,9 +294,14 @@
                     
                     if (result.session.isActive) {
                         document.getElementById('leaderboardSection').style.display = 'block';
+                        document.getElementById('questionControlSection').style.display = 'block';
                         startLeaderboardUpdates();
+                        startQuestionMonitoring();
+                        updateQuestionControl();
                     } else {
                         document.getElementById('leaderboardSection').style.display = 'none';
+                        document.getElementById('questionControlSection').style.display = 'none';
+                        stopQuestionMonitoring();
                     }
                 } else {
                     // No session found - show create session UI
@@ -220,7 +337,9 @@
             document.getElementById('leaderboardSection').style.display = 'none';
         }
 
-        async function createSession() {
+        async function createSession(event) {
+            if (event) event.preventDefault();
+            
             const title = document.getElementById('sessionTitle').value.trim();
             if (!title) {
                 alert('Please enter a session title');
@@ -239,14 +358,11 @@
                     currentSessionId = result.session.id;
                     currentSession = result.session;
                     questions = []; // Reset questions array
-                    document.getElementById('sessionTitle').value = '';
+                    closeCreateSessionModal();
                     
                     // Update UI
-                    displaySessionStatus();
-                    displayQuestions();
-                    updateSessionControls();
-                    document.getElementById('questionsSection').style.display = 'block';
-                    document.getElementById('sessionControls').style.display = 'block';
+                    await loadCurrentSession();
+                    await loadSessions(); // Refresh sessions list
                     
                     alert('Session created! Add questions to start.');
                 } else {
@@ -342,11 +458,116 @@
                 document.getElementById('startSessionBtn').style.display = 'none';
                 document.getElementById('endSessionBtn').style.display = 'block';
                 document.getElementById('leaderboardSection').style.display = 'block';
+                document.getElementById('questionControlSection').style.display = 'block';
                 loadLeaderboard();
+                updateQuestionControl();
             } else {
                 document.getElementById('startSessionBtn').style.display = 'block';
                 document.getElementById('endSessionBtn').style.display = 'none';
                 document.getElementById('leaderboardSection').style.display = 'none';
+                document.getElementById('questionControlSection').style.display = 'none';
+            }
+        }
+
+        function updateQuestionControl() {
+            if (!currentSession || !currentSession.isActive || questions.length === 0) return;
+            
+            const currentIndex = currentSession.currentQuestionIndex ?? -1;
+            const totalQuestions = questions.length;
+            
+            document.getElementById('totalQuestionsDisplay').textContent = totalQuestions;
+            document.getElementById('currentQuestionNum').textContent = currentIndex >= 0 ? currentIndex + 1 : '-';
+            
+            if (currentIndex >= 0 && currentIndex < questions.length) {
+                const question = questions[currentIndex];
+                document.getElementById('currentQuestionText').innerHTML = `
+                    <strong>Q${currentIndex + 1}:</strong> ${question.questionText}<br>
+                    <small style="color: var(--text-secondary); margin-top: 10px; display: block;">
+                        Time limit: ${question.timeLimitSeconds}s | Points: ${question.points}
+                    </small>
+                `;
+                
+                // Show timer status
+                if (currentSession.questionStartedAt) {
+                    const startedAt = new Date(currentSession.questionStartedAt);
+                    const elapsed = Math.floor((Date.now() - startedAt.getTime()) / 1000);
+                    const remaining = Math.max(0, question.timeLimitSeconds - elapsed);
+                    document.getElementById('questionTimerStatus').innerHTML = `
+                        Timer: <strong>${remaining}s</strong> remaining
+                    `;
+                    document.getElementById('startQuestionBtn').style.display = 'none';
+                } else {
+                    document.getElementById('questionTimerStatus').textContent = 'Timer not started';
+                    document.getElementById('startQuestionBtn').style.display = 'inline-block';
+                }
+            } else {
+                document.getElementById('currentQuestionText').textContent = 'No question active. Click "Start Question Timer" to begin.';
+                document.getElementById('questionTimerStatus').textContent = '';
+                document.getElementById('startQuestionBtn').style.display = currentIndex === -1 ? 'inline-block' : 'none';
+            }
+            
+            // Update button states
+            document.getElementById('nextQuestionBtn').disabled = currentIndex >= totalQuestions - 1;
+            document.getElementById('previousQuestionBtn').disabled = currentIndex <= 0;
+        }
+
+        async function startCurrentQuestion() {
+            const currentIndex = currentSession.currentQuestionIndex ?? 0;
+            await advanceToQuestion(currentIndex);
+        }
+
+        async function advanceToNextQuestion() {
+            const currentIndex = (currentSession.currentQuestionIndex ?? -1) + 1;
+            if (currentIndex < questions.length) {
+                await advanceToQuestion(currentIndex);
+            }
+        }
+
+        async function goToPreviousQuestion() {
+            const currentIndex = (currentSession.currentQuestionIndex ?? 0) - 1;
+            if (currentIndex >= 0) {
+                await advanceToQuestion(currentIndex);
+            }
+        }
+
+        async function advanceToQuestion(questionIndex) {
+            try {
+                const response = await fetch('/api/advance-trivia-question', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        sessionId: currentSessionId,
+                        questionIndex: questionIndex
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    // Reload session to get updated state
+                    await loadCurrentSession();
+                    alert(`Question ${questionIndex + 1} started! Participants can now see and answer.`);
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error advancing question:', error);
+                alert('Failed to advance question');
+            }
+        }
+
+        function startQuestionMonitoring() {
+            if (questionCheckInterval) return;
+            questionCheckInterval = setInterval(async () => {
+                if (currentSession && currentSession.isActive) {
+                    await loadCurrentSession();
+                }
+            }, 2000); // Check every 2 seconds
+        }
+
+        function stopQuestionMonitoring() {
+            if (questionCheckInterval) {
+                clearInterval(questionCheckInterval);
+                questionCheckInterval = null;
             }
         }
 
@@ -475,6 +696,7 @@
         // Cleanup on page unload
         window.addEventListener('beforeunload', () => {
             stopLeaderboardUpdates();
+            stopQuestionMonitoring();
         });
     </script>
 
@@ -591,6 +813,91 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 15px;
+        }
+
+        .sessions-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .session-card {
+            background: var(--dark-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .session-card:hover {
+            border-color: var(--primary-color);
+        }
+
+        .session-card.current-session {
+            border-color: var(--primary-color);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .session-card.active-session {
+            border-color: #4CAF50;
+        }
+
+        .session-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 15px;
+        }
+
+        .session-card-header h3 {
+            margin: 0;
+            font-size: 1.2rem;
+            flex: 1;
+        }
+
+        .session-badges {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .badge-active {
+            background: #4CAF50;
+            color: #ffffff;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .badge-current {
+            background: var(--primary-color);
+            color: #000000;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .session-card-info {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+
+        .session-card-info p {
+            margin: 5px 0;
+        }
+
+        .session-card-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 0.9rem;
         }
 
         .modal {

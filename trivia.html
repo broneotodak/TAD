@@ -35,38 +35,50 @@
 
             <!-- Active Session -->
             <div id="activeSession" class="trivia-section" style="display: none;">
-                <div class="session-header">
-                    <h2 id="sessionTitle">Trivia Challenge</h2>
-                    <div class="session-info">
-                        <span>Question <span id="currentQuestionNum">1</span> of <span id="totalQuestions">0</span></span>
-                        <span id="timerDisplay" class="timer">30s</span>
-                    </div>
-                </div>
-
-                <!-- Question Display -->
-                <div id="questionDisplay" class="question-display">
-                    <div class="question-card-large">
-                        <h3 id="questionText">Loading question...</h3>
-                        <div class="options-grid" id="optionsContainer">
-                            <!-- Options will be populated here -->
+                <!-- Question Display - Kahoot Style -->
+                <div id="questionDisplay" class="kahoot-question-display">
+                    <!-- Question Header -->
+                    <div class="question-header-kahoot">
+                        <div class="question-info">
+                            <span class="question-number-badge">Q<span id="currentQuestionNum">1</span></span>
+                            <span class="question-count">of <span id="totalQuestions">0</span></span>
                         </div>
+                        <div id="timerDisplay" class="timer-kahoot">
+                            <span id="timerValue">--</span>
+                        </div>
+                    </div>
+
+                    <!-- Question Text (Large, Top) -->
+                    <div class="question-text-kahoot">
+                        <h1 id="questionText">Waiting for question...</h1>
+                    </div>
+
+                    <!-- Answer Options (Full Page, Large Buttons) -->
+                    <div class="options-kahoot" id="optionsContainer">
+                        <!-- Options will be populated here -->
+                    </div>
+
+                    <!-- Waiting for Admin -->
+                    <div id="waitingForQuestion" class="waiting-question" style="display: none;">
+                        <div class="waiting-icon">⏳</div>
+                        <p>Waiting for admin to start the question...</p>
                     </div>
                 </div>
 
                 <!-- Answer Feedback -->
-                <div id="answerFeedback" class="answer-feedback" style="display: none;">
+                <div id="answerFeedback" class="answer-feedback-kahoot" style="display: none;">
                     <div id="feedbackMessage"></div>
-                    <div id="pointsEarned" class="points-display"></div>
+                    <div id="pointsEarned" class="points-display-kahoot"></div>
                 </div>
 
                 <!-- Progress Bar -->
-                <div class="progress-section">
-                    <div class="progress-bar">
-                        <div id="progressFill" class="progress-fill"></div>
+                <div class="progress-section-kahoot">
+                    <div class="progress-bar-kahoot">
+                        <div id="progressFill" class="progress-fill-kahoot"></div>
                     </div>
-                    <div class="progress-text">
-                        <span>Your Score: <strong id="userScore">0</strong> points</span>
-                        <span>Correct: <strong id="userCorrect">0</strong> / <strong id="userTotal">0</strong></span>
+                    <div class="progress-text-kahoot">
+                        <span>Score: <strong id="userScore">0</strong> pts</span>
+                        <span>Correct: <strong id="userCorrect">0</strong>/<strong id="userTotal">0</strong></span>
                     </div>
                 </div>
             </div>
@@ -132,8 +144,8 @@
             loadParticipantId();
             checkSession();
             
-            // Check for session updates every 3 seconds
-            sessionCheckInterval = setInterval(checkSession, 3000);
+            // Check for session updates every 2 seconds (faster for question updates)
+            sessionCheckInterval = setInterval(checkSession, 2000);
         });
 
         function loadParticipantId() {
@@ -175,10 +187,28 @@
                         // Show active session
                         showActiveSession();
                         
-                        // Load current question
-                        if (currentQuestionIndex < questions.length) {
-                            displayQuestion(questions[currentQuestionIndex], currentQuestionIndex);
-                        } else {
+                        // Check which question admin has activated
+                        const activeQuestionIndex = result.session.currentQuestionIndex ?? -1;
+                        
+                        // Update current session data
+                        currentSession.currentQuestionIndex = activeQuestionIndex;
+                        currentSession.questionStartedAt = result.session.questionStartedAt;
+                        
+                        if (activeQuestionIndex >= 0 && activeQuestionIndex < questions.length) {
+                            // Show the active question
+                            if (currentQuestionIndex !== activeQuestionIndex) {
+                                // Question changed, reset state
+                                currentQuestionIndex = activeQuestionIndex;
+                            }
+                            displayQuestion(questions[activeQuestionIndex], activeQuestionIndex);
+                        } else if (activeQuestionIndex === -1 && questions.length > 0) {
+                            // No question started yet, show waiting
+                            document.getElementById('waitingForQuestion').style.display = 'block';
+                            document.getElementById('questionText').textContent = 'Waiting for admin to start the first question...';
+                            document.getElementById('optionsContainer').innerHTML = '';
+                            document.getElementById('timerDisplay').style.display = 'none';
+                        } else if (activeQuestionIndex >= questions.length) {
+                            // All questions completed
                             showCompleted();
                         }
                     } else {
@@ -238,29 +268,54 @@
             const existingAnswer = userAnswers[question.id];
             
             const options = [
-                { letter: 'A', text: question.optionA },
-                { letter: 'B', text: question.optionB },
-                { letter: 'C', text: question.optionC },
-                { letter: 'D', text: question.optionD }
+                { letter: 'A', text: question.optionA, color: '#FF6B6B' },
+                { letter: 'B', text: question.optionB, color: '#4ECDC4' },
+                { letter: 'C', text: question.optionC, color: '#45B7D1' },
+                { letter: 'D', text: question.optionD, color: '#FFA07A' }
             ];
 
             const container = document.getElementById('optionsContainer');
             container.innerHTML = options.map(opt => `
                 <button 
-                    class="option-button ${existingAnswer === opt.letter ? 'selected' : ''}"
+                    class="option-button-kahoot ${existingAnswer === opt.letter ? 'selected' : ''}"
                     onclick="selectAnswer('${opt.letter}', ${question.id})"
                     ${existingAnswer ? 'disabled' : ''}
+                    style="background: ${opt.color};"
                 >
-                    <span class="option-letter">${opt.letter}</span>
-                    <span class="option-text">${opt.text}</span>
+                    <span class="option-letter-kahoot">${opt.letter}</span>
+                    <span class="option-text-kahoot">${opt.text}</span>
                 </button>
             `).join('');
 
-            // Start timer if not answered
-            if (!existingAnswer) {
-                timeRemaining = question.timeLimitSeconds || 30;
-                startTimer();
+            // Check if admin has started this question
+            const questionStarted = currentSession.questionStartedAt && 
+                                   currentSession.currentQuestionIndex === index;
+            
+            if (questionStarted && !existingAnswer) {
+                // Calculate remaining time
+                const startedAt = new Date(currentSession.questionStartedAt);
+                const elapsed = Math.floor((Date.now() - startedAt.getTime()) / 1000);
+                timeRemaining = Math.max(0, question.timeLimitSeconds - elapsed);
+                
+                if (timeRemaining > 0) {
+                    document.getElementById('waitingForQuestion').style.display = 'none';
+                    startTimer();
+                } else {
+                    // Time already expired
+                    document.getElementById('waitingForQuestion').style.display = 'none';
+                    document.querySelectorAll('.option-button-kahoot').forEach(btn => {
+                        btn.disabled = true;
+                    });
+                    clearTimer();
+                }
+            } else if (!existingAnswer) {
+                // Waiting for admin to start question
+                document.getElementById('waitingForQuestion').style.display = 'block';
+                document.getElementById('timerDisplay').style.display = 'none';
+                clearTimer();
             } else {
+                // Already answered
+                document.getElementById('waitingForQuestion').style.display = 'none';
                 clearTimer();
             }
 
@@ -296,12 +351,15 @@
 
         function updateTimerDisplay() {
             const display = document.getElementById('timerDisplay');
-            display.textContent = `${timeRemaining}s`;
+            const timerValue = document.getElementById('timerValue');
+            
+            if (display) display.style.display = 'block';
+            if (timerValue) timerValue.textContent = timeRemaining;
             
             if (timeRemaining <= 5) {
-                display.classList.add('timer-warning');
+                display?.classList.add('timer-warning');
             } else {
-                display.classList.remove('timer-warning');
+                display?.classList.remove('timer-warning');
             }
         }
 
@@ -480,113 +538,209 @@
             color: var(--text-secondary);
         }
 
-        .session-header {
+        /* Kahoot-style Question Display */
+        .kahoot-question-display {
+            min-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .question-header-kahoot {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 20px;
             margin-bottom: 30px;
-            flex-wrap: wrap;
-            gap: 15px;
         }
 
-        .session-info {
+        .question-info {
             display: flex;
-            gap: 20px;
             align-items: center;
+            gap: 10px;
         }
 
-        .timer {
-            font-size: 1.5rem;
+        .question-number-badge {
+            background: #ffffff;
+            color: #000000;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-size: 1.2rem;
             font-weight: bold;
-            color: var(--primary-color);
-            padding: 8px 20px;
-            background: var(--dark-bg);
-            border-radius: 10px;
         }
 
-        .timer-warning {
-            color: #ff4444;
+        .question-count {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .timer-kahoot {
+            background: #ffffff;
+            color: #000000;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .timer-kahoot.timer-warning {
+            background: #ff4444;
+            color: #ffffff;
             animation: pulse 1s infinite;
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
         }
 
-        .question-display {
-            margin-bottom: 30px;
+        .question-text-kahoot {
+            text-align: center;
+            padding: 40px 20px;
+            margin-bottom: 40px;
         }
 
-        .question-card-large {
-            background: var(--dark-bg);
-            border: 2px solid var(--border-color);
-            border-radius: 15px;
-            padding: 40px;
-        }
-
-        .question-card-large h3 {
-            font-size: 1.5rem;
-            margin-bottom: 30px;
-            line-height: 1.4;
-        }
-
-        .options-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
+        .question-text-kahoot h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            line-height: 1.3;
+            color: var(--text-primary);
         }
 
         @media (max-width: 768px) {
-            .options-grid {
+            .question-text-kahoot h1 {
+                font-size: 1.8rem;
+            }
+        }
+
+        .options-kahoot {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            flex: 1;
+            padding: 0 20px;
+        }
+
+        @media (max-width: 768px) {
+            .options-kahoot {
                 grid-template-columns: 1fr;
             }
         }
 
-        .option-button {
+        .option-button-kahoot {
             display: flex;
             align-items: center;
-            gap: 15px;
-            padding: 20px;
-            background: var(--card-bg);
-            border: 2px solid var(--border-color);
-            border-radius: 12px;
+            gap: 20px;
+            padding: 30px;
+            border: none;
+            border-radius: 20px;
             cursor: pointer;
             transition: all 0.3s ease;
             text-align: left;
-            font-size: 1.1rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #ffffff;
+            min-height: 120px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
         }
 
-        .option-button:hover:not(:disabled) {
-            border-color: var(--primary-color);
-            transform: translateY(-2px);
+        .option-button-kahoot:hover:not(:disabled) {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.3);
         }
 
-        .option-button.selected {
-            border-color: var(--primary-color);
-            background: rgba(255, 255, 255, 0.1);
+        .option-button-kahoot.selected {
+            border: 5px solid #ffffff;
+            transform: scale(1.05);
         }
 
-        .option-button:disabled {
-            opacity: 0.6;
+        .option-button-kahoot:disabled {
+            opacity: 0.5;
             cursor: not-allowed;
+            transform: none;
         }
 
-        .option-letter {
-            width: 40px;
-            height: 40px;
-            background: var(--primary-color);
-            color: #000000;
+        .option-letter-kahoot {
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.3);
+            color: #ffffff;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
+            font-size: 1.8rem;
             flex-shrink: 0;
+            border: 3px solid rgba(255, 255, 255, 0.5);
         }
 
-        .option-text {
+        .option-text-kahoot {
             flex: 1;
+            font-size: 1.3rem;
+        }
+
+        @media (max-width: 768px) {
+            .option-text-kahoot {
+                font-size: 1.1rem;
+            }
+        }
+
+        .waiting-question {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+
+        .waiting-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .answer-feedback-kahoot {
+            text-align: center;
+            padding: 30px;
+            margin: 30px 0;
+            border-radius: 20px;
+            font-size: 1.5rem;
+        }
+
+        .points-display-kahoot {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-top: 15px;
+        }
+
+        .progress-section-kahoot {
+            margin-top: 30px;
+            padding: 0 20px 20px;
+        }
+
+        .progress-bar-kahoot {
+            width: 100%;
+            height: 15px;
+            background: var(--dark-bg);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .progress-fill-kahoot {
+            height: 100%;
+            background: linear-gradient(90deg, #FF6B6B, #4ECDC4);
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .progress-text-kahoot {
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-secondary);
+            font-size: 1rem;
         }
 
         .answer-feedback {

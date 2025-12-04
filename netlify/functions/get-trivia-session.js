@@ -104,7 +104,9 @@ export default async (req, context) => {
         startedAt: session.started_at,
         endedAt: session.ended_at,
         createdAt: session.created_at,
-        participantCount: participantCount
+        participantCount: participantCount,
+        currentQuestionIndex: session.current_question_index ?? null,
+        questionStartedAt: session.question_started_at ?? null
       },
       questions: questions.map(q => ({
         id: q.id,

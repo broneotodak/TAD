@@ -51,10 +51,15 @@ export default async (req, context) => {
       `;
     }
 
-    // Activate this session
+    // Activate this session and reset question index
     const [updated] = await sql`
       UPDATE trivia_sessions
-      SET is_active = true, started_at = CURRENT_TIMESTAMP, ended_at = NULL
+      SET 
+        is_active = true, 
+        started_at = CURRENT_TIMESTAMP, 
+        ended_at = NULL,
+        current_question_index = NULL,
+        question_started_at = NULL
       WHERE id = ${sessionId}
       RETURNING *
     `;
