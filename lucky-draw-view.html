@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lucky Draw Winners - Public View</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container-full">
+        <div class="header" style="max-width: 1400px; margin: 0 auto 30px auto;">
+            <div class="header-left">
+                <a href="index.html" class="back-btn">
+                    <span style="font-size: 1.2rem;">←</span> Home
+                </a>
+            </div>
+            <div class="header-title">
+                <h1>Lucky Draw Winners</h1>
+            </div>
+        </div>
+
+        <div class="lucky-draw-view-container">
+            <div class="status-card" id="participantStatusCard" style="display: none;">
+                <h3>Your Status</h3>
+                <div id="participantStatusContent"></div>
+            </div>
+
+            <div class="winners-display-section">
+                <h2>🏆 Today's Winners</h2>
+                <div id="winnersList" class="winners-list-public">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Loading winners...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="noWinnersMessage" class="no-winners-message" style="display: none;">
+                <div class="no-winners-icon">🎰</div>
+                <h3>No winners yet!</h3>
+                <p>The lucky draw hasn't started or no winners have been selected yet.</p>
+                <p class="check-status-note">Make sure you've checked in to be eligible for the lucky draw!</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/db-api.js"></script>
+    <script>
+        let currentEventId = null;
+        let winners = [];
+        let participantId = null;
+        let participantData = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            currentEventId = urlParams.get('event');
+            
+            if (!currentEventId) {
+                alert('No event ID provided');
+                window.location.href = 'index.html';
+                return;
+            }
+
+            checkParticipantStatus();
+            loadWinners();
+            setInterval(loadWinners, 5000);
+        });
+
+        async function checkParticipantStatus() {
+            try {
+                const sessionKey = `userCheckedInId_event_${currentEventId}`;
+                const storedId = localStorage.getItem(sessionKey);
+                
+                if (!storedId) return;
+
+                participantId = parseInt(storedId);
+
+                const response = await fetch(`/api/get-participants?eventId=${currentEventId}`);
+                const result = await response.json();
+
+                if (result.success && result.participants) {
+                    participantData = result.participants.find(p => p.id === participantId);
+                    if (participantData) {
+                        displayParticipantStatus();
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking participant status:', error);
+            }
+        }
+
+        function displayParticipantStatus() {
+            if (!participantData) return;
+
+            const card = document.getElementById('participantStatusCard');
+            const content = document.getElementById('participantStatusContent');
+            
+            const isWinner = winners.some(w => w.id === participantId);
+            const hasCheckedIn = participantData.checkedIn;
+
+            let statusHTML = `
+                <div class="status-info">
+                    <p><strong>Name:</strong> ${participantData.name}</p>
+                    ${participantData.company ? `<p><strong>Company:</strong> ${participantData.company}</p>` : ''}
+                    <p><strong>Check-in Status:</strong> 
+                        <span class="status-badge ${hasCheckedIn ? 'checked-in' : 'not-checked'}">
+                            ${hasCheckedIn ? '✅ Checked In' : '❌ Not Checked In'}
+                        </span>
+                    </p>
+                    ${hasCheckedIn ? `
+                        <p><strong>Lucky Draw Status:</strong> 
+                            <span class="status-badge ${isWinner ? 'winner' : 'eligible'}">
+                                ${isWinner ? '🎉 You Won!' : '✨ Eligible'}
+                            </span>
+                        </p>
+                    ` : `
+                        <p class="warning-note">⚠️ Please check in first to be eligible for the lucky draw!</p>
+                    `}
+                </div>
+            `;
+
+            content.innerHTML = statusHTML;
+            card.style.display = 'block';
+        }
+
+        async function loadWinners() {
+            try {
+                const winnersResponse = await fetch(`/api/get-lucky-draw-winners?eventId=${currentEventId}`);
+                const winnersResult = await winnersResponse.json();
+                
+                if (winnersResult.success && winnersResult.winners) {
+                    winners = winnersResult.winners;
+                } else {
+                    winners = [];
+                }
+
+                displayWinners();
+            } catch (error) {
+                console.error('Error loading winners:', error);
+                winners = [];
+                displayWinners();
+            }
+        }
+
+        function displayWinners() {
+            const container = document.getElementById('winnersList');
+            const noWinnersMsg = document.getElementById('noWinnersMessage');
+
+            if (winners.length === 0) {
+                container.innerHTML = '';
+                noWinnersMsg.style.display = 'block';
+                return;
+            }
+
+            noWinnersMsg.style.display = 'none';
+
+            const sortedWinners = [...winners].sort((a, b) => {
+                const timeA = new Date(a.wonAt || a.won_at || 0);
+                const timeB = new Date(b.wonAt || b.won_at || 0);
+                return timeB - timeA;
+            });
+
+            container.innerHTML = sortedWinners.map((winner, index) => {
+                const isCurrentUser = participantId && winner.id === participantId;
+                return `
+                    <div class="winner-card-public ${isCurrentUser ? 'current-user' : ''}">
+                        <div class="winner-rank">#${sortedWinners.length - index}</div>
+                        <div class="winner-info">
+                            <div class="winner-name-public">
+                                ${winner.name}
+                                ${isCurrentUser ? '<span class="you-badge">(You)</span>' : ''}
+                            </div>
+                            ${winner.company ? `<div class="winner-company-public">${winner.company}</div>` : ''}
+                            ${winner.table ? `<div class="winner-table-public">Table ${winner.table}</div>` : ''}
+                        </div>
+                        <div class="winner-trophy">🏆</div>
+                    </div>
+                `;
+            }).join('');
+
+            if (participantData) {
+                displayParticipantStatus();
+            }
+        }
+    </script>
+
+    <style>
+        .lucky-draw-view-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .status-card {
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .status-card h3 {
+            margin-bottom: 20px;
+            color: var(--primary-color);
+        }
+
+        .status-info p {
+            margin: 10px 0;
+            color: var(--text-primary);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .status-badge.checked-in {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4CAF50;
+            border: 1px solid #4CAF50;
+        }
+
+        .status-badge.not-checked {
+            background: rgba(255, 68, 68, 0.2);
+            color: #ff4444;
+            border: 1px solid #ff4444;
+        }
+
+        .status-badge.winner {
+            background: rgba(255, 215, 0, 0.2);
+            color: #FFD700;
+            border: 1px solid #FFD700;
+        }
+
+        .status-badge.eligible {
+            background: rgba(33, 150, 243, 0.2);
+            color: #2196F3;
+            border: 1px solid #2196F3;
+        }
+
+        .warning-note {
+            color: #ff9800;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+
+        .winners-display-section {
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 20px;
+        }
+
+        .winners-display-section h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--primary-color);
+        }
+
+        .winners-list-public {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .winner-card-public {
+            background: var(--dark-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 15px;
+            padding: 25px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .winner-card-public:hover {
+            transform: translateX(5px);
+            border-color: var(--primary-color);
+        }
+
+        .winner-card-public.current-user {
+            border-color: #FFD700;
+            background: rgba(255, 215, 0, 0.1);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+        }
+
+        .winner-rank {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .winner-info {
+            flex: 1;
+        }
+
+        .winner-name-public {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .you-badge {
+            background: #FFD700;
+            color: #000000;
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            margin-left: 8px;
+        }
+
+        .winner-company-public {
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+        }
+
+        .winner-table-public {
+            color: var(--accent-color);
+            font-size: 0.9rem;
+        }
+
+        .winner-trophy {
+            font-size: 3rem;
+        }
+
+        .no-winners-message {
+            text-align: center;
+            padding: 60px 20px;
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 20px;
+        }
+
+        .no-winners-icon {
+            font-size: 5rem;
+            margin-bottom: 20px;
+        }
+
+        .no-winners-message h3 {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+
+        .no-winners-message p {
+            color: var(--text-secondary);
+            margin: 10px 0;
+        }
+
+        .check-status-note {
+            margin-top: 20px;
+            color: var(--accent-color);
+            font-size: 0.9rem;
+        }
+    </style>
+</body>
+</html>
