@@ -1027,8 +1027,8 @@
 
         // Download CSV template
         function downloadCSVTemplate() {
-            // Fetch the template file
-            fetch('templates/participant-list-template.csv')
+            // Fetch the template file with cache busting to ensure latest version
+            fetch('templates/participant-list-template.csv?v=' + Date.now())
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('Failed to fetch template');
@@ -1036,6 +1036,20 @@
                     return response.text();
                 })
                 .then(csvContent => {
+                    // Verify VIP column is present
+                    if (!csvContent.includes('VIP') && !csvContent.includes('vip')) {
+                        console.warn('VIP column not found in template, adding it...');
+                        // Add VIP column if missing
+                        const lines = csvContent.split('\n');
+                        if (lines.length > 0) {
+                            lines[0] = lines[0].trim();
+                            if (!lines[0].endsWith('VIP')) {
+                                lines[0] += ',VIP';
+                            }
+                            csvContent = lines.join('\n');
+                        }
+                    }
+                    
                     // Create a blob and download
                     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                     const link = document.createElement('a');
@@ -1047,6 +1061,11 @@
                     link.click();
                     document.body.removeChild(link);
                     URL.revokeObjectURL(url);
+                    
+                    // Show success message with instructions
+                    setTimeout(() => {
+                        alert('✅ Template downloaded!\n\n📋 The CSV has 4 columns:\n1. Number\n2. Company\n3. Full Name\n4. VIP (use: true/false, yes/no, 1/0, or VIP)\n\n💡 Open in Excel and you\'ll see all 4 columns including VIP.');
+                    }, 100);
                 })
                 .catch(error => {
                     console.error('Error downloading template:', error);

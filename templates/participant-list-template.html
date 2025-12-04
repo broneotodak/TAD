@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Participant List Template</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            font-family: Arial, sans-serif;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            border: 1px solid #ddd;
+            font-weight: bold;
+        }
+        td {
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        .vip-column {
+            text-align: center;
+        }
+        .instructions {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #e7f3ff;
+            border-left: 4px solid #2196F3;
+        }
+    </style>
+</head>
+<body>
+    <div class="instructions">
+        <h2>📋 Participant List Template - Instructions</h2>
+        <p><strong>VIP Column:</strong> Enter <code>true</code>, <code>1</code>, <code>yes</code>, or <code>VIP</code> for VIP participants. Enter <code>false</code>, <code>0</code>, or <code>no</code> for non-VIP participants.</p>
+        <p><strong>To use:</strong> Fill in the data below, then save this file as CSV format (.csv) from Excel.</p>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Number</th>
+                <th>Company</th>
+                <th>Full Name</th>
+                <th class="vip-column">VIP</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>1</td>
+                <td>Acme Corporation</td>
+                <td>John Doe</td>
+                <td class="vip-column">false</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>Tech Solutions Inc.</td>
+                <td>Jane Smith</td>
+                <td class="vip-column">false</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Global Industries</td>
+                <td>Bob Johnson</td>
+                <td class="vip-column">false</td>
+            </tr>
+            <tr>
+                <td>4</td>
+                <td>VIP Guest</td>
+                <td>Alice Williams</td>
+                <td class="vip-column">true</td>
+            </tr>
+            <tr>
+                <td>5</td>
+                <td>Startup Co.</td>
+                <td>Michael Brown</td>
+                <td class="vip-column">false</td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+</html>
