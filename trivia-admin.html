@@ -405,6 +405,8 @@
                         document.getElementById('bigScreenDisplay').style.display = 'none';
                         stopQuestionMonitoring();
                         stopBigScreenUpdates();
+                        // Still load checked-in count even when session is not active
+                        await loadCheckedInCount();
                     }
                 } else {
                     // No session found - show create session UI
