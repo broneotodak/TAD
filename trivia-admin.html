@@ -122,10 +122,12 @@
                         <div id="currentQuestionText" style="font-size: 1.1rem; margin: 15px 0; padding: 15px; background: var(--card-bg); border-radius: 8px;"></div>
                         <div id="questionTimerStatus" style="margin: 10px 0; color: var(--text-secondary);"></div>
                     </div>
-                    <div class="control-buttons" style="display: flex; gap: 10px; flex-wrap: wrap;">
-                        <button id="startQuestionBtn" onclick="startCurrentQuestion()" class="btn-primary">▶️ Start Question Timer</button>
-                        <button id="nextQuestionBtn" onclick="advanceToNextQuestion()" class="btn-success">➡️ Next Question</button>
-                        <button id="previousQuestionBtn" onclick="goToPreviousQuestion()" class="btn-secondary">⬅️ Previous Question</button>
+                    <div class="control-buttons" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button id="startQuestionBtn" onclick="startCurrentQuestion()" class="btn-primary">▶️ Start Question Timer</button>
+                            <button id="previousQuestionBtn" onclick="goToPreviousQuestion()" class="btn-secondary">⬅️ Previous Question</button>
+                        </div>
+                        <button id="nextQuestionBtn" onclick="advanceToNextQuestion()" class="btn-success" style="display: none;">➡️ Next Question</button>
                     </div>
                 </div>
                 
@@ -765,10 +767,7 @@
                                 nextQuestionBtn.textContent = '➡️ Next Question';
                                 nextQuestionBtn.disabled = false;
                             }
-                            // Scroll to Next Question button
-                            setTimeout(() => {
-                                nextQuestionBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            }, 500);
+                            // Don't auto-scroll - let user scroll naturally
                             // Refresh questions list to show correct answer
                             if (isManagingQuestions) {
                                 displayQuestions();
@@ -809,13 +808,7 @@
 
         async function startFirstQuestion() {
             await advanceToQuestion(0);
-            // Scroll to question control section
-            setTimeout(() => {
-                const questionControlSection = document.getElementById('questionControlSection');
-                if (questionControlSection) {
-                    questionControlSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-            }, 300);
+            // Don't auto-scroll - let user scroll naturally
         }
         
         async function startCurrentQuestion() {
@@ -1471,6 +1464,21 @@
             gap: 10px;
             justify-content: flex-end;
             margin-top: 20px;
+        }
+        
+        /* Ensure page can scroll */
+        body {
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+        }
+        
+        html {
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+        }
+        
+        .admin-content {
+            overflow: visible !important;
         }
     </style>
 </body>
