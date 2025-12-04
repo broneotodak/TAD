@@ -137,22 +137,19 @@
         });
 
         function loadParticipantId() {
-            // Try to get from localStorage (set during check-in)
-            const stored = localStorage.getItem('checkedInParticipant');
-            if (stored) {
-                const data = JSON.parse(stored);
-                participantId = data.id;
+            // Try to get from localStorage (set during check-in) - event-specific key
+            const sessionKey = `userCheckedInId_event_${currentEventId}`;
+            const participantIdStr = localStorage.getItem(sessionKey);
+            
+            if (participantIdStr) {
+                participantId = parseInt(participantIdStr);
+                console.log('Found participant ID from check-in session:', participantId);
                 return;
             }
 
-            // If not found, prompt user (fallback)
-            const name = prompt('Please enter your name to participate:');
-            if (name) {
-                // Try to find participant
-                // This is a simplified approach - in production, you'd verify check-in status
-                alert('Please check in first to participate in trivia.');
-                window.location.href = `checkin.html?event=${currentEventId}`;
-            }
+            // If not found, redirect to check-in
+            alert('Please check in first to participate in trivia.');
+            window.location.href = `checkin.html?event=${currentEventId}`;
         }
 
         async function checkSession() {
