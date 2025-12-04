@@ -1034,8 +1034,12 @@
 
         function startLeaderboardUpdates() {
             if (leaderboardInterval) return;
-            leaderboardInterval = setInterval(loadLeaderboard, 2000); // Update every 2 seconds
+            leaderboardInterval = setInterval(() => {
+                loadLeaderboard();
+                loadCheckedInCount(); // Also update checked-in count
+            }, 2000); // Update every 2 seconds
             loadLeaderboard();
+            loadCheckedInCount(); // Load immediately
         }
 
         function stopLeaderboardUpdates() {
