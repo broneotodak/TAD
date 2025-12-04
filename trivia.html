@@ -170,12 +170,13 @@
                 const result = await response.json();
 
                 if (result.success && result.session) {
+                    currentSession = result.session;
+                    questions = result.questions || [];
+                    
                     // Check if session is completed (ended)
                     if (!result.session.isActive && result.session.endedAt) {
                         // Session completed - show final leaderboard and winner
-                        currentSession = result.session;
-                        questions = result.questions || [];
-                        showCompleted();
+                        await showCompleted();
                         return;
                     }
                     
