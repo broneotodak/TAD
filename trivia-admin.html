@@ -206,6 +206,8 @@
         let questionCheckInterval = null;
         let bigScreenInterval = null;
         let isManagingQuestions = false; // Track if admin clicked "Manage" button
+        let hasScrolledToResult = false; // Track if we've already scrolled to result
+        let hasScrolledToBigScreen = false; // Track if we've already scrolled to big screen
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -379,18 +381,22 @@
                             document.getElementById('startFirstQuestionSection').style.display = 'block';
                             document.getElementById('questionControlSection').style.display = 'none';
                             document.getElementById('bigScreenDisplay').style.display = 'none';
+                            hasScrolledToBigScreen = false; // Reset when no question active
                         } else {
                             // Question has been started - show question control and big screen
                             document.getElementById('startFirstQuestionSection').style.display = 'none';
                             document.getElementById('questionControlSection').style.display = 'block';
                             document.getElementById('bigScreenDisplay').style.display = 'block';
-                            // Scroll to big screen display when session starts
-                            setTimeout(() => {
-                                const bigScreenDisplay = document.getElementById('bigScreenDisplay');
-                                if (bigScreenDisplay) {
-                                    bigScreenDisplay.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                }
-                            }, 300);
+                            // Scroll to big screen display when session starts (only once per question)
+                            if (!hasScrolledToBigScreen) {
+                                hasScrolledToBigScreen = true;
+                                setTimeout(() => {
+                                    const bigScreenDisplay = document.getElementById('bigScreenDisplay');
+                                    if (bigScreenDisplay) {
+                                        bigScreenDisplay.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                    }
+                                }, 300);
+                            }
                         }
                         
                         document.getElementById('sessionControls').style.display = 'block';
@@ -602,6 +608,13 @@
             const currentIndex = currentSession.currentQuestionIndex ?? -1;
             const totalQuestions = questions.length;
             
+            // Reset scroll flags when question changes
+            const previousIndex = currentSession.previousQuestionIndex || -1;
+            if (currentIndex !== previousIndex) {
+                hasScrolledToResult = false;
+                currentSession.previousQuestionIndex = currentIndex;
+            }
+            
             const totalQuestionsDisplayEl = document.getElementById('totalQuestionsDisplay');
             const currentQuestionNumEl = document.getElementById('currentQuestionNum');
             
@@ -630,6 +643,14 @@
                     const elapsed = Math.floor((Date.now() - startedAt.getTime()) / 1000);
                     const remaining = Math.max(0, question.timeLimitSeconds - elapsed);
                     const timerEnded = remaining <= 0;
+                    
+                    // Reset scroll flag if timer just ended (transition from active to ended)
+                    if (timerEnded && !currentSession.timerWasEnded) {
+                        hasScrolledToResult = false;
+                        currentSession.timerWasEnded = true;
+                    } else if (!timerEnded) {
+                        currentSession.timerWasEnded = false;
+                    }
                     
                     // Update header based on timer status
                     const questionControlHeader = document.getElementById('questionControlHeader');
@@ -755,13 +776,16 @@
                                 nextQuestionBtn.textContent = '➡️ Next Question';
                                 nextQuestionBtn.disabled = false;
                             }
-                            // Scroll to result section when timer ends
-                            setTimeout(() => {
-                                const questionControlSection = document.getElementById('questionControlSection');
-                                if (questionControlSection) {
-                                    questionControlSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                }
-                            }, 500);
+                            // Scroll to result section when timer ends (only once)
+                            if (!hasScrolledToResult) {
+                                hasScrolledToResult = true;
+                                setTimeout(() => {
+                                    const questionControlSection = document.getElementById('questionControlSection');
+                                    if (questionControlSection) {
+                                        questionControlSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                    }
+                                }, 500);
+                            }
                             // Refresh questions list to show correct answer
                             if (isManagingQuestions) {
                                 displayQuestions();
@@ -771,6 +795,11 @@
                         }
                     }
                 } else {
+                    // Reset header when timer not started
+                    const questionControlHeader = document.getElementById('questionControlHeader');
+                    if (questionControlHeader) {
+                        questionControlHeader.textContent = 'Current Question Control';
+                    }
                     if (questionTimerStatusEl) questionTimerStatusEl.textContent = 'Timer not started';
                     if (startQuestionBtn) startQuestionBtn.style.display = 'inline-block';
                     if (nextQuestionBtn) nextQuestionBtn.style.display = 'none';
@@ -844,13 +873,16 @@
                     document.getElementById('startFirstQuestionSection').style.display = 'none';
                     document.getElementById('questionControlSection').style.display = 'block';
                     document.getElementById('bigScreenDisplay').style.display = 'block';
-                    // Scroll to big screen display when first question starts
-                    setTimeout(() => {
-                        const bigScreenDisplay = document.getElementById('bigScreenDisplay');
-                        if (bigScreenDisplay) {
-                            bigScreenDisplay.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }
-                    }, 300);
+                    // Scroll to big screen display when first question starts (only once)
+                    if (!hasScrolledToBigScreen) {
+                        hasScrolledToBigScreen = true;
+                        setTimeout(() => {
+                            const bigScreenDisplay = document.getElementById('bigScreenDisplay');
+                            if (bigScreenDisplay) {
+                                bigScreenDisplay.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
+                        }, 300);
+                    }
                 } else {
                     alert('Error: ' + result.error);
                 }
