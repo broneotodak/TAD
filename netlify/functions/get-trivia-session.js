@@ -65,21 +65,81 @@ export default async (req, context) => {
     }
 
     // Get questions for this session
-    const questions = await sql`
-      SELECT 
-        id,
-        question_text as "questionText",
-        option_a as "optionA",
-        option_b as "optionB",
-        option_c as "optionC",
-        option_d as "optionD",
-        question_order as "questionOrder",
-        time_limit_seconds as "timeLimitSeconds",
-        points
-      FROM trivia_questions
-      WHERE session_id = ${session.id}
-      ORDER BY question_order ASC
-    `;
+    // Include correct_answer if timer has ended for the current question
+    const currentQuestionIndex = session.current_question_index;
+    const questionStartedAt = session.question_started_at;
+    
+    let questions;
+    if (currentQuestionIndex !== null && questionStartedAt) {
+      // Check if timer has ended for current question
+      const [currentQuestion] = await sql`
+        SELECT time_limit_seconds
+        FROM trivia_questions
+        WHERE session_id = ${session.id}
+        ORDER BY question_order ASC
+        LIMIT 1 OFFSET ${currentQuestionIndex}
+      `;
+      
+      const timerEnded = currentQuestion && (() => {
+        const startedAt = new Date(questionStartedAt);
+        const elapsed = Math.floor((Date.now() - startedAt.getTime()) / 1000);
+        return elapsed >= currentQuestion.time_limit_seconds;
+      })();
+      
+      // Include correct_answer if timer ended or session ended
+      if (timerEnded || !session.is_active) {
+        questions = await sql`
+          SELECT 
+            id,
+            question_text as "questionText",
+            option_a as "optionA",
+            option_b as "optionB",
+            option_c as "optionC",
+            option_d as "optionD",
+            question_order as "questionOrder",
+            time_limit_seconds as "timeLimitSeconds",
+            points,
+            correct_answer as "correctAnswer"
+          FROM trivia_questions
+          WHERE session_id = ${session.id}
+          ORDER BY question_order ASC
+        `;
+      } else {
+        // Timer still active - don't include correct_answer
+        questions = await sql`
+          SELECT 
+            id,
+            question_text as "questionText",
+            option_a as "optionA",
+            option_b as "optionB",
+            option_c as "optionC",
+            option_d as "optionD",
+            question_order as "questionOrder",
+            time_limit_seconds as "timeLimitSeconds",
+            points
+          FROM trivia_questions
+          WHERE session_id = ${session.id}
+          ORDER BY question_order ASC
+        `;
+      }
+    } else {
+      // No question started yet - don't include correct_answer
+      questions = await sql`
+        SELECT 
+          id,
+          question_text as "questionText",
+          option_a as "optionA",
+          option_b as "optionB",
+          option_c as "optionC",
+          option_d as "optionD",
+          question_order as "questionOrder",
+          time_limit_seconds as "timeLimitSeconds",
+          points
+        FROM trivia_questions
+        WHERE session_id = ${session.id}
+        ORDER BY question_order ASC
+      `;
+    }
 
     // Get participant count (if session is active)
     let participantCount = 0;
@@ -117,8 +177,8 @@ export default async (req, context) => {
         optionD: q.optionD,
         questionOrder: q.questionOrder,
         timeLimitSeconds: q.timeLimitSeconds,
-        points: q.points
-        // Note: correct_answer is NOT included for participants
+        points: q.points,
+        correctAnswer: q.correctAnswer || null // Only included when timer ended or session completed
       }))
     }), {
       status: 200,
