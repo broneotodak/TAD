@@ -58,11 +58,13 @@ export default async (req, context) => {
     `;
     
     if (questionIds.length > 0) {
-      const ids = questionIds.map(q => q.id);
-      const deleteResult = await sql`
-        DELETE FROM trivia_answers
-        WHERE question_id = ANY(${ids})
-      `;
+      // Delete answers for each question (Neon doesn't support array parameters well)
+      for (const question of questionIds) {
+        await sql`
+          DELETE FROM trivia_answers
+          WHERE question_id = ${question.id}
+        `;
+      }
       console.log(`Cleared trivia answers for ${questionIds.length} questions in session ${sessionId}`);
     } else {
       console.log(`No questions found for session ${sessionId}, nothing to clear`);
