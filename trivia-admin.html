@@ -384,6 +384,10 @@
                         
                         document.getElementById('sessionControls').style.display = 'block';
                         document.getElementById('leaderboardSection').style.display = 'block';
+                        
+                        // Load checked-in participant count
+                        await loadCheckedInCount();
+                        
                         startLeaderboardUpdates();
                         startQuestionMonitoring();
                         startBigScreenUpdates();
@@ -963,6 +967,25 @@
             }
         }
 
+        async function loadCheckedInCount() {
+            if (!currentEventId) return;
+            
+            try {
+                const response = await fetch(`/api/get-participants?eventId=${currentEventId}`);
+                const result = await response.json();
+                
+                if (result.success && result.participants) {
+                    const checkedInCount = result.participants.filter(p => p.checkedIn).length;
+                    const participantCountEl = document.getElementById('participantCount');
+                    if (participantCountEl) {
+                        participantCountEl.textContent = checkedInCount;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading checked-in count:', error);
+            }
+        }
+
         async function loadLeaderboard() {
             try {
                 const response = await fetch(`/api/get-trivia-leaderboard?sessionId=${currentSessionId}`);
@@ -970,10 +993,6 @@
 
                 if (result.success) {
                     displayLeaderboard(result.leaderboard);
-                    
-                    // Update participant count
-                    const participantCount = result.leaderboard.length;
-                    document.getElementById('participantCount').textContent = participantCount;
                 }
             } catch (error) {
                 console.error('Error loading leaderboard:', error);
