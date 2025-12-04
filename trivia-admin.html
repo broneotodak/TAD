@@ -25,7 +25,7 @@
 
         <div id="adminContent" class="admin-content">
             <!-- Current Session Status -->
-            <div class="admin-section">
+            <div class="admin-section" id="currentSessionStatusSection">
                 <h2>Current Session</h2>
                 <div id="currentSessionStatus" class="session-status">
                     <p class="no-session">No active trivia session. Create one below.</p>
@@ -33,7 +33,7 @@
             </div>
 
             <!-- Session Selection/Management -->
-            <div class="admin-section">
+            <div class="admin-section" id="sessionsListSection">
                 <div class="section-header">
                     <h2>Trivia Sessions</h2>
                     <button onclick="showCreateSessionModal()" class="btn-success">+ Create New Session</button>
@@ -84,9 +84,8 @@
 
             <!-- Session Controls -->
             <div class="admin-section" id="sessionControls" style="display: none;">
-                <h2>Session Controls</h2>
-                <div class="control-buttons">
-                    <button id="startSessionBtn" onclick="startSession()" class="btn-success btn-large">▶️ Start Session</button>
+                <div class="section-header">
+                    <h2>Session Controls</h2>
                     <button id="endSessionBtn" onclick="endSession()" class="btn-danger btn-large" style="display: none;">⏹️ End Session</button>
                 </div>
                 
@@ -290,7 +289,7 @@
                         </div>
                         <div class="session-card-actions">
                             ${!isCurrent ? `<button onclick="selectSession(${session.id})" class="btn-primary btn-small">Select</button>` : ''}
-                            ${isCurrent && !isActive ? `<button onclick="startSession()" class="btn-success btn-small">Activate</button>` : ''}
+                            ${isCurrent && !isActive ? `<button onclick="activateSession(${session.id})" class="btn-success btn-small">Activate</button>` : ''}
                             ${isCurrent ? `<button onclick="manageSession()" class="btn-secondary btn-small">Manage</button>` : ''}
                         </div>
                     </div>
@@ -366,7 +365,9 @@
                     if (result.session.isActive) {
                         const currentIndex = result.session.currentQuestionIndex ?? -1;
                         
-                        // Hide questions section when session is active
+                        // Hide session list and show session controls when active
+                        document.getElementById('sessionsListSection').style.display = 'none';
+                        document.getElementById('currentSessionStatusSection').style.display = 'none';
                         document.getElementById('questionsSection').style.display = 'none';
                         
                         // Show "Start First Question" button only if no question has been started
@@ -381,6 +382,7 @@
                             document.getElementById('bigScreenDisplay').style.display = 'block';
                         }
                         
+                        document.getElementById('sessionControls').style.display = 'block';
                         document.getElementById('leaderboardSection').style.display = 'block';
                         startLeaderboardUpdates();
                         startQuestionMonitoring();
@@ -388,6 +390,9 @@
                         updateQuestionControl();
                         updateBigScreenDisplay();
                     } else {
+                        // Show session list when not active
+                        document.getElementById('sessionsListSection').style.display = 'block';
+                        document.getElementById('currentSessionStatusSection').style.display = 'block';
                         document.getElementById('startFirstQuestionSection').style.display = 'none';
                         document.getElementById('leaderboardSection').style.display = 'none';
                         document.getElementById('questionControlSection').style.display = 'none';
@@ -564,11 +569,9 @@
             if (!currentSession) return;
 
             if (currentSession.isActive) {
-                document.getElementById('startSessionBtn').style.display = 'none';
                 document.getElementById('endSessionBtn').style.display = 'block';
                 // Don't show question control here - it's handled in loadCurrentSession based on question index
             } else {
-                document.getElementById('startSessionBtn').style.display = 'block';
                 document.getElementById('endSessionBtn').style.display = 'none';
                 document.getElementById('startFirstQuestionSection').style.display = 'none';
                 document.getElementById('leaderboardSection').style.display = 'none';
