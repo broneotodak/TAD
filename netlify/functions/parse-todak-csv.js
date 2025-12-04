@@ -86,10 +86,43 @@ export default async (req, context) => {
             if (firstRow.some(c => c.includes('name') || c.includes('nama') || c.includes('full name'))) {
                 hasHeaders = true;
                 // Find column indices
+                // For name, find the FIRST occurrence (in case of duplicate headers)
                 nameIndex = firstRow.findIndex(h => h.includes('name') || h.includes('nama') || h.includes('full name'));
                 companyIndex = firstRow.findIndex(h => h.includes('company') || h.includes('organization') || h.includes('syarikat'));
-                vipIndex = firstRow.findIndex(h => h.includes('vip') || h.includes('status'));
+                vipIndex = firstRow.findIndex(h => (h.includes('vip') || h.includes('status')) && h !== 'full name');
                 tableIndex = firstRow.findIndex(h => h.includes('table') || h.includes('meja'));
+                
+                // If VIP column not found by header, try to detect it by content
+                // Look for a column that contains TRUE/FALSE values (common VIP indicators)
+                if (vipIndex === -1 && rows.length > 1) {
+                    // Check each column (skip Number, Company, Name columns)
+                    for (let colIdx = 0; colIdx < firstRow.length; colIdx++) {
+                        // Skip if this is the name or company column
+                        if (colIdx === nameIndex || colIdx === companyIndex) continue;
+                        
+                        // Check if this column contains TRUE/FALSE/empty values in data rows
+                        let vipLikeCount = 0;
+                        let sampleRows = Math.min(20, rows.length - 1); // Check first 20 data rows
+                        for (let rowIdx = 1; rowIdx <= sampleRows && rowIdx < rows.length; rowIdx++) {
+                            if (rowIdx >= rows.length) break;
+                            const cellValue = (rows[rowIdx][colIdx] || '').toString().trim().toUpperCase();
+                            // Check for VIP-like values: TRUE, FALSE, 1, 0, or empty (which indicates boolean column)
+                            if (cellValue === 'TRUE' || cellValue === 'FALSE' || 
+                                cellValue === '1' || cellValue === '0' || 
+                                cellValue === '' || cellValue === 'YES' || cellValue === 'NO') {
+                                vipLikeCount++;
+                            }
+                        }
+                        
+                        // If most cells in this column are VIP-like values, it's likely the VIP column
+                        // Require at least 50% match to avoid false positives
+                        if (sampleRows > 0 && vipLikeCount >= sampleRows * 0.5) {
+                            vipIndex = colIdx;
+                            console.log(`VIP column auto-detected at index ${colIdx} (header: "${firstRow[colIdx]}") based on TRUE/FALSE/empty values (${vipLikeCount}/${sampleRows} matches)`);
+                            break;
+                        }
+                    }
+                }
                 
                 console.log('CSV Header detection:', {
                     nameIndex,
