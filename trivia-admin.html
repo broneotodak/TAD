@@ -234,9 +234,16 @@
                     <div class="session-card ${isCurrent ? 'current-session' : ''} ${isActive ? 'active-session' : ''}">
                         <div class="session-card-header">
                             <h3>${session.title}</h3>
-                            <div class="session-badges">
-                                ${isActive ? '<span class="badge-active">🟢 Active</span>' : ''}
-                                ${isCurrent ? '<span class="badge-current">Current</span>' : ''}
+                            <div class="session-header-right">
+                                <div class="session-badges">
+                                    ${isActive ? '<span class="badge-active">🟢 Active</span>' : ''}
+                                    ${isCurrent ? '<span class="badge-current">Current</span>' : ''}
+                                </div>
+                                <button onclick="deleteSession(${session.id}, '${session.title.replace(/'/g, "\\'")}')" 
+                                        class="delete-session-btn" 
+                                        title="Delete session">
+                                    🗑️
+                                </button>
                             </div>
                         </div>
                         <div class="session-card-info">
@@ -585,6 +592,49 @@
             }
         }
 
+        async function deleteSession(sessionId, sessionTitle) {
+            const isActive = currentSession && currentSession.id === sessionId && currentSession.isActive;
+            const isCurrent = currentSessionId === sessionId;
+            
+            let confirmMessage = `Are you sure you want to delete "${sessionTitle}"?`;
+            if (isActive) {
+                confirmMessage += '\n\n⚠️ This session is currently ACTIVE. Deleting it will stop the trivia for all participants.';
+            }
+            confirmMessage += '\n\nThis action cannot be undone. All questions and answers will be deleted.';
+            
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/delete-trivia-session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionId })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    // If deleted session was current, clear it
+                    if (isCurrent) {
+                        currentSessionId = null;
+                        currentSession = null;
+                        questions = [];
+                        displayNoSession();
+                    }
+                    
+                    // Reload sessions list
+                    await loadSessions();
+                    alert('Session deleted successfully!');
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error deleting session:', error);
+                alert('Failed to delete session');
+            }
+        }
+
         async function startSession() {
             if (questions.length === 0) {
                 alert('Add at least one question before starting the session');
@@ -870,10 +920,35 @@
             flex: 1;
         }
 
+        .session-header-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
         .session-badges {
             display: flex;
             gap: 8px;
             flex-wrap: wrap;
+        }
+
+        .delete-session-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 5px 8px;
+            border-radius: 5px;
+            transition: all 0.2s ease;
+            opacity: 0.6;
+        }
+
+        .delete-session-btn:hover {
+            background: rgba(255, 68, 68, 0.2);
+            color: #ff4444;
+            opacity: 1;
+            transform: scale(1.1);
         }
 
         .badge-active {
