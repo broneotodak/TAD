@@ -266,7 +266,7 @@ function startDraw() {
     updateName();
 }
 
-function revealWinner(winner) {
+async function revealWinner(winner) {
     if (!isDrawing) return;
     
     // Clear any pending intervals/timeouts
@@ -280,11 +280,36 @@ function revealWinner(winner) {
     stopDrumroll();
     
     // Add to winners list
-    winners.push({
+    const winnerData = {
         ...winner,
         wonAt: new Date().toISOString()
-    });
+    };
+    winners.push(winnerData);
     saveWinners();
+    
+    // Save to database if event ID is available
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentEventId = urlParams.get('event');
+    if (currentEventId && window.dbAPI) {
+        try {
+            const response = await fetch('/api/save-lucky-draw-winner', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    eventId: currentEventId,
+                    participantId: winner.id
+                })
+            });
+            const result = await response.json();
+            if (result.success) {
+                console.log('Winner saved to database');
+            } else {
+                console.warn('Failed to save winner to database:', result.error);
+            }
+        } catch (error) {
+            console.error('Error saving winner to database:', error);
+        }
+    }
     
     // Display winner
     document.getElementById('rollingNames').style.display = 'none';

@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Table</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container-full">
+        <div class="header" style="max-width: 1400px; margin: 0 auto 30px auto;">
+            <div class="header-left">
+                <a href="index.html" class="back-btn">
+                    <span style="font-size: 1.2rem;">←</span> Home
+                </a>
+            </div>
+            <div class="header-title">
+                <h1>My Table</h1>
+            </div>
+            <div class="header-actions">
+                <!-- Space for future controls -->
+            </div>
+        </div>
+
+        <div class="my-table-container">
+            <!-- Search Section -->
+            <div class="admin-section">
+                <h2>Find Your Table</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                    Enter your name to view your table assignment and tablemates
+                </p>
+                <div class="search-section-table">
+                    <input type="text" id="participantSearch" placeholder="Enter your name..." class="search-input">
+                    <button onclick="searchForTable()" class="btn-primary">Search</button>
+                </div>
+            </div>
+
+            <!-- Table Information -->
+            <div id="tableInfoSection" class="admin-section" style="display: none;">
+                <h2>Your Table Information</h2>
+                <div id="tableDetails" class="table-details"></div>
+            </div>
+
+            <!-- Not Checked In Message -->
+            <div id="notCheckedInSection" class="admin-section" style="display: none;">
+                <div class="not-checked-message">
+                    <h3>⚠️ Not Checked In</h3>
+                    <p>You need to check in first to see your table assignment.</p>
+                    <a href="checkin.html" id="checkinLink" class="btn-primary">Go to Check-in</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/db-api.js"></script>
+    <script>
+        let currentEventId = null;
+        let participants = [];
+        let tables = [];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            currentEventId = urlParams.get('event');
+            
+            if (!currentEventId) {
+                alert('No event ID provided');
+                window.location.href = 'index.html';
+                return;
+            }
+
+            // Update check-in link
+            document.getElementById('checkinLink').href = `checkin.html?event=${currentEventId}`;
+
+            loadData();
+        });
+
+        async function loadData() {
+            try {
+                const response = await fetch(`/api/get-participants?eventId=${currentEventId}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    participants = result.participants || [];
+                    tables = result.tables || [];
+                }
+            } catch (error) {
+                console.error('Error loading data:', error);
+            }
+        }
+
+        async function searchForTable() {
+            const searchTerm = document.getElementById('participantSearch').value.trim().toLowerCase();
+            
+            if (!searchTerm) {
+                alert('Please enter your name');
+                return;
+            }
+
+            // Find participant
+            const participant = participants.find(p => 
+                p.name.toLowerCase().includes(searchTerm)
+            );
+
+            if (!participant) {
+                alert('Name not found. Please check your spelling.');
+                return;
+            }
+
+            // Check if checked in
+            if (!participant.checkedIn) {
+                document.getElementById('tableInfoSection').style.display = 'none';
+                document.getElementById('notCheckedInSection').style.display = 'block';
+                return;
+            }
+
+            // Show table info
+            displayTableInfo(participant);
+        }
+
+        function displayTableInfo(participant) {
+            document.getElementById('notCheckedInSection').style.display = 'none';
+            document.getElementById('tableInfoSection').style.display = 'block';
+
+            const tableNumber = participant.table;
+            const tablemates = participants.filter(p => 
+                p.table === tableNumber && 
+                p.id !== participant.id && 
+                p.checkedIn
+            );
+
+            let tableInfoHTML = `
+                <div class="participant-info-card">
+                    <h3>${participant.name}</h3>
+                    ${participant.company ? `<p class="company">${participant.company}</p>` : ''}
+                    ${participant.vip ? '<span class="vip-badge-table">⭐ VIP</span>' : ''}
+                    <div class="checked-in-status">
+                        <span class="status-badge checked">✓ Checked In</span>
+                        ${participant.checkedInAt ? `<span class="checkin-time">Checked in at: ${new Date(participant.checkedInAt).toLocaleString()}</span>` : ''}
+                    </div>
+                </div>
+            `;
+
+            if (tableNumber) {
+                const tableInfo = tables.find(t => t.number === tableNumber);
+                const totalSeats = tableInfo ? tableInfo.seats : '?';
+                const isVipTable = tableInfo ? tableInfo.isVip : false;
+
+                tableInfoHTML += `
+                    <div class="table-display-card">
+                        <div class="table-number-display ${isVipTable ? 'vip-table' : ''}">
+                            <span class="table-label">Your Table</span>
+                            <span class="table-number-value">${tableNumber}</span>
+                            ${isVipTable ? '<span class="vip-table-badge">VIP Table</span>' : ''}
+                        </div>
+                        <div class="table-capacity-info">
+                            <p>Capacity: ${tablemates.length + 1} / ${totalSeats} seats</p>
+                        </div>
+                    </div>
+                `;
+
+                if (tablemates.length > 0) {
+                    tableInfoHTML += `
+                        <div class="tablemates-section-card">
+                            <h3>Your Tablemates</h3>
+                            <div class="tablemates-list-table">
+                                ${tablemates.map(mate => `
+                                    <div class="tablemate-item-table">
+                                        <span class="mate-name">${mate.name}</span>
+                                        ${mate.company ? `<span class="mate-company">${mate.company}</span>` : ''}
+                                        ${mate.vip ? '<span class="vip-badge-small">⭐ VIP</span>' : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    tableInfoHTML += `
+                        <div class="tablemates-section-card">
+                            <p class="no-tablemates">No other tablemates have checked in yet.</p>
+                        </div>
+                    `;
+                }
+            } else {
+                tableInfoHTML += `
+                    <div class="no-table-assigned">
+                        <p>⚠️ No table assigned yet. Please contact event staff.</p>
+                    </div>
+                `;
+            }
+
+            document.getElementById('tableDetails').innerHTML = tableInfoHTML;
+        }
+
+        // Allow Enter key to search
+        document.getElementById('participantSearch').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchForTable();
+            }
+        });
+    </script>
+
+    <style>
+        .my-table-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .search-section-table {
+            display: flex;
+            gap: 10px;
+        }
+
+        .search-section-table input {
+            flex: 1;
+        }
+
+        .participant-info-card {
+            background: var(--dark-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .participant-info-card h3 {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+            color: var(--primary-color);
+        }
+
+        .participant-info-card .company {
+            color: var(--text-secondary);
+            margin-bottom: 15px;
+        }
+
+        .checked-in-status {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: center;
+            margin-top: 15px;
+        }
+
+        .status-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .status-badge.checked {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .checkin-time {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .table-display-card {
+            background: var(--dark-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 15px;
+            padding: 40px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .table-number-display {
+            margin-bottom: 20px;
+        }
+
+        .table-label {
+            display: block;
+            color: var(--text-secondary);
+            font-size: 1rem;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .table-number-value {
+            display: block;
+            font-size: 5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            line-height: 1;
+        }
+
+        .table-number-display.vip-table .table-number-value {
+            color: #FFD700;
+        }
+
+        .vip-table-badge {
+            display: inline-block;
+            background: #FFD700;
+            color: #000000;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .table-capacity-info {
+            color: var(--text-secondary);
+            margin-top: 20px;
+        }
+
+        .tablemates-section-card {
+            background: var(--dark-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 15px;
+            padding: 25px;
+        }
+
+        .tablemates-section-card h3 {
+            margin-bottom: 20px;
+            color: var(--primary-color);
+        }
+
+        .tablemates-list-table {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .tablemate-item-table {
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .mate-name {
+            font-weight: 600;
+            flex: 1;
+        }
+
+        .mate-company {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .vip-badge-table,
+        .vip-badge-small {
+            background: #FFD700;
+            color: #000000;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .no-tablemates {
+            text-align: center;
+            color: var(--text-secondary);
+            padding: 20px;
+        }
+
+        .no-table-assigned {
+            background: var(--dark-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        .not-checked-message {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .not-checked-message h3 {
+            color: #ff9800;
+            margin-bottom: 15px;
+        }
+
+        .not-checked-message p {
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+    </style>
+</body>
+</html>
