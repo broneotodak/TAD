@@ -912,36 +912,45 @@
             }
         }
 
-        async function startSession() {
-            if (questions.length === 0) {
-                alert('Add at least one question before starting the session');
+        async function activateSession(sessionId) {
+            if (!sessionId) {
+                alert('Please select a session first');
                 return;
             }
 
-            if (!confirm('Start this trivia session? Participants will be able to answer questions.')) {
-                return;
-            }
+            if (!confirm('Activate this trivia session? Participants will be able to answer questions.')) return;
 
             try {
+                // Set current session ID if not already set
+                if (!currentSessionId) {
+                    currentSessionId = sessionId;
+                }
+
                 const response = await fetch('/api/start-trivia-session', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sessionId: currentSessionId })
+                    body: JSON.stringify({ sessionId: sessionId })
                 });
 
                 const result = await response.json();
                 if (result.success) {
-                    currentSession.isActive = true;
-                    updateSessionControls();
-                    startLeaderboardUpdates();
-                    alert('Session started!');
+                    isManagingQuestions = false; // Hide questions section when activating
+                    currentSessionId = sessionId;
+                    await loadCurrentSession();
+                    await loadSessions();
+                    // Session controls will be shown automatically by loadCurrentSession
                 } else {
                     alert('Error: ' + result.error);
                 }
             } catch (error) {
-                console.error('Error starting session:', error);
-                alert('Failed to start session');
+                console.error('Error activating session:', error);
+                alert('Failed to activate session');
             }
+        }
+        
+        // Keep startSession for backward compatibility (if needed)
+        async function startSession() {
+            await activateSession(currentSessionId);
         }
 
         async function endSession() {
