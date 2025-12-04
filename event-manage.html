@@ -1036,17 +1036,44 @@
                     return response.text();
                 })
                 .then(csvContent => {
-                    // Verify VIP column is present
-                    if (!csvContent.includes('VIP') && !csvContent.includes('vip')) {
-                        console.warn('VIP column not found in template, adding it...');
-                        // Add VIP column if missing
-                        const lines = csvContent.split('\n');
-                        if (lines.length > 0) {
-                            lines[0] = lines[0].trim();
-                            if (!lines[0].endsWith('VIP')) {
-                                lines[0] += ',VIP';
+                    // Fix common header issues
+                    const lines = csvContent.split('\n');
+                    if (lines.length > 0) {
+                        let header = lines[0].trim();
+                        const headerParts = header.split(',');
+                        
+                        // Check for duplicate "Full Name" header (common Excel issue)
+                        const fullNameIndices = [];
+                        headerParts.forEach((part, idx) => {
+                            if (part.toLowerCase().includes('full name') || part.toLowerCase().includes('name')) {
+                                fullNameIndices.push(idx);
                             }
+                        });
+                        
+                        // If we have duplicate name columns, fix the last one to VIP
+                        if (fullNameIndices.length > 1) {
+                            const lastNameIdx = fullNameIndices[fullNameIndices.length - 1];
+                            // Check if VIP column is missing
+                            const hasVip = headerParts.some(p => p.toLowerCase().includes('vip'));
+                            if (!hasVip && lastNameIdx < headerParts.length) {
+                                headerParts[lastNameIdx] = 'VIP';
+                                header = headerParts.join(',');
+                                lines[0] = header;
+                                csvContent = lines.join('\n');
+                                console.log('Fixed duplicate header: Changed last "Full Name" to "VIP"');
+                            }
+                        }
+                        
+                        // Verify VIP column is present
+                        if (!header.toLowerCase().includes('vip')) {
+                            // Add VIP column if completely missing
+                            if (!header.endsWith(',')) {
+                                header += ',';
+                            }
+                            header += 'VIP';
+                            lines[0] = header;
                             csvContent = lines.join('\n');
+                            console.log('Added missing VIP column to header');
                         }
                     }
                     

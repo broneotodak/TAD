@@ -34,6 +34,10 @@ Your CSV file must include these columns in this exact order:
 
 ### Standard CSV Format (With Headers)
 
+**⚠️ IMPORTANT: The header row must be exactly:** `Number,Company,Full Name,VIP`
+
+**DO NOT duplicate column headers** - Make sure the 4th column header says "VIP", not "Full Name" again!
+
 ```csv
 Number,Company,Full Name,VIP
 1,Acme Corporation,John Doe,false
@@ -42,6 +46,9 @@ Number,Company,Full Name,VIP
 4,VIP Guest,Alice Williams,true
 5,Startup Co.,Michael Brown,false
 ```
+
+**Common mistake:** `Number,Company,Full Name,Full Name` ❌ (Wrong - duplicate header)  
+**Correct format:** `Number,Company,Full Name,VIP` ✅
 
 ### Alternative Format (Without Headers)
 If you prefer a simpler format without headers:
