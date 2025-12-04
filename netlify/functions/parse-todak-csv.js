@@ -91,6 +91,14 @@ export default async (req, context) => {
                 vipIndex = firstRow.findIndex(h => h.includes('vip') || h.includes('status'));
                 tableIndex = firstRow.findIndex(h => h.includes('table') || h.includes('meja'));
                 
+                console.log('CSV Header detection:', {
+                    nameIndex,
+                    companyIndex,
+                    vipIndex,
+                    tableIndex,
+                    headers: firstRow
+                });
+                
                 if (nameIndex === -1) {
                     hasHeaders = false; // Invalid header format, fall back to old format
                 }
@@ -118,9 +126,33 @@ export default async (req, context) => {
                 if (companyIndex >= 0 && companyIndex < row.length) {
                     company = row[companyIndex] || '';
                 }
+                // Parse VIP status
+                // Accepted VIP values (case-insensitive): true, 1, yes, y, vip, vvip
+                // Non-VIP values: false, 0, no, n, or blank/empty
                 if (vipIndex >= 0 && vipIndex < row.length) {
-                    const vipValue = row[vipIndex]?.toLowerCase();
-                    vip = vipValue === 'true' || vipValue === '1' || vipValue === 'yes' || vipValue === 'vip' || vipValue === 'vvip';
+                    const rawVipValue = row[vipIndex] || '';
+                    const vipValue = rawVipValue.toString().trim().toLowerCase();
+                    
+                    // Check for VIP indicators (case-insensitive)
+                    if (vipValue === 'true' || 
+                        vipValue === '1' || 
+                        vipValue === 'yes' || 
+                        vipValue === 'vip' || 
+                        vipValue === 'vvip' ||
+                        vipValue === 'y') {
+                        vip = true;
+                    } else {
+                        // Empty, false, 0, no, n, or any other value → false
+                        vip = false;
+                        if (vipValue && vipValue !== 'false' && vipValue !== '0' && vipValue !== 'no' && vipValue !== 'n') {
+                            // Log unknown values for debugging
+                            console.log(`Row ${i}: Unknown VIP value "${rawVipValue}", defaulting to false`);
+                        }
+                    }
+                } else if (vipIndex >= 0) {
+                    // VIP column exists but this row doesn't have enough columns
+                    console.log(`Row ${i}: Missing VIP column (has ${row.length} columns, need ${vipIndex + 1})`);
+                    vip = false;
                 }
                 if (tableIndex >= 0 && tableIndex < row.length && row[tableIndex]) {
                     const tableNum = parseInt(row[tableIndex]);

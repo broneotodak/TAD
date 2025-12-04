@@ -98,9 +98,22 @@ export default async (req, context) => {
             };
 
             // Check VIP status
-            if (vipIndex >= 0) {
-                const vipValue = values[vipIndex]?.toLowerCase();
-                participant.vip = vipValue === 'true' || vipValue === '1' || vipValue === 'yes' || vipValue === 'vip' || vipValue === 'vvip';
+            if (vipIndex >= 0 && vipIndex < values.length) {
+                const rawVipValue = values[vipIndex] || '';
+                const vipValue = rawVipValue.toString().trim().toLowerCase();
+                
+                // Check for VIP indicators (case-insensitive)
+                if (vipValue === 'true' || 
+                    vipValue === '1' || 
+                    vipValue === 'yes' || 
+                    vipValue === 'vip' || 
+                    vipValue === 'vvip' ||
+                    vipValue === 'y') {
+                    participant.vip = true;
+                } else {
+                    // Empty, false, 0, no, n, or unknown → false
+                    participant.vip = false;
+                }
             }
 
             // Check table number
