@@ -26,6 +26,7 @@
             max-width: 1000px;
             width: 100%;
             animation: fadeIn 0.5s ease;
+            box-sizing: border-box;
         }
 
         @keyframes fadeIn {
@@ -71,16 +72,31 @@
             display: inline-block;
             margin: 20px auto;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .fullscreen-mode .qr-wrapper {
+            padding: 30px;
         }
 
         #qrcode {
             display: flex;
             justify-content: center;
+            max-width: 100%;
+            overflow: hidden;
         }
 
         #qrcode canvas,
         #qrcode img {
             border-radius: 10px;
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .fullscreen-mode #qrcode canvas,
+        .fullscreen-mode #qrcode img {
+            max-width: min(600px, 80vw);
         }
 
         .instruction-text {
@@ -95,6 +111,12 @@
             color: var(--text-secondary);
             line-height: 1.6;
             margin: 15px 0;
+            padding: 0 10px;
+        }
+        
+        .fullscreen-mode .instruction-steps {
+            font-size: 1rem;
+            margin: 20px 0;
         }
 
         .url-display {
@@ -217,12 +239,28 @@
             align-items: center;
             justify-content: center;
             z-index: 9999;
+            overflow-y: auto;
+            padding: 20px;
         }
 
         .fullscreen-mode .qr-container {
-            max-width: 90vw;
-            max-height: 90vh;
-            overflow: auto;
+            max-width: 95vw;
+            width: 100%;
+            max-height: none;
+            overflow: visible;
+            padding: 40px;
+            margin: auto;
+        }
+        
+        .fullscreen-mode .back-link,
+        .fullscreen-mode .theme-toggle {
+            position: fixed;
+            z-index: 10001;
+        }
+        
+        .fullscreen-mode .fullscreen-toggle {
+            position: fixed;
+            z-index: 10001;
         }
 
         .fullscreen-toggle {
