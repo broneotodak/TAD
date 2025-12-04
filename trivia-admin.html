@@ -936,8 +936,17 @@
                 if (result.success) {
                     isManagingQuestions = false; // Hide questions section when activating
                     currentSessionId = sessionId;
+                    
+                    // Clear leaderboard display immediately
+                    const leaderboardContainer = document.getElementById('leaderboard');
+                    if (leaderboardContainer) {
+                        leaderboardContainer.innerHTML = '<p>No participants have answered yet.</p>';
+                    }
+                    
                     await loadCurrentSession();
                     await loadSessions();
+                    // Reload leaderboard to ensure it's empty
+                    await loadLeaderboard();
                     // Session controls will be shown automatically by loadCurrentSession
                 } else {
                     alert('Error: ' + result.error);

@@ -52,12 +52,13 @@ export default async (req, context) => {
     }
 
     // Clear all previous answers for questions in this session (reset leaderboard)
-    await sql`
+    const deleteResult = await sql`
       DELETE FROM trivia_answers
       WHERE question_id IN (
         SELECT id FROM trivia_questions WHERE session_id = ${sessionId}
       )
     `;
+    console.log(`Cleared ${deleteResult.count || 0} trivia answers for session ${sessionId}`);
 
     // Activate this session and reset question index
     const [updated] = await sql`
