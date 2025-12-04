@@ -755,6 +755,9 @@
                     if (nextQuestionBtn) {
                         if (timerEnded) {
                             nextQuestionBtn.style.display = 'inline-block';
+                            nextQuestionBtn.style.fontSize = '1.2rem';
+                            nextQuestionBtn.style.padding = '12px 30px';
+                            nextQuestionBtn.style.marginTop = '20px';
                             if (currentIndex >= totalQuestions - 1) {
                                 nextQuestionBtn.textContent = '✅ Session Complete';
                                 nextQuestionBtn.disabled = true;
@@ -762,6 +765,10 @@
                                 nextQuestionBtn.textContent = '➡️ Next Question';
                                 nextQuestionBtn.disabled = false;
                             }
+                            // Scroll to Next Question button
+                            setTimeout(() => {
+                                nextQuestionBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }, 500);
                             // Refresh questions list to show correct answer
                             if (isManagingQuestions) {
                                 displayQuestions();
