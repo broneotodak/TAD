@@ -50,7 +50,7 @@ export default async (req, context) => {
 
     // Get question details
     const [question] = await sql`
-      SELECT correct_answer, points, session_id
+      SELECT correct_answer, points, session_id, time_limit_seconds
       FROM trivia_questions
       WHERE id = ${questionId}
     `;
@@ -67,26 +67,31 @@ export default async (req, context) => {
 
     const isCorrect = answer.toUpperCase() === question.correct_answer;
     
-    // Calculate points based on whether it's the first correct answer
+    // Get question start time for timer-based scoring
+    const [sessionInfo] = await sql`
+      SELECT question_started_at, current_question_index
+      FROM trivia_sessions
+      WHERE id = ${question.session_id}
+    `;
+    
+    // Calculate points with timer bonus
     let pointsEarned = 0;
     if (isCorrect) {
-      // Check if there's already a correct answer
-      const [firstCorrect] = await sql`
-        SELECT id, answered_at
-        FROM trivia_answers
-        WHERE question_id = ${questionId} AND is_correct = true
-        ORDER BY answered_at ASC
-        LIMIT 1
-      `;
-
-      if (!firstCorrect) {
-        // First correct answer - full points
-        pointsEarned = question.points;
+      if (sessionInfo?.question_started_at) {
+        // Timer-based scoring: base points + remaining seconds
+        const questionStartedAt = new Date(sessionInfo.question_started_at);
+        const answeredAt = new Date(); // Current time
+        const elapsedSeconds = Math.floor((answeredAt.getTime() - questionStartedAt.getTime()) / 1000);
+        const remainingSeconds = Math.max(0, question.time_limit_seconds - elapsedSeconds);
+        
+        // Base points + remaining seconds bonus
+        pointsEarned = question.points + remainingSeconds;
       } else {
-        // Not first - half points
-        pointsEarned = Math.floor(question.points / 2);
+        // Fallback: if timer not started, just give base points
+        pointsEarned = question.points;
       }
     }
+    // Wrong answer = 0 points (already set)
 
     // Insert answer
     const [result] = await sql`
