@@ -52,13 +52,21 @@ export default async (req, context) => {
     }
 
     // Clear all previous answers for questions in this session (reset leaderboard)
-    const deleteResult = await sql`
-      DELETE FROM trivia_answers
-      WHERE question_id IN (
-        SELECT id FROM trivia_questions WHERE session_id = ${sessionId}
-      )
+    // First get the question IDs
+    const questionIds = await sql`
+      SELECT id FROM trivia_questions WHERE session_id = ${sessionId}
     `;
-    console.log(`Cleared ${deleteResult.count || 0} trivia answers for session ${sessionId}`);
+    
+    if (questionIds.length > 0) {
+      const ids = questionIds.map(q => q.id);
+      const deleteResult = await sql`
+        DELETE FROM trivia_answers
+        WHERE question_id = ANY(${ids})
+      `;
+      console.log(`Cleared trivia answers for ${questionIds.length} questions in session ${sessionId}`);
+    } else {
+      console.log(`No questions found for session ${sessionId}, nothing to clear`);
+    }
 
     // Activate this session and reset question index
     const [updated] = await sql`
