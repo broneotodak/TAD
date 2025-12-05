@@ -11,22 +11,16 @@
     <div class="container">
         <div class="header">
             <div class="header-left">
-                <a href="admin-dashboard.html" class="back-btn">
-                    <span style="font-size: 1.2rem;">←</span> Back
-                </a>
+                <a href="admin-dashboard.html" class="btn-secondary">← Back</a>
             </div>
             <div class="header-title">
                 <h1 id="eventTitle">Loading Event...</h1>
             </div>
             <div class="header-actions">
-                <button onclick="openEditEventModal()" class="btn-primary">
-                    <span>✏️</span> Edit
-                </button>
-                <button onclick="loadFromDatabase()" class="btn-secondary">
-                    <span>🔄</span> Refresh
-                </button>
-                <button onclick="toggleTheme()" class="theme-toggle" title="Toggle theme">🌓</button>
-                <button onclick="logout()" class="logout-btn">Logout</button>
+                <button onclick="openEditEventModal()" class="btn-secondary">Edit</button>
+                <button onclick="loadFromDatabase()" class="btn-secondary">Refresh</button>
+                <button onclick="toggleTheme()" class="btn-secondary" title="Toggle theme" style="width: 42px; padding: 0;">🌓</button>
+                <button onclick="logout()" class="btn-secondary">Logout</button>
             </div>
         </div>
 
@@ -114,11 +108,11 @@
                     <!-- Show tentative/menu if available -->
                     <div id="eventInfoSection" style="margin-top: 20px; display: none;">
                         <div id="tentativeSection" style="display: none;">
-                            <h4 style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 10px;">📋 Event Program</h4>
+                            <h4 style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 10px; font-weight: 600;">Event Program</h4>
                             <p id="eventTentativeDisplay" style="white-space: pre-line;">-</p>
                         </div>
                         <div id="menuSection" style="display: none; margin-top: 15px;">
-                            <h4 style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 10px;">🍽️ Menu</h4>
+                            <h4 style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 10px; font-weight: 600;">Menu</h4>
                             <p id="eventMenuDisplay" style="white-space: pre-line;">-</p>
                         </div>
                     </div>
@@ -134,15 +128,9 @@
                 <div id="participantManagementContent" style="padding-top: 20px; display: none;">
                     <div class="section-header">
                         <div style="display: flex; gap: 10px;">
-                            <button onclick="downloadCSVTemplate()" class="btn-secondary">
-                                <span>📥</span> Download CSV Template
-                            </button>
-                            <button onclick="showUploadModal()" class="btn-primary">
-                                <span>📤</span> Upload List
-                            </button>
-                            <button onclick="addNewParticipant()" class="btn-success">
-                                <span>+</span> Add Participant
-                            </button>
+                            <button onclick="downloadCSVTemplate()" class="btn-secondary">Download CSV Template</button>
+                            <button onclick="showUploadModal()" class="btn-secondary">Upload List</button>
+                            <button onclick="addNewParticipant()" class="btn-secondary">Add Participant</button>
                         </div>
                     </div>
                     <div class="search-bar">
@@ -1543,6 +1531,30 @@
     </script>
 
     <style>
+        /* Standardized collapsible section styles */
+        .section-header-collapsible {
+            transition: background-color 0.2s ease;
+        }
+        
+        .section-header-collapsible:hover {
+            background-color: rgba(255, 255, 255, 0.03);
+        }
+        
+        .collapse-icon {
+            font-size: 0.9rem;
+            transition: transform 0.3s ease;
+            color: var(--text-secondary);
+            display: inline-block;
+            line-height: 1;
+        }
+        
+        .admin-section h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+            color: var(--text-primary);
+        }
+        
         .event-details-card label {
             display: block;
             margin-bottom: 5px;
