@@ -277,17 +277,25 @@
                         // Only show question if admin has activated it
                         if (activeQuestionIndex >= 0 && activeQuestionIndex < questions.length) {
                             // Show the active question (admin has activated this one)
-                            if (currentQuestionIndex !== activeQuestionIndex) {
+                            const questionChanged = currentQuestionIndex !== activeQuestionIndex;
+                            
+                            if (questionChanged) {
                                 // Question changed, reset state
                                 currentQuestionIndex = activeQuestionIndex;
                                 userAnswers = {}; // Reset answers for new question
+                                clearTimer(); // CRITICAL: Clear any existing timer when question changes
                             }
                             
                             const currentQuestion = questions[activeQuestionIndex];
                             const questionStarted = currentSession.questionStartedAt;
                             
+                            // CRITICAL: Verify questionStartedAt matches current question index
+                            // This ensures we're using the correct timer for the current question
+                            const questionStartedMatches = questionStarted && 
+                                                          currentSession.currentQuestionIndex === activeQuestionIndex;
+                            
                             // Check if timer has ended for this question
-                            if (questionStarted) {
+                            if (questionStartedMatches) {
                                 const startedAt = new Date(questionStarted);
                                 const elapsed = Math.floor((Date.now() - startedAt.getTime()) / 1000);
                                 const timerEnded = elapsed >= currentQuestion.timeLimitSeconds;
@@ -300,6 +308,7 @@
                                     displayQuestion(questions[activeQuestionIndex], activeQuestionIndex);
                                 }
                             } else {
+                                // Timer not started yet or doesn't match current question
                                 displayQuestion(questions[activeQuestionIndex], activeQuestionIndex);
                             }
                         } else if (activeQuestionIndex === -1 && questions.length > 0) {
@@ -561,21 +570,43 @@
 
         function startTimer() {
             clearTimer();
+            
+            // CRITICAL: Verify we have valid session and question data before starting timer
+            if (!currentSession || !currentSession.questionStartedAt || 
+                currentSession.currentQuestionIndex !== currentQuestionIndex ||
+                currentQuestionIndex < 0 || currentQuestionIndex >= questions.length) {
+                console.log('Cannot start timer: invalid session/question state');
+                return;
+            }
+            
+            const currentQuestion = questions[currentQuestionIndex];
+            if (!currentQuestion) {
+                console.log('Cannot start timer: question not found');
+                return;
+            }
+            
             updateTimerDisplay();
             
             timerInterval = setInterval(() => {
-                // Recalculate remaining time based on server time to stay in sync
-                if (currentSession && currentSession.questionStartedAt) {
+                // CRITICAL: Recalculate remaining time based on server time to stay in sync
+                // Also verify we're still on the same question
+                if (currentSession && currentSession.questionStartedAt && 
+                    currentSession.currentQuestionIndex === currentQuestionIndex) {
                     const startedAt = new Date(currentSession.questionStartedAt);
                     const elapsed = Math.floor((Date.now() - startedAt.getTime()) / 1000);
                     const currentQuestion = questions[currentQuestionIndex];
+                    
                     if (currentQuestion) {
                         timeRemaining = Math.max(0, currentQuestion.timeLimitSeconds - elapsed);
                     } else {
-                        timeRemaining = Math.max(0, timeRemaining - 1);
+                        // Question not found - stop timer
+                        clearTimer();
+                        return;
                     }
                 } else {
-                    timeRemaining = Math.max(0, timeRemaining - 1);
+                    // Session state changed or question changed - stop timer
+                    clearTimer();
+                    return;
                 }
                 
                 updateTimerDisplay();

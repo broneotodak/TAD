@@ -919,10 +919,12 @@
             if (questionCheckInterval) return;
             questionCheckInterval = setInterval(async () => {
                 if (currentSession && currentSession.isActive) {
+                    // CRITICAL: Reload session to get latest questionStartedAt timestamp
                     await loadCurrentSession();
+                    // Update question control with fresh timer data
                     await updateQuestionControl();
                 }
-            }, 2000); // Check every 2 seconds
+            }, 1000); // Check every 1 second for smoother timer updates
         }
 
         function stopQuestionMonitoring() {
@@ -1167,9 +1169,11 @@
 
                 const result = await response.json();
                 if (result.success) {
+                    // Reload session to get updated state (session is now active again)
+                    await loadCurrentSession();
                     // Reload leaderboard to show it's empty
                     await loadLeaderboard();
-                    alert(`✓ Leaderboard reset! Cleared ${result.deletedCount || 0} answers.`);
+                    alert(`✓ Leaderboard reset! Cleared ${result.deletedCount || 0} answers. Session is now ready for a new round.`);
                 } else {
                     alert('Error: ' + result.error);
                 }
