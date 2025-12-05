@@ -1664,11 +1664,12 @@
 
         .action-buttons {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(120px, auto));
             gap: 15px;
             max-width: 100%;
             justify-content: center;
             justify-items: center;
+            place-items: center;
         }
 
         .action-buttons .action-btn-square {
@@ -1739,6 +1740,8 @@
             .action-buttons {
                 grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
                 gap: 12px;
+                justify-content: center;
+                justify-items: center;
             }
             
             .action-buttons .action-btn-square {
