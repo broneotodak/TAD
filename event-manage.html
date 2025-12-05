@@ -41,7 +41,7 @@
             <!-- Statistics (Top after navbar) -->
             <div class="admin-section" style="overflow: hidden;">
                 <div class="section-header-collapsible" onclick="toggleSection('statisticsContent', 'statisticsToggle')" style="padding: 15px 30px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); user-select: none; margin: -30px -30px 0 -30px;">
-                    <h2 style="margin: 0; font-size: 1.25rem; font-weight: 600;">Statistics</h2>
+                    <h2 style="margin: 0; font-size: 1.25rem; font-weight: 600; color: var(--text-primary);">Statistics</h2>
                     <span id="statisticsToggle" class="collapse-icon" style="transform: rotate(180deg);">▼</span>
                 </div>
                 <div id="statisticsContent" style="padding-top: 20px; display: block;">
@@ -457,34 +457,34 @@
             
             let actionsHTML = '';
             
-            // Always available actions - standardized to btn-primary (white background)
+            // Always available actions - standardized to btn-secondary (consistent style)
             if (features.attendance !== false) {
-                actionsHTML += '<button onclick="generateQRCode()" class="btn-primary">📱 Display Check-in QR</button>';
-                actionsHTML += '<button onclick="viewCheckinReport()" class="btn-primary">📊 Check-in Report</button>';
+                actionsHTML += '<button onclick="generateQRCode()" class="btn-secondary">Display Check-in QR</button>';
+                actionsHTML += '<button onclick="viewCheckinReport()" class="btn-secondary">Check-in Report</button>';
             }
             
-            // Table-related actions - standardized to btn-primary
+            // Table-related actions - standardized to btn-secondary
             if (features.tables) {
-                actionsHTML += '<button onclick="autoAssignTables()" class="btn-primary">🔄 Auto-Assign All Tables</button>';
-                actionsHTML += '<button onclick="clearAllTables()" class="btn-primary">🗑️ Clear All Table Assignments</button>';
+                actionsHTML += '<button onclick="autoAssignTables()" class="btn-secondary">Auto-Assign All Tables</button>';
+                actionsHTML += '<button onclick="clearAllTables()" class="btn-secondary">Clear All Table Assignments</button>';
             }
             
-            // Lucky draw action - standardized to btn-primary
+            // Lucky draw action - standardized to btn-secondary
             if (features.lucky_draw || features.luckyDraw) {
-                actionsHTML += '<button onclick="viewLuckyDraw()" class="btn-primary">🎰 Lucky Draw</button>';
+                actionsHTML += '<button onclick="viewLuckyDraw()" class="btn-secondary">Lucky Draw</button>';
             }
             
-            // Trivia action - standardized to btn-primary
+            // Trivia action - standardized to btn-secondary
             if (features.trivia) {
-                actionsHTML += '<button onclick="viewTriviaAdmin()" class="btn-primary">🧠 Trivia Challenge</button>';
+                actionsHTML += '<button onclick="viewTriviaAdmin()" class="btn-secondary">Trivia Challenge</button>';
             }
             
-            // Always available export - standardized to btn-primary
-            actionsHTML += '<button onclick="exportData()" class="btn-primary">💾 Export Data</button>';
+            // Always available export - standardized to btn-secondary
+            actionsHTML += '<button onclick="exportData()" class="btn-secondary">Export Data</button>';
             
             // Danger zone - delete all (only show if there are participants) - keep as btn-danger
             if (participants.length > 0) {
-                actionsHTML += '<button onclick="deleteAllParticipants()" class="btn-danger" style="margin-left: 20px;">⚠️ Delete All Participants</button>';
+                actionsHTML += '<button onclick="deleteAllParticipants()" class="btn-danger" style="margin-left: 20px;">Delete All Participants</button>';
             }
             
             container.innerHTML = actionsHTML || '<p style="color: var(--text-secondary);">No actions available for this event configuration</p>';
@@ -1541,11 +1541,21 @@
         }
         
         .collapse-icon {
-            font-size: 0.9rem;
+            font-size: 0.75rem;
             transition: transform 0.3s ease;
             color: var(--text-secondary);
             display: inline-block;
             line-height: 1;
+            width: 20px;
+            text-align: center;
+        }
+        
+        .section-header-collapsible {
+            transition: background-color 0.2s ease;
+        }
+        
+        .section-header-collapsible:hover {
+            background-color: rgba(255, 255, 255, 0.03);
         }
         
         .admin-section h2 {
