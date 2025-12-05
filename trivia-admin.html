@@ -30,6 +30,11 @@
                 <div id="currentSessionStatus" class="session-status">
                     <p class="no-session">No active trivia session. Create one below.</p>
                 </div>
+                <!-- Users Waiting Count (always visible) -->
+                <div id="usersWaitingSection" class="session-stats" style="margin-top: 20px; padding-top: 20px; border-top: 2px solid var(--border-color);">
+                    <p>Users Waiting: <strong id="waitingUsersCount">0</strong></p>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 5px;">Number of users currently on the trivia page</p>
+                </div>
             </div>
 
             <!-- Session Selection/Management -->
@@ -134,10 +139,6 @@
                     </div>
                 </div>
                 
-                <div id="sessionStats" class="session-stats" style="margin-top: 20px;">
-                    <p>Users Waiting: <strong id="waitingUsersCount">0</strong></p>
-                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 5px;">Number of users currently on the trivia page</p>
-                </div>
             </div>
 
             <!-- Leaderboard -->
@@ -212,6 +213,7 @@
         let leaderboardInterval = null;
         let questionCheckInterval = null;
         let bigScreenInterval = null;
+        let waitingUsersInterval = null;
         let isManagingQuestions = false; // Track if admin clicked "Manage" button
         let hasScrolledToResult = false; // Track if we've already scrolled to result
         let hasScrolledToBigScreen = false; // Track if we've already scrolled to big screen
@@ -233,8 +235,9 @@
             loadTheme();
             loadSessions();
             loadCurrentSession();
-            // Load waiting users count immediately
+            // Load waiting users count immediately and set up periodic refresh
             loadWaitingUsersCount();
+            startWaitingUsersUpdates();
         });
 
         function loadTheme() {
@@ -465,6 +468,8 @@
             document.getElementById('questionsSection').style.display = 'none';
             document.getElementById('sessionControls').style.display = 'none';
             document.getElementById('leaderboardSection').style.display = 'none';
+            const resetBtn = document.getElementById('resetLeaderboardBtnHeader');
+            if (resetBtn) resetBtn.style.display = 'none';
         }
 
         async function createSession(event) {
@@ -1216,7 +1221,9 @@
             }
             
             try {
-                const response = await fetch(`/api/get-trivia-waiting-users?eventId=${currentEventId}`);
+                // Convert eventId to integer to ensure proper matching
+                const eventIdInt = parseInt(currentEventId, 10);
+                const response = await fetch(`/api/get-trivia-waiting-users?eventId=${eventIdInt}`);
                 const result = await response.json();
                 
                 if (result.success) {
@@ -1224,6 +1231,8 @@
                     if (waitingUsersCountEl) {
                         waitingUsersCountEl.textContent = result.count || 0;
                     }
+                } else {
+                    console.error('Failed to load waiting users count:', result.error);
                 }
             } catch (error) {
                 console.error('Error loading waiting users count:', error);
@@ -1232,6 +1241,24 @@
                 if (waitingUsersCountEl) {
                     waitingUsersCountEl.textContent = '0';
                 }
+            }
+        }
+
+        function startWaitingUsersUpdates() {
+            // Clear any existing interval
+            if (waitingUsersInterval) {
+                clearInterval(waitingUsersInterval);
+            }
+            // Update every 5 seconds
+            waitingUsersInterval = setInterval(() => {
+                loadWaitingUsersCount();
+            }, 5000);
+        }
+
+        function stopWaitingUsersUpdates() {
+            if (waitingUsersInterval) {
+                clearInterval(waitingUsersInterval);
+                waitingUsersInterval = null;
             }
         }
 
@@ -1268,14 +1295,20 @@
 
         async function loadLeaderboard() {
             try {
+                if (!currentSessionId) {
+                    const resetBtn = document.getElementById('resetLeaderboardBtnHeader');
+                    if (resetBtn) resetBtn.style.display = 'none';
+                    return;
+                }
+
                 const response = await fetch(`/api/get-trivia-leaderboard?sessionId=${currentSessionId}`);
                 const result = await response.json();
 
                 if (result.success) {
                     displayLeaderboard(result.leaderboard);
-                    // Show reset button if session exists
+                    // Show reset button
                     const resetBtn = document.getElementById('resetLeaderboardBtnHeader');
-                    if (resetBtn && currentSessionId) {
+                    if (resetBtn) {
                         resetBtn.style.display = 'inline-block';
                     }
                 }
