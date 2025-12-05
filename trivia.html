@@ -623,26 +623,33 @@
             timerInterval = setInterval(() => {
                 // CRITICAL: Recalculate remaining time based on server time to stay in sync
                 // Also verify we're still on the same question and session is still active
-                if (currentSession && currentSession.questionStartedAt && 
-                    currentSession.currentQuestionIndex === currentQuestionIndex) {
-                    const startedAt = new Date(currentSession.questionStartedAt);
-                    const elapsed = Math.floor((Date.now() - startedAt.getTime()) / 1000);
-                    const currentQuestion = questions[currentQuestionIndex];
-                    
-                    if (currentQuestion) {
-                        timeRemaining = Math.max(0, currentQuestion.timeLimitSeconds - elapsed);
-                    } else {
-                        // Question not found - stop timer
-                        clearTimer();
-                        return;
-                    }
-                } else {
-                    // Session state changed or question changed - stop timer
+                if (!currentSession || !currentSession.questionStartedAt || 
+                    currentSession.currentQuestionIndex !== currentQuestionIndex ||
+                    !currentSession.isActive) {
                     clearTimer();
                     return;
                 }
                 
-                updateTimerDisplay();
+                const startedAt = new Date(currentSession.questionStartedAt);
+                const elapsed = Math.floor((Date.now() - startedAt.getTime()) / 1000);
+                const currentQuestion = questions[currentQuestionIndex];
+                
+                if (!currentQuestion) {
+                    clearTimer();
+                    return;
+                }
+                
+                // CRITICAL: If elapsed time is negative or suspiciously high, timer might be using wrong timestamp
+                // This can happen if questionStartedAt is from a previous question
+                if (elapsed < 0 || elapsed > currentQuestion.timeLimitSeconds + 10) {
+                    console.log('Timer timestamp mismatch detected, clearing timer');
+                    clearTimer();
+                    // Force a session check to get fresh data
+                    setTimeout(() => checkSession(), 100);
+                    return;
+                }
+                
+                timeRemaining = Math.max(0, currentQuestion.timeLimitSeconds - elapsed);
                 
                 if (timeRemaining <= 0) {
                     clearTimer();
@@ -651,10 +658,9 @@
                         if (!btn.disabled) btn.disabled = true;
                     });
                     // Show correct answer after timer ends
-                    const currentQuestion = questions[currentQuestionIndex];
-                    if (currentQuestion) {
-                        showCorrectAnswerAfterTimer(currentQuestion);
-                    }
+                    showCorrectAnswerAfterTimer(currentQuestion);
+                } else {
+                    updateTimerDisplay();
                 }
             }, 1000);
         }
