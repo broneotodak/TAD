@@ -768,10 +768,18 @@
 
     <style>
         /* Make header smaller for trivia page */
+        .container-full {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
         .trivia-container ~ .header,
         .container-full > .header {
             padding: 10px 20px !important;
             margin-bottom: 15px !important;
+            flex-shrink: 0; /* Don't shrink header */
         }
         
         .container-full > .header .header-title h1 {
@@ -791,6 +799,9 @@
         .trivia-container {
             max-width: 1000px;
             margin: 0 auto;
+            height: calc(100vh - 80px); /* Full height minus header */
+            display: flex;
+            flex-direction: column;
         }
 
         .trivia-section {
@@ -799,16 +810,20 @@
             border-radius: 20px;
             padding: 15px; /* Reduced padding */
             margin-bottom: 15px;
-            max-height: calc(100vh - 150px); /* Fit mobile screens */
+            height: 100%; /* Fill container height */
             overflow: hidden; /* No scrolling - fixed content */
             display: flex;
             flex-direction: column;
         }
         
         @media (max-width: 768px) {
+            .trivia-container {
+                height: calc(100vh - 70px); /* Adjust for smaller header on mobile */
+            }
+            
             .trivia-section {
                 padding: 12px;
-                max-height: calc(100vh - 120px);
+                margin-bottom: 10px;
             }
         }
 
@@ -943,7 +958,11 @@
             }
             
             .kahoot-question-display {
-                max-height: calc(100vh - 140px);
+                height: 100%;
+            }
+            
+            .option-button-kahoot {
+                min-height: 80px; /* Ensure minimum height on mobile */
             }
             
             /* Leaderboard mobile optimization */
@@ -1054,21 +1073,32 @@
 
         .option-text-kahoot {
             flex: 1;
-            font-size: 1.3rem;
+            font-size: 1.1rem; /* Reduced from 1.3rem */
             text-align: center;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2; /* Limit to 2 lines */
+            -webkit-box-orient: vertical;
         }
 
         @media (max-width: 768px) {
             .option-text-kahoot {
-                font-size: 1.1rem;
+                font-size: 0.9rem;
+                -webkit-line-clamp: 2;
             }
         }
 
         .waiting-question {
             text-align: center;
-            padding: 20px; /* Reduced from 60px */
+            padding: 15px; /* Reduced padding */
             color: var(--text-secondary);
-            min-height: auto; /* Remove excessive height */
+            min-height: auto;
+            flex: 1; /* Take remaining space */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
         }
 
         .waiting-icon {
