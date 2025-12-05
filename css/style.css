@@ -355,8 +355,8 @@ body {
 
 /* Standardized Header */
 .header {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
     align-items: center;
     margin-bottom: 30px;
     padding: 15px 20px;
@@ -364,7 +364,6 @@ body {
     border-radius: 8px;
     border: 2px solid var(--border-color);
     gap: 15px;
-    flex-wrap: wrap;
 }
 
 @media (max-width: 768px) {
@@ -443,9 +442,9 @@ body {
     display: flex;
     gap: 10px;
     align-items: center;
-    flex: 0 0 auto; /* Don't shrink */
+    flex-shrink: 0;
     justify-content: flex-end;
-    min-width: 0;
+    white-space: nowrap;
 }
 
 /* Back button specific override to match new btn style */
