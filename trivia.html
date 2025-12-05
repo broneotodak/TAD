@@ -714,10 +714,26 @@
 
         async function loadLeaderboard() {
             try {
+                // Check if session still exists and is valid
+                if (!currentSession || !currentSession.id) {
+                    return;
+                }
+                
                 const response = await fetch(`/api/get-trivia-leaderboard?sessionId=${currentSession.id}`);
                 const result = await response.json();
 
                 if (result.success) {
+                    const wasShowingCompleted = document.getElementById('completedState').style.display === 'block';
+                    
+                    // If leaderboard is empty and we were showing completed state, leaderboard was likely reset
+                    // Re-check session state to see if it's been reset
+                    if (result.leaderboard.length === 0 && wasShowingCompleted) {
+                        console.log('Leaderboard is empty but was showing completed - checking if session was reset');
+                        // Force a fresh session check
+                        await checkSession();
+                        return;
+                    }
+                    
                     displayLeaderboard(result.leaderboard);
                 }
             } catch (error) {
