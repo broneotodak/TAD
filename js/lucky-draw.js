@@ -74,18 +74,20 @@ function playTickSound() {
     oscillator.stop(ctx.currentTime + 0.05);
 }
 
-// Play celebration sound - triumphant fanfare!
+// Play celebration sound - enhanced triumphant fanfare!
 function playCelebration() {
     const ctx = initAudio();
     
-    // Fanfare: Play multiple ascending chord sequences
+    // Enhanced fanfare: Play multiple ascending chord sequences with richer harmonics
     const fanfare = [
-        // First chord - triumphant start
-        { notes: [523.25, 659.25, 783.99], time: 0, duration: 0.3 },
-        // Second chord - higher
-        { notes: [659.25, 783.99, 987.77], time: 0.2, duration: 0.3 },
-        // Final chord - victory!
-        { notes: [783.99, 987.77, 1174.66, 1567.98], time: 0.4, duration: 0.6 }
+        // First chord - triumphant start (C major)
+        { notes: [523.25, 659.25, 783.99, 1046.50], time: 0, duration: 0.4 },
+        // Second chord - higher (G major)
+        { notes: [659.25, 783.99, 987.77, 1318.51], time: 0.3, duration: 0.4 },
+        // Third chord - even higher (C major octave)
+        { notes: [783.99, 987.77, 1174.66, 1567.98], time: 0.6, duration: 0.5 },
+        // Final chord - victory! (C major with high octave)
+        { notes: [1046.50, 1318.51, 1567.98, 2093.00], time: 0.9, duration: 0.8 }
     ];
     
     fanfare.forEach(chord => {
@@ -97,10 +99,17 @@ function playCelebration() {
             gainNode.connect(ctx.destination);
             
             oscillator.frequency.value = freq;
-            oscillator.type = noteIndex === chord.notes.length - 1 ? 'sine' : 'triangle';
+            // Use different wave types for richer sound
+            if (noteIndex === chord.notes.length - 1) {
+                oscillator.type = 'sine'; // Smooth high note
+            } else if (noteIndex === 0) {
+                oscillator.type = 'triangle'; // Warm base
+            } else {
+                oscillator.type = 'sawtooth'; // Bright middle
+            }
             
             const startTime = ctx.currentTime + chord.time;
-            const volume = 0.15 + (noteIndex * 0.05);
+            const volume = 0.2 + (noteIndex * 0.03);
             gainNode.gain.setValueAtTime(volume, startTime);
             gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + chord.duration);
             
@@ -109,8 +118,8 @@ function playCelebration() {
         });
     });
     
-    // Add some sparkle sounds
-    for (let i = 0; i < 5; i++) {
+    // Enhanced sparkle sounds with more variety
+    for (let i = 0; i < 8; i++) {
         setTimeout(() => {
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
@@ -118,16 +127,37 @@ function playCelebration() {
             osc.connect(gain);
             gain.connect(ctx.destination);
             
-            osc.frequency.value = 2000 + (Math.random() * 1000);
-            osc.type = 'sine';
+            // More varied frequencies for sparkle effect
+            osc.frequency.value = 1500 + (Math.random() * 1500);
+            osc.type = i % 2 === 0 ? 'sine' : 'triangle';
             
-            gain.gain.setValueAtTime(0.08, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+            const volume = 0.1 + (Math.random() * 0.05);
+            gain.gain.setValueAtTime(volume, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
             
             osc.start(ctx.currentTime);
-            osc.stop(ctx.currentTime + 0.2);
-        }, i * 100);
+            osc.stop(ctx.currentTime + 0.25);
+        }, i * 80);
     }
+    
+    // Add a final "whoosh" sound effect
+    setTimeout(() => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        
+        osc.frequency.setValueAtTime(400, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(2000, ctx.currentTime + 0.3);
+        osc.type = 'sawtooth';
+        
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+        
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.3);
+    }, 1200);
 }
 
 // Load data from database
