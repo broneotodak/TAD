@@ -258,21 +258,7 @@
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js">        // Toggle event details collapse/expand
-        function toggleEventDetails() {
-            const content = document.getElementById('eventDetailsContent');
-            const toggle = document.getElementById('eventDetailsToggle');
-            if (!content || !toggle) return;
-            
-            if (content.style.display === 'none' || !content.style.display) {
-                content.style.display = 'block';
-                toggle.style.transform = 'rotate(180deg)';
-            } else {
-                content.style.display = 'none';
-                toggle.style.transform = 'rotate(0deg)';
-            }
-        }
-    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js">    </script>
     <script>
         // Global variables
         let currentEventId = null;
@@ -445,32 +431,32 @@
             
             let actionsHTML = '';
             
-            // Always available actions
+            // Always available actions - standardized to btn-primary (white background)
             if (features.attendance !== false) {
-                actionsHTML += '<button onclick="generateQRCode()" class="btn-success">📱 Display Check-in QR</button>';
-                actionsHTML += '<button onclick="viewCheckinReport()" class="btn-info">📊 Check-in Report</button>';
+                actionsHTML += '<button onclick="generateQRCode()" class="btn-primary">📱 Display Check-in QR</button>';
+                actionsHTML += '<button onclick="viewCheckinReport()" class="btn-primary">📊 Check-in Report</button>';
             }
             
-            // Table-related actions
+            // Table-related actions - standardized to btn-primary
             if (features.tables) {
                 actionsHTML += '<button onclick="autoAssignTables()" class="btn-primary">🔄 Auto-Assign All Tables</button>';
-                actionsHTML += '<button onclick="clearAllTables()" class="btn-secondary">🗑️ Clear All Table Assignments</button>';
+                actionsHTML += '<button onclick="clearAllTables()" class="btn-primary">🗑️ Clear All Table Assignments</button>';
             }
             
-            // Lucky draw action - check both formats for compatibility
+            // Lucky draw action - standardized to btn-primary
             if (features.lucky_draw || features.luckyDraw) {
-                actionsHTML += '<button onclick="viewLuckyDraw()" class="btn-warning">🎰 Lucky Draw</button>';
+                actionsHTML += '<button onclick="viewLuckyDraw()" class="btn-primary">🎰 Lucky Draw</button>';
             }
             
-            // Trivia action
+            // Trivia action - standardized to btn-primary
             if (features.trivia) {
-                actionsHTML += '<button onclick="viewTriviaAdmin()" class="btn-info">🧠 Trivia Challenge</button>';
+                actionsHTML += '<button onclick="viewTriviaAdmin()" class="btn-primary">🧠 Trivia Challenge</button>';
             }
             
-            // Always available export
-            actionsHTML += '<button onclick="exportData()" class="btn-info">💾 Export Data</button>';
+            // Always available export - standardized to btn-primary
+            actionsHTML += '<button onclick="exportData()" class="btn-primary">💾 Export Data</button>';
             
-            // Danger zone - delete all (only show if there are participants)
+            // Danger zone - delete all (only show if there are participants) - keep as btn-danger
             if (participants.length > 0) {
                 actionsHTML += '<button onclick="deleteAllParticipants()" class="btn-danger" style="margin-left: 20px;">⚠️ Delete All Participants</button>';
             }
@@ -1598,6 +1584,7 @@
             display: flex !important;
             align-items: center;
             justify-content: center;
+            border-radius: 8px !important;
         }
 
         @media (max-width: 768px) {
