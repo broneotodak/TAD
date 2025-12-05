@@ -179,19 +179,29 @@
                     if (result.session.isActive) {
                         // Session is active
                         const previousQuestionIndex = currentSession?.currentQuestionIndex ?? -1;
+                        const previousStartedAt = currentSession?.startedAt;
+                        const newStartedAt = result.session.startedAt;
+                        
                         currentSession = result.session;
                         questions = result.questions || [];
                         
                         // Check which question admin has activated
                         const activeQuestionIndex = result.session.currentQuestionIndex ?? -1;
                         
-                        // If session was just started/reset (question index is -1 and it wasn't before), reset user state
-                        if (activeQuestionIndex === -1 && previousQuestionIndex !== -1) {
+                        // If session was just started/reset, reset user state
+                        // This happens when: question index goes back to -1 OR session start time changed
+                        const sessionWasReset = (
+                            (activeQuestionIndex === -1 && previousQuestionIndex !== -1) ||
+                            (previousStartedAt && newStartedAt && previousStartedAt !== newStartedAt)
+                        );
+                        
+                        if (sessionWasReset) {
                             // Session was reset - clear user's local state
                             userScore = 0;
                             userCorrect = 0;
                             userTotal = 0;
                             userAnswers = {};
+                            currentQuestionIndex = 0;
                             updateProgress();
                         }
                         
