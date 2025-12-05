@@ -1465,7 +1465,8 @@ body {
     border: 2px solid var(--border-color);
     border-radius: 20px;
     padding: 40px;
-    max-height: 600px;
+    max-height: 80vh;
+    min-height: 500px;
     overflow-y: auto;
     display: none; /* Hide by default on big screen, maybe toggle? Or keep small */
 }
