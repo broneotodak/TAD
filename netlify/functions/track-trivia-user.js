@@ -23,7 +23,9 @@ export default async (req, context) => {
     // Generate a unique session ID for this user (browser session)
     // Use a combination of user agent and timestamp
     const userAgent = req.headers.get('user-agent') || 'unknown';
-    const sessionId = Buffer.from(`${eventId}-${userAgent}-${Date.now()}`).toString('base64').substring(0, 32);
+    const timestamp = Date.now();
+    // Simple hash-like ID generation
+    const sessionId = `${eventId}-${btoa(userAgent + timestamp).substring(0, 32)}`;
     
     // Create table if it doesn't exist
     try {
