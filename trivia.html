@@ -232,7 +232,7 @@
                     // Only show if session is ACTIVE (admin has started it)
                     if (newSessionActive) {
                         // Session is active
-                        const previousQuestionIndex = currentSession?.currentQuestionIndex ?? -1;
+                        const prevQIdx2 = currentSession?.currentQuestionIndex ?? -1;
                         const previousStartedAt = currentSession?.startedAt;
                         const newStartedAt = result.session.startedAt;
                         
@@ -245,7 +245,7 @@
                         // If session was just started/reset, reset user state
                         // This happens when: question index goes back to -1 OR session start time changed
                         const sessionWasReset = (
-                            (activeQuestionIndex === -1 && previousQuestionIndex !== -1) ||
+                            (activeQuestionIndex === -1 && prevQIdx2 !== -1) ||
                             (previousStartedAt && newStartedAt && previousStartedAt !== newStartedAt)
                         );
                         
@@ -274,7 +274,7 @@
                         const questionChanged = currentQuestionIndex !== activeQuestionIndex;
                         
                         // Update current session data
-                        const previousQuestionIndex = currentSession.currentQuestionIndex;
+                        const prevQIdx3 = currentSession.currentQuestionIndex;
                         currentSession.currentQuestionIndex = activeQuestionIndex;
                         currentSession.questionStartedAt = result.session.questionStartedAt;
                         
@@ -291,7 +291,7 @@
                                 // CRITICAL: If question index increased, this is a new question
                                 // We need to ensure we have the FRESH questionStartedAt timestamp
                                 // The API should have returned it, but double-check it matches the new question
-                                if (previousQuestionIndex !== undefined && activeQuestionIndex > previousQuestionIndex) {
+                                if (prevQIdx3 !== undefined && activeQuestionIndex > prevQIdx3) {
                                     // New question started - verify timestamp is fresh
                                     // If questionStartedAt is null or very old, wait for next check
                                     if (!currentSession.questionStartedAt) {
