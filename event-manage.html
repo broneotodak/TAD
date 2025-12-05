@@ -258,7 +258,21 @@
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js">        // Toggle event details collapse/expand
+        function toggleEventDetails() {
+            const content = document.getElementById('eventDetailsContent');
+            const toggle = document.getElementById('eventDetailsToggle');
+            if (!content || !toggle) return;
+            
+            if (content.style.display === 'none' || !content.style.display) {
+                content.style.display = 'block';
+                toggle.style.transform = 'rotate(180deg)';
+            } else {
+                content.style.display = 'none';
+                toggle.style.transform = 'rotate(0deg)';
+            }
+        }
+    </script>
     <script>
         // Global variables
         let currentEventId = null;
@@ -328,6 +342,21 @@
         function logout() {
             localStorage.removeItem('adminLoggedIn');
             window.location.reload();
+        }
+
+        // Toggle event details collapse/expand
+        function toggleEventDetails() {
+            const content = document.getElementById('eventDetailsContent');
+            const toggle = document.getElementById('eventDetailsToggle');
+            if (!content || !toggle) return;
+            
+            if (content.style.display === 'none' || !content.style.display) {
+                content.style.display = 'block';
+                toggle.style.transform = 'rotate(180deg)';
+            } else {
+                content.style.display = 'none';
+                toggle.style.transform = 'rotate(0deg)';
+            }
         }
 
         // Load event data
