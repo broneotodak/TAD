@@ -151,11 +151,20 @@
         async function trackUserPresence() {
             if (!currentEventId) return;
             
+            // Get or create a stable session ID for this browser
+            const sessionKey = `trivia_session_id_event_${currentEventId}`;
+            let sessionId = localStorage.getItem(sessionKey);
+            if (!sessionId) {
+                // Generate a unique session ID
+                sessionId = `trivia-${currentEventId}-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+                localStorage.setItem(sessionKey, sessionId);
+            }
+            
             try {
                 await fetch('/api/track-trivia-user', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ eventId: currentEventId })
+                    body: JSON.stringify({ eventId: currentEventId, sessionId: sessionId })
                 });
             } catch (error) {
                 // Silently fail - tracking is not critical
