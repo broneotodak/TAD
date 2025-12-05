@@ -21,11 +21,12 @@ export default async (req, context) => {
     }
 
     // Generate a unique session ID for this user (browser session)
-    // Use a combination of user agent and timestamp
+    // Use IP address and user agent to create a unique identifier
     const userAgent = req.headers.get('user-agent') || 'unknown';
+    const ip = context.ip || req.headers.get('x-forwarded-for') || 'unknown';
     const timestamp = Date.now();
-    // Simple hash-like ID generation
-    const sessionId = `${eventId}-${btoa(userAgent + timestamp).substring(0, 32)}`;
+    // Create a simple hash-like ID
+    const sessionId = `${eventId}-${ip}-${timestamp}`.replace(/[^a-zA-Z0-9]/g, '-').substring(0, 64);
     
     // Create table if it doesn't exist
     try {
