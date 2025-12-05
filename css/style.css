@@ -182,7 +182,7 @@ body {
 .login-card {
     background: var(--card-bg);
     padding: 50px;
-    border-radius: 20px;
+    border-radius: 8px;
     border: 2px solid var(--border-color);
     max-width: 400px;
     width: 100%;
@@ -361,7 +361,7 @@ body {
     margin-bottom: 30px;
     padding: 20px 30px;
     background: var(--card-bg);
-    border-radius: 15px;
+    border-radius: 8px;
     border: 2px solid var(--border-color);
     gap: 20px;
     flex-wrap: wrap;
@@ -377,23 +377,31 @@ body {
 .header-title {
     flex: 1;
     text-align: center;
+    min-width: 0; /* Allow text truncation */
 }
 
 .header-title h1 {
-    font-size: 1.8rem;
+    font-size: 1.5rem;
     margin: 0;
-    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    line-height: 1.2;
+    color: var(--text-primary);
+    line-height: 1.3;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+    .header-title h1 {
+        font-size: 1.2rem;
+    }
 }
 
 .header-actions {
     display: flex;
     gap: 10px;
     align-items: center;
-    flex: 1;
+    flex: 0 0 auto; /* Don't shrink */
     justify-content: flex-end;
 }
 
@@ -442,7 +450,7 @@ body {
 .stat-card {
     background: var(--card-bg);
     padding: 25px;
-    border-radius: 15px;
+    border-radius: 8px;
     border: 2px solid var(--border-color);
     text-align: center;
 }
@@ -464,7 +472,7 @@ body {
 .admin-section {
     background: var(--card-bg);
     padding: 30px;
-    border-radius: 15px;
+    border-radius: 8px;
     border: 2px solid var(--border-color);
     margin-bottom: 30px;
 }
@@ -2135,7 +2143,7 @@ body {
 .create-event-card {
     background: var(--dark-bg);
     border: 2px dashed var(--border-color);
-    border-radius: 15px;
+    border-radius: 8px;
     padding: 25px;
     display: flex;
     flex-direction: column;

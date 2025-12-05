@@ -46,9 +46,9 @@
         <div id="adminContent" class="admin-content" style="display: none;">
             <!-- Statistics (Top after navbar) -->
             <div class="admin-section" style="overflow: hidden;">
-                <div class="section-header-collapsible" onclick="toggleSection('statisticsContent', 'statisticsToggle')" style="padding: 20px 30px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); user-select: none; margin: -30px -30px 0 -30px;">
-                    <h2 style="margin: 0;">Statistics</h2>
-                    <span id="statisticsToggle" style="font-size: 1.5rem; transition: transform 0.3s ease;">▼</span>
+                <div class="section-header-collapsible" onclick="toggleSection('statisticsContent', 'statisticsToggle')" style="padding: 15px 30px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); user-select: none; margin: -30px -30px 0 -30px;">
+                    <h2 style="margin: 0; font-size: 1.25rem; font-weight: 600;">Statistics</h2>
+                    <span id="statisticsToggle" class="collapse-icon" style="transform: rotate(180deg);">▼</span>
                 </div>
                 <div id="statisticsContent" style="padding-top: 20px; display: block;">
                     <div class="stats-grid">
@@ -74,9 +74,9 @@
 
             <!-- Quick Actions Section -->
             <div class="admin-section" style="overflow: hidden;">
-                <div class="section-header-collapsible" onclick="toggleSection('quickActionsContent', 'quickActionsToggle')" style="padding: 20px 30px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); user-select: none; margin: -30px -30px 0 -30px;">
-                    <h2 style="margin: 0;">Quick Actions</h2>
-                    <span id="quickActionsToggle" style="font-size: 1.5rem; transition: transform 0.3s ease;">▼</span>
+                <div class="section-header-collapsible" onclick="toggleSection('quickActionsContent', 'quickActionsToggle')" style="padding: 15px 30px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); user-select: none; margin: -30px -30px 0 -30px;">
+                    <h2 style="margin: 0; font-size: 1.25rem; font-weight: 600;">Quick Actions</h2>
+                    <span id="quickActionsToggle" class="collapse-icon">▼</span>
                 </div>
                 <div id="quickActionsContent" style="padding-top: 20px; display: none;">
                     <div class="action-buttons" id="quickActionsContainer">
@@ -86,12 +86,12 @@
             </div>
 
             <!-- Event Details Card -->
-            <div class="event-details-card" style="background: var(--card-bg); border: 2px solid var(--border-color); border-radius: 8px; margin-bottom: 30px; overflow: hidden;">
-                <div class="event-details-header" onclick="toggleEventDetails()" style="padding: 20px 30px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); user-select: none;">
-                    <h3 style="margin: 0; font-size: 1.2rem;">📋 Event Details</h3>
-                    <span id="eventDetailsToggle" style="font-size: 1.5rem; transition: transform 0.3s ease;">▼</span>
+            <div class="admin-section" style="overflow: hidden;">
+                <div class="section-header-collapsible" onclick="toggleEventDetails()" style="padding: 15px 30px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); user-select: none; margin: -30px -30px 0 -30px;">
+                    <h2 style="margin: 0; font-size: 1.25rem; font-weight: 600;">Event Details</h2>
+                    <span id="eventDetailsToggle" class="collapse-icon">▼</span>
                 </div>
-                <div id="eventDetailsContent" style="padding: 30px; display: none;">
+                <div id="eventDetailsContent" style="padding-top: 20px; display: none;">
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
                         <div>
                             <label style="color: var(--text-secondary); font-size: 0.9rem;">Date</label>
@@ -127,9 +127,9 @@
 
             <!-- Participant Management Section -->
             <div class="admin-section" style="overflow: hidden;">
-                <div class="section-header-collapsible" onclick="toggleSection('participantManagementContent', 'participantManagementToggle')" style="padding: 20px 30px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); user-select: none; margin: -30px -30px 0 -30px;">
-                    <h2 style="margin: 0;">Participant Management</h2>
-                    <span id="participantManagementToggle" style="font-size: 1.5rem; transition: transform 0.3s ease;">▼</span>
+                <div class="section-header-collapsible" onclick="toggleSection('participantManagementContent', 'participantManagementToggle')" style="padding: 15px 30px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); user-select: none; margin: -30px -30px 0 -30px;">
+                    <h2 style="margin: 0; font-size: 1.25rem; font-weight: 600;">Participant Management</h2>
+                    <span id="participantManagementToggle" class="collapse-icon">▼</span>
                 </div>
                 <div id="participantManagementContent" style="padding-top: 20px; display: none;">
                     <div class="section-header">
@@ -200,9 +200,9 @@
 
             <!-- Table Setup Section -->
             <div class="admin-section" id="tableSection" style="overflow: hidden;">
-                <div class="section-header-collapsible" onclick="toggleSection('tableSetupContent', 'tableSetupToggle')" style="padding: 20px 30px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); user-select: none; margin: -30px -30px 0 -30px;">
-                    <h2 style="margin: 0;">Table Setup</h2>
-                    <span id="tableSetupToggle" style="font-size: 1.5rem; transition: transform 0.3s ease;">▼</span>
+                <div class="section-header-collapsible" onclick="toggleSection('tableSetupContent', 'tableSetupToggle')" style="padding: 15px 30px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); user-select: none; margin: -30px -30px 0 -30px;">
+                    <h2 style="margin: 0; font-size: 1.25rem; font-weight: 600;">Table Setup</h2>
+                    <span id="tableSetupToggle" class="collapse-icon">▼</span>
                 </div>
                 <div id="tableSetupContent" style="padding-top: 20px; display: none;">
                     <div class="section-header">
