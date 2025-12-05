@@ -270,32 +270,58 @@
                         // Show active session
                         showActiveSession();
                         
+                        // CRITICAL: Check if question index changed BEFORE updating session data
+                        const questionChanged = currentQuestionIndex !== activeQuestionIndex;
+                        
                         // Update current session data
+                        const previousQuestionIndex = currentSession.currentQuestionIndex;
                         currentSession.currentQuestionIndex = activeQuestionIndex;
                         currentSession.questionStartedAt = result.session.questionStartedAt;
                         
                         // Only show question if admin has activated it
                         if (activeQuestionIndex >= 0 && activeQuestionIndex < questions.length) {
                             // Show the active question (admin has activated this one)
-                            const questionChanged = currentQuestionIndex !== activeQuestionIndex;
                             
                             if (questionChanged) {
-                                // Question changed, reset state
+                                // Question changed, reset state IMMEDIATELY
                                 currentQuestionIndex = activeQuestionIndex;
                                 userAnswers = {}; // Reset answers for new question
                                 clearTimer(); // CRITICAL: Clear any existing timer when question changes
+                                
+                                // CRITICAL: If question index increased, this is a new question
+                                // We need to ensure we have the FRESH questionStartedAt timestamp
+                                // The API should have returned it, but double-check it matches the new question
+                                if (previousQuestionIndex !== undefined && activeQuestionIndex > previousQuestionIndex) {
+                                    // New question started - verify timestamp is fresh
+                                    // If questionStartedAt is null or very old, wait for next check
+                                    if (!currentSession.questionStartedAt) {
+                                        // Timestamp not set yet - wait for next checkSession cycle
+                                        displayQuestion(questions[activeQuestionIndex], activeQuestionIndex);
+                                        return; // Exit early, let next checkSession() get the fresh timestamp
+                                    }
+                                }
                             }
                             
                             const currentQuestion = questions[activeQuestionIndex];
                             const questionStarted = currentSession.questionStartedAt;
                             
-                            // CRITICAL: Verify questionStartedAt matches current question index
+                            // CRITICAL: Verify questionStartedAt matches current question index AND is recent
                             // This ensures we're using the correct timer for the current question
                             const questionStartedMatches = questionStarted && 
                                                           currentSession.currentQuestionIndex === activeQuestionIndex;
                             
+                            // Additional check: if question changed, verify timestamp is recent (within last 2 seconds)
+                            // This prevents using stale timestamps from previous questions
+                            let timestampIsFresh = true;
+                            if (questionChanged && questionStarted) {
+                                const startedAt = new Date(questionStarted);
+                                const age = Math.floor((Date.now() - startedAt.getTime()) / 1000);
+                                // Timestamp should be very recent (within last 3 seconds) for a new question
+                                timestampIsFresh = age >= 0 && age <= 3;
+                            }
+                            
                             // Check if timer has ended for this question
-                            if (questionStartedMatches) {
+                            if (questionStartedMatches && timestampIsFresh) {
                                 const startedAt = new Date(questionStarted);
                                 const elapsed = Math.floor((Date.now() - startedAt.getTime()) / 1000);
                                 const timerEnded = elapsed >= currentQuestion.timeLimitSeconds;
@@ -308,7 +334,7 @@
                                     displayQuestion(questions[activeQuestionIndex], activeQuestionIndex);
                                 }
                             } else {
-                                // Timer not started yet or doesn't match current question
+                                // Timer not started yet, doesn't match current question, or timestamp is stale
                                 displayQuestion(questions[activeQuestionIndex], activeQuestionIndex);
                             }
                         } else if (activeQuestionIndex === -1 && questions.length > 0) {
@@ -596,7 +622,7 @@
             
             timerInterval = setInterval(() => {
                 // CRITICAL: Recalculate remaining time based on server time to stay in sync
-                // Also verify we're still on the same question
+                // Also verify we're still on the same question and session is still active
                 if (currentSession && currentSession.questionStartedAt && 
                     currentSession.currentQuestionIndex === currentQuestionIndex) {
                     const startedAt = new Date(currentSession.questionStartedAt);

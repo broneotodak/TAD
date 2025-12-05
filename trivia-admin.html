@@ -773,19 +773,25 @@
                     if (startQuestionBtn) startQuestionBtn.style.display = 'none';
                     
                     // Auto-advance to next question after timer ends (with 10 second delay to allow users to see results)
+                    // CRITICAL: Only schedule auto-advance once per question
                     if (timerEnded && !currentSession.autoAdvanceScheduled && currentSession.isActive) {
+                        // Verify we're still on the same question before scheduling
+                        const scheduledQuestionIndex = currentIndex;
                         currentSession.autoAdvanceScheduled = true;
                         
                         // Store timeout reference so we can clear it if needed
                         currentSession.autoAdvanceTimeout = setTimeout(async () => {
-                            // Double-check session is still active before advancing
+                            // Double-check session is still active and we're still on the same question
                             await loadCurrentSession();
                             if (currentSession && currentSession.isActive) {
                                 const currentIdx = currentSession.currentQuestionIndex ?? -1;
-                                if (currentIdx < totalQuestions - 1) {
-                                    // CRITICAL: Reset auto-advance flag BEFORE advancing to ensure timer works for next question
+                                
+                                // CRITICAL: Verify we're still on the question we scheduled for
+                                if (currentIdx === scheduledQuestionIndex && currentIdx < totalQuestions - 1) {
+                                    // CRITICAL: Reset ALL flags BEFORE advancing to ensure timer works for next question
                                     currentSession.autoAdvanceScheduled = false;
                                     currentSession.timerWasEnded = false;
+                                    currentSession.previousTimerQuestionIndex = -1; // Force reset
                                     // Clear timeout reference before advancing
                                     if (currentSession.autoAdvanceTimeout) {
                                         clearTimeout(currentSession.autoAdvanceTimeout);
@@ -793,7 +799,7 @@
                                     }
                                     // Auto-advance to next question
                                     await advanceToNextQuestion();
-                                } else {
+                                } else if (currentIdx === scheduledQuestionIndex && currentIdx >= totalQuestions - 1) {
                                     // Last question - auto-complete session
                                     // Clear timeout reference before completing
                                     if (currentSession.autoAdvanceTimeout) {
@@ -801,11 +807,18 @@
                                         currentSession.autoAdvanceTimeout = null;
                                     }
                                     await completeSession();
+                                } else {
+                                    // Question changed - cancel auto-advance
+                                    if (currentSession) {
+                                        currentSession.autoAdvanceScheduled = false;
+                                        currentSession.autoAdvanceTimeout = null;
+                                    }
                                 }
-                            }
-                            // Clear timeout reference
-                            if (currentSession) {
-                                currentSession.autoAdvanceTimeout = null;
+                            } else {
+                                // Session ended - clear timeout
+                                if (currentSession) {
+                                    currentSession.autoAdvanceTimeout = null;
+                                }
                             }
                         }, 10000); // 10 seconds delay
                     }
