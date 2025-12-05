@@ -168,13 +168,6 @@
                     currentSession = result.session;
                     questions = result.questions || [];
                     
-                    // Check if session is completed (ended)
-                    if (!result.session.isActive && result.session.endedAt) {
-                        // Session completed - show final leaderboard and winner
-                        await showCompleted();
-                        return;
-                    }
-                    
                     // Only show if session is ACTIVE (admin has started it)
                     if (result.session.isActive) {
                         // Session is active
@@ -263,9 +256,26 @@
                             // All questions completed
                             showCompleted();
                         }
+                        } else {
+                            // Session exists but not active - show waiting message
+                            showWaiting('The trivia session hasn\'t started yet. Please wait for the admin to activate it.');
+                        }
                     } else {
-                        // Session exists but not active - show waiting message
-                        showWaiting('The trivia session hasn\'t started yet. Please wait for the admin to activate it.');
+                        // Session exists but is not active
+                        // Check if session was just ended (has endedAt timestamp)
+                        if (result.session.endedAt) {
+                            // Session was completed - show final results once, then wait for next session
+                            // Only show completed state if user actually participated
+                            if (userTotal > 0) {
+                                await showCompleted();
+                            } else {
+                                // User didn't participate - just show waiting
+                                showWaiting('The trivia session has ended. Waiting for a new session to start.');
+                            }
+                        } else {
+                            // Session exists but not started yet
+                            showWaiting('The trivia session hasn\'t started yet. Please wait for the admin to activate it.');
+                        }
                     }
                 } else {
                     // No session
@@ -295,6 +305,14 @@
             document.getElementById('activeSession').style.display = 'none';
             document.getElementById('completedState').style.display = 'none';
             document.getElementById('leaderboardSection').style.display = 'none';
+            
+            // Reset user state when going back to waiting
+            userScore = 0;
+            userCorrect = 0;
+            userTotal = 0;
+            userAnswers = {};
+            currentQuestionIndex = 0;
+            updateProgress();
             
             if (message) {
                 document.querySelector('.waiting-message p').textContent = message;
