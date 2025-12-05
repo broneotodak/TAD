@@ -1414,8 +1414,19 @@
         }
 
         .leaderboard-note {
-            margin-top: 30px;
+            margin-top: 20px; /* Reduced from 30px */
             color: var(--text-secondary);
+            padding: 0 10px; /* Add horizontal padding */
+            overflow: visible;
+            word-wrap: break-word;
+            line-height: 1.4;
+        }
+        
+        @media (max-width: 768px) {
+            .leaderboard-note {
+                margin-top: 15px;
+                font-size: 0.9rem;
+            }
         }
     </style>
 </body>
