@@ -1291,41 +1291,42 @@ body {
     background: var(--card-bg);
     border: 2px solid var(--border-color);
     border-radius: 20px;
-    padding: 40px;
+    padding: 60px;
     margin-bottom: 20px;
     flex: 1; /* Grow to fill space */
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    min-height: 600px;
 }
 
 .draw-slot {
     width: 100%;
     text-align: center;
-    padding: 30px 20px;
+    padding: 50px 40px;
     box-sizing: border-box;
     overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 400px;
+    min-height: 550px;
 }
 
 .rolling-names {
-    font-size: 4vw; /* Reduced from 8vw to prevent overflow */
+    font-size: 5vw;
     font-weight: 800;
     color: var(--primary-color);
     line-height: 1.2;
     overflow: hidden;
-    padding: 20px;
+    padding: 40px;
     box-sizing: border-box;
     max-width: 100%;
     word-wrap: break-word;
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 200px;
+    min-height: 400px;
 }
 
 .rolling-name {
@@ -1340,8 +1341,8 @@ body {
 }
 
 .rolling-name .name {
-    margin-bottom: 10px;
-    font-size: clamp(2rem, 4vw, 5rem); /* Responsive with min/max limits */
+    margin-bottom: 20px;
+    font-size: clamp(3rem, 6vw, 8rem); /* Larger for LED screens */
     text-align: center;
     word-wrap: break-word;
     overflow-wrap: break-word;
@@ -1349,7 +1350,7 @@ body {
 }
 
 .rolling-name .company {
-    font-size: clamp(1rem, 2vw, 2.5rem); /* Responsive with min/max limits */
+    font-size: clamp(1.5rem, 3vw, 4rem); /* Larger for LED screens */
     color: var(--text-secondary);
     font-weight: 400;
     text-align: center;
@@ -1361,29 +1362,34 @@ body {
 .winner-display {
     animation: scaleIn 0.5s ease;
     width: 100%;
-    padding: 20px;
+    padding: 60px 40px;
     box-sizing: border-box;
-    overflow: hidden;
+    overflow: visible;
+    min-height: 550px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
 .winner-badge {
     background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
     color: #000000; /* Always dark text on gradient */
-    padding: 10px 40px;
+    padding: 15px 60px;
     border-radius: 50px;
     font-weight: 800;
     display: inline-block;
-    margin-bottom: 20px;
-    font-size: 1.5rem;
+    margin-bottom: 30px;
+    font-size: clamp(1.5rem, 2.5vw, 3rem);
     text-transform: uppercase;
-    letter-spacing: 2px;
+    letter-spacing: 3px;
     box-shadow: 0 10px 30px rgba(255, 255, 255, 0.2);
 }
 
 .winner-name {
-    font-size: clamp(2rem, 5vw, 6rem); /* Responsive with min/max limits */
+    font-size: clamp(3rem, 7vw, 10rem); /* Much larger for LED screens */
     font-weight: 900;
-    margin-bottom: 10px;
+    margin-bottom: 20px;
     color: var(--primary-color);
     line-height: 1.2;
     text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
@@ -1391,7 +1397,7 @@ body {
     word-wrap: break-word;
     overflow-wrap: break-word;
     max-width: 100%;
-    padding: 0 20px;
+    padding: 0 40px;
     box-sizing: border-box;
 }
 
