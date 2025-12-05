@@ -269,10 +269,10 @@
                             // All questions completed
                             showCompleted();
                         }
-                        } else {
-                            // Session exists but not active - show waiting message
-                            showWaiting('The trivia session hasn\'t started yet. Please wait for the admin to activate it.');
-                        }
+                    } else {
+                        // Session exists but not active - show waiting message
+                        showWaiting('The trivia session hasn\'t started yet. Please wait for the admin to activate it.');
+                    }
                     } else {
                         // Session exists but is not active
                         // Check if session was just ended (has endedAt timestamp)
