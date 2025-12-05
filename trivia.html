@@ -295,7 +295,10 @@
                                 displayQuestion(questions[activeQuestionIndex], activeQuestionIndex);
                             }
                         } else if (activeQuestionIndex === -1 && questions.length > 0) {
-                            // No question started yet, show waiting
+                            // No question started yet - session is active but waiting for first question
+                            // Show the active session UI with waiting message
+                            showActiveSession();
+                            
                             const waitingEl = document.getElementById('waitingForQuestion');
                             const questionTextEl = document.getElementById('questionText');
                             const optionsContainer = document.getElementById('optionsContainer');
