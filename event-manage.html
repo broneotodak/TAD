@@ -45,35 +45,41 @@
 
         <div id="adminContent" class="admin-content" style="display: none;">
             <!-- Event Details Card -->
-            <div class="event-details-card" style="background: var(--card-bg); border: 2px solid var(--border-color); border-radius: 15px; padding: 30px; margin-bottom: 30px;">
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
-                    <div>
-                        <label style="color: var(--text-secondary); font-size: 0.9rem;">Date</label>
-                        <p id="eventDate" style="font-size: 1.1rem; margin-top: 5px;">-</p>
-                    </div>
-                    <div>
-                        <label style="color: var(--text-secondary); font-size: 0.9rem;">Time</label>
-                        <p id="eventTime" style="font-size: 1.1rem; margin-top: 5px;">-</p>
-                    </div>
-                    <div>
-                        <label style="color: var(--text-secondary); font-size: 0.9rem;">Venue</label>
-                        <p id="eventVenue" style="font-size: 1.1rem; margin-top: 5px;">-</p>
-                    </div>
-                    <div id="eventThemeContainer" style="display: none;">
-                        <label style="color: var(--text-secondary); font-size: 0.9rem;">Theme</label>
-                        <p id="eventTheme" style="font-size: 1.1rem; margin-top: 5px;">-</p>
-                    </div>
+            <div class="event-details-card" style="background: var(--card-bg); border: 2px solid var(--border-color); border-radius: 15px; margin-bottom: 30px; overflow: hidden;">
+                <div class="event-details-header" onclick="toggleEventDetails()" style="padding: 20px 30px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); user-select: none;">
+                    <h3 style="margin: 0; font-size: 1.2rem;">📋 Event Details</h3>
+                    <span id="eventDetailsToggle" style="font-size: 1.5rem; transition: transform 0.3s ease;">▼</span>
                 </div>
-                
-                <!-- Show tentative/menu if available -->
-                <div id="eventInfoSection" style="margin-top: 20px; display: none;">
-                    <div id="tentativeSection" style="display: none;">
-                        <h4 style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 10px;">📋 Event Program</h4>
-                        <p id="eventTentativeDisplay" style="white-space: pre-line;">-</p>
+                <div id="eventDetailsContent" style="padding: 30px; display: none;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                        <div>
+                            <label style="color: var(--text-secondary); font-size: 0.9rem;">Date</label>
+                            <p id="eventDate" style="font-size: 1.1rem; margin-top: 5px;">-</p>
+                        </div>
+                        <div>
+                            <label style="color: var(--text-secondary); font-size: 0.9rem;">Time</label>
+                            <p id="eventTime" style="font-size: 1.1rem; margin-top: 5px;">-</p>
+                        </div>
+                        <div>
+                            <label style="color: var(--text-secondary); font-size: 0.9rem;">Venue</label>
+                            <p id="eventVenue" style="font-size: 1.1rem; margin-top: 5px;">-</p>
+                        </div>
+                        <div id="eventThemeContainer" style="display: none;">
+                            <label style="color: var(--text-secondary); font-size: 0.9rem;">Theme</label>
+                            <p id="eventTheme" style="font-size: 1.1rem; margin-top: 5px;">-</p>
+                        </div>
                     </div>
-                    <div id="menuSection" style="display: none; margin-top: 15px;">
-                        <h4 style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 10px;">🍽️ Menu</h4>
-                        <p id="eventMenuDisplay" style="white-space: pre-line;">-</p>
+                    
+                    <!-- Show tentative/menu if available -->
+                    <div id="eventInfoSection" style="margin-top: 20px; display: none;">
+                        <div id="tentativeSection" style="display: none;">
+                            <h4 style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 10px;">📋 Event Program</h4>
+                            <p id="eventTentativeDisplay" style="white-space: pre-line;">-</p>
+                        </div>
+                        <div id="menuSection" style="display: none; margin-top: 15px;">
+                            <h4 style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 10px;">🍽️ Menu</h4>
+                            <p id="eventMenuDisplay" style="white-space: pre-line;">-</p>
+                        </div>
                     </div>
                 </div>
             </div>
