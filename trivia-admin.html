@@ -902,8 +902,10 @@
                     // Hide "Start First Question" section and show question control
                     document.getElementById('startFirstQuestionSection').style.display = 'none';
                     document.getElementById('questionControlSection').style.display = 'block';
-                    // Immediately update question control to start timer display
-                    await updateQuestionControl();
+                    // CRITICAL: Wait a moment for session state to fully update, then update question control
+                    setTimeout(async () => {
+                        await updateQuestionControl();
+                    }, 500);
                 } else {
                     alert('Error: ' + result.error);
                 }

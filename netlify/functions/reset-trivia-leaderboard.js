@@ -30,11 +30,24 @@ export default async (req, context) => {
       )
     `;
 
-    console.log(`Cleared ${deleteResult.count || 0} trivia answers for session ${sessionId}`);
+    // Reset session state to make it active again and ready for a new round
+    // This will make user pages revert to waiting state
+    await sql`
+      UPDATE trivia_sessions
+      SET 
+        is_active = true,
+        current_question_index = -1,
+        question_started_at = NULL,
+        ended_at = NULL,
+        started_at = CURRENT_TIMESTAMP
+      WHERE id = ${sessionId}
+    `;
+
+    console.log(`Cleared ${deleteResult.count || 0} trivia answers for session ${sessionId} and reset session state`);
 
     return new Response(JSON.stringify({
       success: true,
-      message: 'Leaderboard has been reset',
+      message: 'Leaderboard has been reset and session is ready for a new round',
       deletedCount: deleteResult.count || 0
     }), {
       status: 200,
