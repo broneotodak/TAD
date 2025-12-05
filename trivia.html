@@ -774,6 +774,27 @@
     </script>
 
     <style>
+        /* Make header smaller for trivia page */
+        .trivia-container ~ .header,
+        .container-full > .header {
+            padding: 10px 20px !important;
+            margin-bottom: 15px !important;
+        }
+        
+        .container-full > .header .header-title h1 {
+            font-size: 1.5rem !important;
+            margin: 0 !important;
+        }
+        
+        .container-full > .header .back-btn {
+            font-size: 0.9rem !important;
+            padding: 6px 12px !important;
+        }
+        
+        .container-full > .header .back-btn span {
+            font-size: 1rem !important;
+        }
+
         .trivia-container {
             max-width: 1000px;
             margin: 0 auto;
@@ -947,8 +968,8 @@
         }
 
         .option-letter-kahoot {
-            width: 60px;
-            height: 60px;
+            width: 70px;
+            height: 70px;
             background: rgba(255, 255, 255, 0.3);
             color: #ffffff;
             border-radius: 50%;
@@ -956,7 +977,7 @@
             align-items: center;
             justify-content: center;
             font-weight: bold;
-            font-size: 1.8rem;
+            font-size: 2rem;
             flex-shrink: 0;
             border: 3px solid rgba(255, 255, 255, 0.5);
         }
@@ -964,6 +985,7 @@
         .option-text-kahoot {
             flex: 1;
             font-size: 1.3rem;
+            text-align: center;
         }
 
         @media (max-width: 768px) {
