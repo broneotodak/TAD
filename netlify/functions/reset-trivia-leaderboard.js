@@ -32,7 +32,7 @@ export default async (req, context) => {
 
     // Reset session state to make it active again and ready for a new round
     // This will make user pages revert to waiting state
-    await sql`
+    const [updatedSession] = await sql`
       UPDATE trivia_sessions
       SET 
         is_active = true,
@@ -41,9 +41,10 @@ export default async (req, context) => {
         ended_at = NULL,
         started_at = CURRENT_TIMESTAMP
       WHERE id = ${sessionId}
+      RETURNING id, is_active, current_question_index
     `;
 
-    console.log(`Cleared ${deleteResult.count || 0} trivia answers for session ${sessionId} and reset session state`);
+    console.log(`Cleared ${deleteResult.count || 0} trivia answers for session ${sessionId} and reset session state. Updated session:`, updatedSession);
 
     return new Response(JSON.stringify({
       success: true,
