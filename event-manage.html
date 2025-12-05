@@ -465,24 +465,36 @@
             
             let actionsHTML = '';
             
-            // Always available actions - standardized to btn-secondary (consistent style)
+            // Always available actions - square buttons with icons
             if (features.attendance !== false) {
-                actionsHTML += '<button onclick="generateQRCode()" class="btn-secondary">Display Check-in QR</button>';
+                actionsHTML += '<button onclick="generateQRCode()" class="action-btn-square btn-secondary">';
+                actionsHTML += '<span class="action-icon">📱</span>';
+                actionsHTML += '<span class="action-label">Check-in QR</span>';
+                actionsHTML += '</button>';
             }
             
-            // Lucky draw action - standardized to btn-secondary
+            // Lucky draw action
             if (features.lucky_draw || features.luckyDraw) {
-                actionsHTML += '<button onclick="viewLuckyDraw()" class="btn-secondary">Lucky Draw</button>';
+                actionsHTML += '<button onclick="viewLuckyDraw()" class="action-btn-square btn-secondary">';
+                actionsHTML += '<span class="action-icon">🎲</span>';
+                actionsHTML += '<span class="action-label">Lucky Draw</span>';
+                actionsHTML += '</button>';
             }
             
-            // Trivia action - standardized to btn-secondary
+            // Trivia action
             if (features.trivia) {
-                actionsHTML += '<button onclick="viewTriviaAdmin()" class="btn-secondary">Trivia Challenge</button>';
+                actionsHTML += '<button onclick="viewTriviaAdmin()" class="action-btn-square btn-secondary">';
+                actionsHTML += '<span class="action-icon">🧠</span>';
+                actionsHTML += '<span class="action-label">Trivia</span>';
+                actionsHTML += '</button>';
             }
             
             // Danger zone - delete all (only show if there are participants) - keep as btn-danger
             if (participants.length > 0) {
-                actionsHTML += '<button onclick="deleteAllParticipants()" class="btn-danger" style="margin-left: 20px;">Delete All Participants</button>';
+                actionsHTML += '<button onclick="deleteAllParticipants()" class="action-btn-square btn-danger">';
+                actionsHTML += '<span class="action-icon">🗑️</span>';
+                actionsHTML += '<span class="action-label">Delete All</span>';
+                actionsHTML += '</button>';
             }
             
             // Update buttons in other sections based on features
