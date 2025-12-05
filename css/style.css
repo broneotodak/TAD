@@ -131,7 +131,7 @@ body {
 .nav-button {
     background: var(--card-bg);
     border: 2px solid var(--border-color);
-    border-radius: 20px;
+    border-radius: 8px;
     padding: 40px 30px;
     text-decoration: none;
     color: var(--text-primary);
