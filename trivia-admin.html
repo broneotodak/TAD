@@ -142,7 +142,10 @@
 
             <!-- Leaderboard -->
             <div class="admin-section" id="leaderboardSection" style="display: none;">
-                <h2>Leaderboard</h2>
+                <div class="section-header">
+                    <h2>Leaderboard</h2>
+                    ${currentSessionId ? `<button onclick="resetLeaderboard()" class="btn-secondary">🔄 Reset Leaderboard</button>` : ''}
+                </div>
                 <div id="leaderboard" class="leaderboard"></div>
             </div>
         </div>
