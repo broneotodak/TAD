@@ -165,8 +165,21 @@
                 const result = await response.json();
 
                 if (result.success && result.session) {
+                    const previousSessionEnded = currentSession && !currentSession.isActive && currentSession.endedAt;
+                    const newSessionActive = result.session.isActive;
+                    
                     currentSession = result.session;
                     questions = result.questions || [];
+                    
+                    // If previous session ended and new session is active, reset user state
+                    if (previousSessionEnded && newSessionActive) {
+                        userScore = 0;
+                        userCorrect = 0;
+                        userTotal = 0;
+                        userAnswers = {};
+                        currentQuestionIndex = 0;
+                        updateProgress();
+                    }
                     
                     // Only show if session is ACTIVE (admin has started it)
                     if (result.session.isActive) {
@@ -264,12 +277,19 @@
                         // Session exists but is not active
                         // Check if session was just ended (has endedAt timestamp)
                         if (result.session.endedAt) {
-                            // Session was completed - show final results once, then wait for next session
-                            // Only show completed state if user actually participated
-                            if (userTotal > 0) {
+                            // Session was completed - show final results if user participated
+                            // But after showing once, transition to waiting for next session
+                            const wasShowingCompleted = document.getElementById('completedState').style.display === 'block';
+                            
+                            if (!wasShowingCompleted && userTotal > 0) {
+                                // Show completed state once if user participated
                                 await showCompleted();
+                                // After 5 seconds, transition to waiting state
+                                setTimeout(() => {
+                                    showWaiting('The trivia session has ended. Waiting for a new session to start.');
+                                }, 5000);
                             } else {
-                                // User didn't participate - just show waiting
+                                // Already showed completed or user didn't participate - show waiting
                                 showWaiting('The trivia session has ended. Waiting for a new session to start.');
                             }
                         } else {
