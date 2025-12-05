@@ -23,21 +23,14 @@ export default async (req, context) => {
       });
     }
 
-    // Delete all winners for this event
-    // First, get participant IDs for this event
-    const participants = await sql`
-      SELECT id FROM participants WHERE event_id = ${eventId}
+    // Delete all winners for this event using a subquery join
+    // This matches the same pattern used in get-lucky-draw-winners
+    await sql`
+      DELETE FROM lucky_draw_winners ldw
+      USING participants p
+      WHERE ldw.participant_id = p.id
+        AND p.event_id = ${eventId}
     `;
-
-    if (participants.length > 0) {
-      const participantIds = participants.map(p => p.id);
-      
-      // Delete winners for these participants
-      await sql`
-        DELETE FROM lucky_draw_winners 
-        WHERE participant_id = ANY(${participantIds})
-      `;
-    }
 
     return new Response(JSON.stringify({
       success: true,
