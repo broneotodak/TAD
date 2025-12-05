@@ -726,11 +726,11 @@
 
             container.innerHTML = `
                 ${winner ? `
-                <div class="winner-announcement" style="text-align: center; padding: 30px; margin-bottom: 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; color: white;">
-                    <div style="font-size: 3rem; margin-bottom: 15px;">🏆</div>
-                    <h2 style="font-size: 2rem; margin-bottom: 10px; font-weight: bold;">Winner!</h2>
-                    <div style="font-size: 1.5rem; margin-bottom: 5px; font-weight: 600;">${winner.name}</div>
-                    ${winner.company ? `<div style="font-size: 1rem; opacity: 0.9;">${winner.company}</div>` : ''}
+                <div class="winner-announcement" style="text-align: center; padding: 20px 15px; margin-bottom: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; color: white; overflow: hidden; word-wrap: break-word;">
+                    <div style="font-size: 2rem; margin-bottom: 10px;">🏆</div>
+                    <h2 style="font-size: 1.5rem; margin-bottom: 8px; font-weight: bold;">Winner!</h2>
+                    <div style="font-size: 1.2rem; margin-bottom: 5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${winner.name}</div>
+                    ${winner.company ? `<div style="font-size: 0.9rem; opacity: 0.9; overflow: hidden; text-overflow: ellipsis;">${winner.company}</div>` : ''}
                 </div>
                 ` : ''}
                 <h3 style="margin-bottom: 20px; text-align: center;">Top 10 Winners</h3>
@@ -739,14 +739,14 @@
                     const isWinner = index === 0;
                     return `
                         <div class="leaderboard-entry ${isCurrentUser ? 'current-user' : ''} ${isWinner ? 'winner-entry' : ''}" style="${isWinner ? 'background: rgba(102, 126, 234, 0.1); border: 2px solid #667eea;' : ''}">
-                            <div class="rank" style="${isWinner ? 'font-size: 1.5rem; font-weight: bold; color: #667eea;' : ''}">
+                            <div class="rank" style="${isWinner ? 'font-size: 1.2rem; font-weight: bold; color: #667eea;' : ''}">
                                 ${isWinner ? '👑' : `#${entry.rank}`}
                             </div>
-                            <div class="participant-info">
-                                <div class="name" style="${isWinner ? 'font-weight: bold; font-size: 1.1rem;' : ''}">
+                            <div class="participant-info" style="overflow: hidden; min-width: 0;">
+                                <div class="name" style="${isWinner ? 'font-weight: bold; font-size: 1rem;' : ''} overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
                                     ${entry.name} ${isCurrentUser ? '(You)' : ''}
                                 </div>
-                                <div class="company">${entry.company || ''}</div>
+                                <div class="company" style="overflow: hidden; text-overflow: ellipsis;">${entry.company || ''}</div>
                             </div>
                         </div>
                     `;
@@ -799,9 +799,10 @@
         .trivia-container {
             max-width: 1000px;
             margin: 0 auto;
-            height: calc(100vh - 80px); /* Full height minus header */
+            flex: 1; /* Take remaining space after header */
             display: flex;
             flex-direction: column;
+            min-height: 0; /* Allow flex shrinking */
         }
 
         .trivia-section {
@@ -1223,33 +1224,64 @@
 
         .completion-message {
             text-align: center;
-            padding: 40px 20px;
+            padding: 20px 15px; /* Reduced padding */
+            overflow: hidden; /* Prevent overflow */
         }
 
         .final-stats {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-            margin: 40px 0;
+            grid-template-columns: repeat(2, 1fr); /* Changed from 3 to 2 columns */
+            gap: 15px; /* Reduced gap */
+            margin: 20px 0; /* Reduced margin */
+            overflow: hidden;
         }
 
         .stat-box {
             background: var(--dark-bg);
             border: 2px solid var(--border-color);
             border-radius: 15px;
-            padding: 30px;
+            padding: 20px; /* Reduced padding */
+            overflow: hidden;
+            word-wrap: break-word;
         }
 
         .stat-value {
-            font-size: 3rem;
+            font-size: 2rem; /* Reduced from 3rem */
             font-weight: bold;
             color: var(--primary-color);
-            margin-bottom: 10px;
+            margin-bottom: 8px; /* Reduced margin */
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .stat-label {
             color: var(--text-secondary);
-            font-size: 0.9rem;
+            font-size: 0.85rem; /* Reduced from 0.9rem */
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        @media (max-width: 768px) {
+            .completion-message {
+                padding: 15px 10px;
+            }
+            
+            .final-stats {
+                gap: 10px;
+                margin: 15px 0;
+            }
+            
+            .stat-box {
+                padding: 15px;
+            }
+            
+            .stat-value {
+                font-size: 1.5rem;
+            }
+            
+            .stat-label {
+                font-size: 0.8rem;
+            }
         }
 
         .leaderboard-list {

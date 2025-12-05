@@ -347,6 +347,9 @@
                     if (result.session.isActive) {
                         const currentIndex = result.session.currentQuestionIndex ?? -1;
                         
+                        // Reset alert flag when session becomes active again
+                        sessionCompletedAlertShown = false;
+                        
                         // Hide session list and show session controls when active
                         document.getElementById('sessionsListSection').style.display = 'none';
                         document.getElementById('questionsSection').style.display = 'none';
@@ -600,12 +603,20 @@
                 const sessionCurrentIndex = currentSession.currentQuestionIndex ?? -1;
                 
                 // Only show timer if we have a startedAt timestamp AND it matches the current question
-                if (sessionQuestionStartedAt && sessionCurrentIndex === currentIndex) {
+                // AND the session is still active
+                if (sessionQuestionStartedAt && sessionCurrentIndex === currentIndex && currentSession.isActive) {
                     const startedAt = new Date(sessionQuestionStartedAt);
                     const now = Date.now();
                     const elapsed = Math.floor((now - startedAt.getTime()) / 1000);
                     const remaining = Math.max(0, question.timeLimitSeconds - elapsed);
                     const timerEnded = remaining <= 0;
+                    
+                    // CRITICAL: Reset timer flags when question index changes or timer starts fresh
+                    if (currentSession.previousTimerQuestionIndex !== currentIndex) {
+                        currentSession.timerWasEnded = false;
+                        currentSession.autoAdvanceScheduled = false;
+                        currentSession.previousTimerQuestionIndex = currentIndex;
+                    }
                     
                     // Reset scroll flag if timer just ended (transition from active to ended)
                     if (timerEnded && !currentSession.timerWasEnded) {
@@ -1013,10 +1024,17 @@
             await activateSession(currentSessionId);
         }
 
+        let sessionCompletedAlertShown = false; // Track if alert already shown
+
         async function completeSession() {
             if (!currentSessionId) {
                 alert('Please select a session first');
                 return;
+            }
+
+            // Check if session is already ended to prevent duplicate alerts
+            if (currentSession && !currentSession.isActive && sessionCompletedAlertShown) {
+                return; // Already completed, don't show alert again
             }
 
             if (!confirm('Complete this trivia session? This will end the session and show the final leaderboard to all participants.')) return;
@@ -1031,6 +1049,7 @@
                 const result = await response.json();
                 if (result.success) {
                     isManagingQuestions = false;
+                    sessionCompletedAlertShown = true; // Mark alert as shown
                     await loadCurrentSession();
                     await loadSessions();
                     document.getElementById('sessionsListSection').style.display = 'block';
@@ -1040,7 +1059,10 @@
                     const userTriviaUrl = `trivia.html?event=${currentEventId}`;
                     window.open(userTriviaUrl, '_blank');
                     
-                    alert('Session completed! The leaderboard and winner are now visible to participants.');
+                    // Only show alert once
+                    if (!sessionCompletedAlertShown) {
+                        alert('Session completed! The leaderboard and winner are now visible to participants.');
+                    }
                 } else {
                     alert('Error: ' + result.error);
                 }
