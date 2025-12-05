@@ -204,13 +204,20 @@
                         currentQuestionIndex: result.session.currentQuestionIndex
                     }); // Debug log
                     
-                    const previousSessionEnded = currentSession && !currentSession.isActive && currentSession.endedAt;
+                    const previousSessionEnded = currentSession && (!currentSession.isActive || currentSession.endedAt);
                     const newSessionActive = result.session.isActive === true;
+                    const previousQuestionIndex = currentSession?.currentQuestionIndex ?? -1;
+                    const newQuestionIndex = result.session.currentQuestionIndex ?? -1;
                     
                     console.log('Session active check:', { newSessionActive, isActive: result.session.isActive }); // Debug log
                     
-                    // If previous session ended and new session is active, reset user state
-                    if (previousSessionEnded && newSessionActive) {
+                    // Detect if leaderboard was reset: session went from ended/inactive to active with index -1
+                    const leaderboardWasReset = previousSessionEnded && newSessionActive && 
+                                               newQuestionIndex === -1 && 
+                                               (previousQuestionIndex >= 0 || currentSession?.endedAt);
+                    
+                    // If previous session ended and new session is active (or leaderboard was reset), reset user state
+                    if ((previousSessionEnded && newSessionActive) || leaderboardWasReset) {
                         userScore = 0;
                         userCorrect = 0;
                         userTotal = 0;
@@ -318,15 +325,7 @@
                         // Check if session was just ended (has endedAt timestamp OR currentQuestionIndex >= questions.length)
                         const sessionEnded = result.session.endedAt || (result.session.currentQuestionIndex >= questions.length && questions.length > 0);
                         
-                        // Check if leaderboard was reset (session is active again but no answers exist)
-                        // This happens when admin resets leaderboard - session becomes active with index -1
-                        const leaderboardWasReset = result.session.isActive && result.session.currentQuestionIndex === -1 && 
-                                                   (currentSession && (!currentSession.isActive || currentSession.endedAt));
-                        
-                        if (leaderboardWasReset) {
-                            // Leaderboard was reset - revert to waiting state
-                            showWaiting('The trivia session has been reset. Waiting for admin to start a new round.');
-                        } else if (sessionEnded) {
+                        if (sessionEnded) {
                             // Session was completed - show final results and leaderboard
                             const wasShowingCompleted = document.getElementById('completedState').style.display === 'block';
                             
