@@ -1664,52 +1664,82 @@
 
         .action-buttons {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 280px));
-            gap: 10px;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 15px;
+            max-width: 100%;
         }
 
-        .action-buttons button {
-            width: 280px !important;
-            min-width: 280px !important;
-            max-width: 280px !important;
-            height: 54px !important;
-            padding: 15px 30px !important;
-            font-size: 1.1rem !important;
+        .action-buttons .action-btn-square {
+            aspect-ratio: 1;
+            width: 100%;
+            min-width: 100px;
+            max-width: 120px;
+            padding: 12px 8px !important;
             box-sizing: border-box;
             display: flex !important;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             border-radius: 8px !important;
             background: #ffffff !important;
             color: #000000 !important;
-            border: 2px solid #ffffff !important;
+            border: 2px solid #cccccc !important;
+            font-weight: 500 !important;
+            cursor: pointer;
+            transition: all 0.3s ease !important;
+            gap: 8px;
         }
-        
-        .action-buttons button:hover {
+
+        .action-buttons .action-btn-square .action-icon {
+            font-size: 2rem;
+            line-height: 1;
+            display: block;
+        }
+
+        .action-buttons .action-btn-square .action-label {
+            font-size: 0.75rem;
+            line-height: 1.2;
+            text-align: center;
+            word-break: break-word;
+            max-width: 100%;
+        }
+
+        .action-buttons .action-btn-square:hover {
             background: #cccccc !important;
             border-color: #cccccc !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
         
-        .action-buttons button.btn-danger {
+        .action-buttons .action-btn-square.btn-danger {
             background: #ff4444 !important;
             color: #ffffff !important;
             border: 2px solid #ff4444 !important;
         }
         
-        .action-buttons button.btn-danger:hover {
+        .action-buttons .action-btn-square.btn-danger:hover {
             background: #ff6666 !important;
             border-color: #ff6666 !important;
         }
 
         @media (max-width: 768px) {
             .action-buttons {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+                gap: 12px;
             }
             
-            .action-buttons button {
-                width: 100% !important;
-                min-width: 100% !important;
-                max-width: 100% !important;
+            .action-buttons .action-btn-square {
+                min-width: 90px;
+                max-width: 110px;
+                padding: 10px 6px !important;
+            }
+            
+            .action-buttons .action-btn-square .action-icon {
+                font-size: 1.75rem;
+            }
+            
+            .action-buttons .action-btn-square .action-label {
+                font-size: 0.7rem;
             }
         }
 
