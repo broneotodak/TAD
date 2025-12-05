@@ -302,7 +302,7 @@ function startDraw() {
     const maxDelay = 800; // Maximum delay before final reveal
     const totalNames = participantSequence.length;
     const startTime = Date.now();
-    const totalDuration = 8000; // Total animation duration (8 seconds - longer)
+    const totalDuration = 10000; // Total animation duration (10 seconds)
     
     function updateName() {
         if (!isDrawing) return;
