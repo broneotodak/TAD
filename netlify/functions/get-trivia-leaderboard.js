@@ -20,6 +20,8 @@ export default async (req, context) => {
     }
 
     // Get all participants with their total points
+    // Use tiebreaker: total_points DESC, correct_answers DESC, earliest first answer time ASC
+    // Points already include time bonus (remaining seconds), so scores should be unique
     const leaderboard = await sql`
       SELECT 
         p.id,
@@ -27,15 +29,19 @@ export default async (req, context) => {
         p.company,
         COALESCE(SUM(ta.points_earned), 0) as total_points,
         COUNT(ta.id) as questions_answered,
-        COUNT(CASE WHEN ta.is_correct = true THEN 1 END) as correct_answers
+        COUNT(CASE WHEN ta.is_correct = true THEN 1 END) as correct_answers,
+        MIN(ta.answered_at) as first_answer_time
       FROM participants p
-      LEFT JOIN trivia_answers ta ON ta.participant_id = p.id
-      LEFT JOIN trivia_questions tq ON tq.id = ta.question_id
-      WHERE tq.session_id = ${sessionId} OR tq.session_id IS NULL
+      INNER JOIN trivia_answers ta ON ta.participant_id = p.id
+      INNER JOIN trivia_questions tq ON tq.id = ta.question_id
+      WHERE tq.session_id = ${sessionId}
       GROUP BY p.id, p.name, p.company
       HAVING COUNT(ta.id) > 0
-      ORDER BY total_points DESC, correct_answers DESC
-      LIMIT 100
+      ORDER BY 
+        total_points DESC, 
+        correct_answers DESC,
+        first_answer_time ASC
+      LIMIT 10
     `;
 
     return new Response(JSON.stringify({

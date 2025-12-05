@@ -426,16 +426,15 @@
             // Clear previous QR code
             qrcodeDiv.innerHTML = '';
             
-            // Generate check-in URL
-            const baseUrl = window.location.origin;
-            const checkinUrl = `${baseUrl}/checkin.html?event=${currentEventId}&qr=true`;
+            // Generate redirect URL to events.todak.io main page
+            const redirectUrl = 'https://events.todak.io';
             
             // Display URL
-            document.getElementById('urlDisplay').textContent = checkinUrl;
+            document.getElementById('urlDisplay').textContent = redirectUrl;
             
             // Generate QR code with high quality - make it much bigger
             new QRCode(qrcodeDiv, {
-                text: checkinUrl,
+                text: redirectUrl,
                 width: 600,
                 height: 600,
                 colorDark: '#000000',

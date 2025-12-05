@@ -412,15 +412,17 @@
                         updateQuestionControl();
                         updateBigScreenDisplay();
                     } else {
-                        // Show session list when not active
+                        // Session ended - show leaderboard with winners
                         document.getElementById('sessionsListSection').style.display = 'block';
                         document.getElementById('currentSessionStatusSection').style.display = 'block';
                         document.getElementById('startFirstQuestionSection').style.display = 'none';
-                        document.getElementById('leaderboardSection').style.display = 'none';
+                        document.getElementById('leaderboardSection').style.display = 'block'; // Show leaderboard when session ends
                         document.getElementById('questionControlSection').style.display = 'none';
                         document.getElementById('bigScreenDisplay').style.display = 'none';
                         stopQuestionMonitoring();
                         stopBigScreenUpdates();
+                        // Load leaderboard to show final winners
+                        await loadLeaderboard();
                         // Still load checked-in count even when session is not active
                         await loadCheckedInCount();
                     }
@@ -761,7 +763,28 @@
                     }
                     if (startQuestionBtn) startQuestionBtn.style.display = 'none';
                     
-                    // Show "Next Question" button only after timer ends
+                    // Auto-advance to next question after timer ends (with 5 second delay)
+                    if (timerEnded && !currentSession.autoAdvanceScheduled && currentSession.isActive) {
+                        currentSession.autoAdvanceScheduled = true;
+                        
+                        // Schedule auto-advance after 5 seconds
+                        setTimeout(async () => {
+                            // Double-check session is still active before advancing
+                            await loadCurrentSession();
+                            if (currentSession && currentSession.isActive) {
+                                const currentIdx = currentSession.currentQuestionIndex ?? -1;
+                                if (currentIdx < totalQuestions - 1) {
+                                    // Auto-advance to next question
+                                    await advanceToNextQuestion();
+                                } else {
+                                    // Last question - auto-complete session
+                                    await completeSession();
+                                }
+                            }
+                        }, 5000);
+                    }
+                    
+                    // Show "Next Question" button only after timer ends (for manual override)
                     if (nextQuestionBtn) {
                         if (timerEnded) {
                             nextQuestionBtn.style.display = 'inline-block';
@@ -775,9 +798,12 @@
                                 nextQuestionBtn.disabled = false;
                                 nextQuestionBtn.onclick = () => completeSession();
                             } else {
-                                nextQuestionBtn.textContent = '➡️ Next Question';
+                                nextQuestionBtn.textContent = '➡️ Next Question (Auto in 5s)';
                                 nextQuestionBtn.disabled = false;
-                                nextQuestionBtn.onclick = () => advanceToNextQuestion();
+                                nextQuestionBtn.onclick = () => {
+                                    currentSession.autoAdvanceScheduled = true; // Cancel auto-advance
+                                    advanceToNextQuestion();
+                                };
                             }
                             // Don't auto-scroll to result - let user scroll manually
                             // This prevents locking the scroll
@@ -787,6 +813,10 @@
                             }
                         } else {
                             nextQuestionBtn.style.display = 'none';
+                            // Reset auto-advance flag when timer is active
+                            if (currentSession.autoAdvanceScheduled) {
+                                currentSession.autoAdvanceScheduled = false;
+                            }
                         }
                     }
                 } else {
@@ -861,9 +891,12 @@
 
                 const result = await response.json();
                 if (result.success) {
-                    // Reset scroll flags when advancing to new question
+                    // Reset scroll flags and auto-advance flag when advancing to new question
                     hasScrolledToResult = false;
                     hasScrolledToBigScreen = false;
+                    if (currentSession) {
+                        currentSession.autoAdvanceScheduled = false;
+                    }
                     
                     // Reload session to get updated state
                     await loadCurrentSession();
@@ -1221,24 +1254,35 @@
                 return;
             }
 
+            // Limit to top 10
+            const top10 = leaderboard.slice(0, 10);
+            const winner = top10[0];
+
             container.innerHTML = `
+                ${winner && !currentSession?.isActive ? `
+                <div class="winner-announcement" style="text-align: center; padding: 30px; margin-bottom: 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px; color: white;">
+                    <div style="font-size: 3rem; margin-bottom: 15px;">🏆</div>
+                    <h2 style="font-size: 2rem; margin-bottom: 10px; font-weight: bold;">Winner!</h2>
+                    <div style="font-size: 1.5rem; margin-bottom: 5px; font-weight: 600;">${winner.name}</div>
+                    ${winner.company ? `<div style="font-size: 1rem; opacity: 0.9;">${winner.company}</div>` : ''}
+                </div>
+                ` : ''}
+                <h3 style="margin-bottom: 20px; text-align: center;">${!currentSession?.isActive ? 'Final ' : ''}Top 10 Leaderboard</h3>
                 <table class="leaderboard-table">
                     <thead>
                         <tr>
                             <th>Rank</th>
                             <th>Name</th>
                             <th>Company</th>
-                            <th>Points</th>
                             <th>Correct</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${leaderboard.map(entry => `
-                            <tr>
-                                <td>${entry.rank}</td>
-                                <td>${entry.name}</td>
+                        ${top10.map(entry => `
+                            <tr ${entry.rank === 1 && !currentSession?.isActive ? 'style="background: rgba(102, 126, 234, 0.1); border: 2px solid #667eea;"' : ''}>
+                                <td>${entry.rank === 1 ? '👑' : entry.rank}</td>
+                                <td><strong>${entry.name}</strong></td>
                                 <td>${entry.company || '-'}</td>
-                                <td><strong>${entry.totalPoints}</strong></td>
                                 <td>${entry.correctAnswers}/${entry.questionsAnswered}</td>
                             </tr>
                         `).join('')}

@@ -447,13 +447,36 @@ function removeWinner(index) {
     }
 }
 
-function resetAllWinners() {
+async function resetAllWinners() {
     if (!confirm('Are you sure you want to reset all winners? This cannot be undone.')) {
         return;
     }
     
     winners = [];
     localStorage.setItem('luckyDrawWinners', JSON.stringify(winners));
+    
+    // Clear winners from database if event ID is available
+    if (currentEventId) {
+        try {
+            const response = await fetch('/api/reset-lucky-draw-winners', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ eventId: currentEventId })
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                console.log('✅ Winners cleared from database');
+            } else {
+                console.warn('Failed to clear winners from database:', result.error);
+            }
+        } catch (error) {
+            console.error('Error clearing winners from database:', error);
+        }
+    }
+    
+    // Reload winners from database to ensure UI is updated
+    await loadWinnersFromDatabase();
     
     // Clear the winner display
     document.getElementById('winnerDisplay').style.display = 'none';
