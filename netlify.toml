@@ -3,7 +3,7 @@
   publish = "."
 
 [build.environment]
-  NODE_VERSION = "20.17.0"
+  NODE_VERSION = "20.16.0"
 
 [[redirects]]
   from = "/api/*"
