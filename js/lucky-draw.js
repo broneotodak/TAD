@@ -292,7 +292,9 @@ function startDraw() {
     const finalWinner = eligible[Math.floor(Math.random() * eligible.length)];
     
     const startTime = Date.now();
-    const totalDuration = 10000; // Exactly 10 seconds
+    const fastDuration = 10000; // Keep fast for 10 seconds
+    const slowDuration = 3000; // Then slow down for 3 seconds
+    const totalDuration = fastDuration + slowDuration; // Total 13 seconds
     let currentIndex = 0;
     let hasShownWinner = false;
     
@@ -301,16 +303,23 @@ function startDraw() {
         
         const elapsed = Date.now() - startTime;
         const remaining = totalDuration - elapsed;
-        const progress = elapsed / totalDuration;
         
-        // Calculate delay based on progress - smooth deceleration curve
+        // Calculate delay based on elapsed time
         let currentDelay;
         
-        // Use exponential easing for smooth deceleration
-        // Fast at start (50ms), gradually slowing down to very slow at end (800ms)
-        // Using ease-out cubic curve: 1 - (1 - t)^3
-        const easedProgress = 1 - Math.pow(1 - progress, 3);
-        currentDelay = 50 + (easedProgress * 750); // Range: 50ms to 800ms
+        if (elapsed < fastDuration) {
+            // First 10 seconds: keep it fast (50-80ms)
+            const fastProgress = elapsed / fastDuration;
+            currentDelay = 50 + (fastProgress * 30); // Range: 50ms to 80ms
+        } else {
+            // After 10 seconds: start slowing down smoothly
+            const slowElapsed = elapsed - fastDuration;
+            const slowProgress = slowElapsed / slowDuration;
+            
+            // Use exponential easing for smooth deceleration
+            const easedProgress = 1 - Math.pow(1 - slowProgress, 3);
+            currentDelay = 80 + (easedProgress * 720); // Range: 80ms to 800ms
+        }
         
         // When we're very close to the end (last 200ms), show the winner
         if (remaining <= 200 && !hasShownWinner) {
