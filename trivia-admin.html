@@ -616,6 +616,11 @@
                         currentSession.timerWasEnded = false;
                         currentSession.autoAdvanceScheduled = false;
                         currentSession.previousTimerQuestionIndex = currentIndex;
+                        // Clear any pending auto-advance timeout when question changes
+                        if (currentSession.autoAdvanceTimeout) {
+                            clearTimeout(currentSession.autoAdvanceTimeout);
+                            currentSession.autoAdvanceTimeout = null;
+                        }
                     }
                     
                     // Reset scroll flag if timer just ended (transition from active to ended)
@@ -727,9 +732,42 @@
                                 `;
                             }
                         } else {
-                            questionTimerStatusEl.innerHTML = `
-                                Timer: <strong>${remaining}s</strong> remaining
-                            `;
+                            // Timer is running - show timer AND live answer stats
+                            try {
+                                // Fetch live answer stats during timer
+                                const statsResponse = await fetch(`/api/get-trivia-question-stats?questionId=${question.id}`);
+                                const statsResult = await statsResponse.json();
+                                
+                                let statsHTML = '';
+                                if (statsResult.success) {
+                                    const answerCount = statsResult.answerCount || 0;
+                                    statsHTML = `
+                                        <div style="margin-top: 15px; padding: 15px; background: var(--dark-bg); border-radius: 8px;">
+                                            <div style="text-align: center; color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 10px;">
+                                                Live Answer Count
+                                            </div>
+                                            <div style="text-align: center; font-size: 2rem; font-weight: bold; color: var(--primary-color);">
+                                                ${answerCount}
+                                            </div>
+                                        </div>
+                                    `;
+                                }
+                                
+                                questionTimerStatusEl.innerHTML = `
+                                    <div style="color: var(--primary-color); font-weight: bold; margin-bottom: 10px; font-size: 1.2rem;">
+                                        ⏱️ Timer: <strong>${remaining}s</strong> remaining
+                                    </div>
+                                    ${statsHTML}
+                                `;
+                            } catch (error) {
+                                console.error('Error loading question stats:', error);
+                                // Fallback to just timer if stats fail
+                                questionTimerStatusEl.innerHTML = `
+                                    <div style="color: var(--primary-color); font-weight: bold; font-size: 1.2rem;">
+                                        ⏱️ Timer: <strong>${remaining}s</strong> remaining
+                                    </div>
+                                `;
+                            }
                         }
                     }
                     if (startQuestionBtn) startQuestionBtn.style.display = 'none';
@@ -903,6 +941,12 @@
                     document.getElementById('startFirstQuestionSection').style.display = 'none';
                     document.getElementById('questionControlSection').style.display = 'block';
                     // CRITICAL: Wait a moment for session state to fully update, then update question control
+                    // Also ensure timer flags are reset for the new question
+                    if (currentSession) {
+                        currentSession.previousTimerQuestionIndex = -1; // Force reset
+                        currentSession.timerWasEnded = false;
+                        currentSession.autoAdvanceScheduled = false;
+                    }
                     setTimeout(async () => {
                         await updateQuestionControl();
                     }, 500);

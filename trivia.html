@@ -471,15 +471,17 @@
                 </button>
             `).join('');
 
-            // Check if admin has started this question
+            // CRITICAL: Check if admin has started this question
+            // Verify questionStartedAt matches current question index AND session is active
             const questionStarted = currentSession.questionStartedAt && 
-                                   currentSession.currentQuestionIndex === index;
+                                   currentSession.currentQuestionIndex === index &&
+                                   currentSession.isActive;
             
             const waitingEl = document.getElementById('waitingForQuestion');
             const timerDisplayEl = document.getElementById('timerDisplay');
             
             if (questionStarted && !existingAnswer) {
-                // Calculate remaining time
+                // Calculate remaining time based on server timestamp
                 const startedAt = new Date(currentSession.questionStartedAt);
                 const elapsed = Math.floor((Date.now() - startedAt.getTime()) / 1000);
                 timeRemaining = Math.max(0, question.timeLimitSeconds - elapsed);
@@ -487,6 +489,8 @@
                 if (timeRemaining > 0) {
                     if (waitingEl) waitingEl.style.display = 'none';
                     if (timerDisplayEl) timerDisplayEl.style.display = 'flex';
+                    // CRITICAL: Clear any existing timer before starting new one
+                    clearTimer();
                     startTimer();
                 } else {
                     // Time already expired
@@ -496,18 +500,21 @@
                         btn.disabled = true;
                     });
                     clearTimer();
+                    // Show correct answer if timer expired
+                    showCorrectAnswerAfterTimer(question);
                 }
             } else if (!existingAnswer) {
                 // Waiting for admin to start question
                 if (waitingEl) waitingEl.style.display = 'block';
                 if (timerDisplayEl) timerDisplayEl.style.display = 'none';
-                clearTimer();
+                clearTimer(); // CRITICAL: Clear timer when waiting
             } else {
                 // Already answered - check if timer has ended to show correct answer
-                const questionStarted = currentSession.questionStartedAt && 
-                                       currentSession.currentQuestionIndex === index;
+                const questionStartedForAnswer = currentSession.questionStartedAt && 
+                                                currentSession.currentQuestionIndex === index &&
+                                                currentSession.isActive;
                 
-                if (questionStarted) {
+                if (questionStartedForAnswer) {
                     const startedAt = new Date(currentSession.questionStartedAt);
                     const elapsed = Math.floor((Date.now() - startedAt.getTime()) / 1000);
                     const timerEnded = elapsed >= question.timeLimitSeconds;
