@@ -577,6 +577,9 @@
             if (currentIndex !== previousIndex) {
                 hasScrolledToResult = false;
                 currentSession.previousQuestionIndex = currentIndex;
+                // CRITICAL: Reset timer flags when question index changes
+                currentSession.timerWasEnded = false;
+                currentSession.autoAdvanceScheduled = false;
             }
             
             const totalQuestionsDisplayEl = document.getElementById('totalQuestionsDisplay');
@@ -603,8 +606,13 @@
                 
                 // Show timer status and check if timer has ended
                 // CRITICAL: Ensure we have the latest questionStartedAt from the session
-                if (currentSession.questionStartedAt) {
-                    const startedAt = new Date(currentSession.questionStartedAt);
+                // Also verify that questionStartedAt matches the current question index
+                const sessionQuestionStartedAt = currentSession.questionStartedAt;
+                const sessionCurrentIndex = currentSession.currentQuestionIndex ?? -1;
+                
+                // Only show timer if we have a startedAt timestamp AND it matches the current question
+                if (sessionQuestionStartedAt && sessionCurrentIndex === currentIndex) {
+                    const startedAt = new Date(sessionQuestionStartedAt);
                     const now = Date.now();
                     const elapsed = Math.floor((now - startedAt.getTime()) / 1000);
                     const remaining = Math.max(0, question.timeLimitSeconds - elapsed);
