@@ -794,14 +794,24 @@
                         }
                     }
                 } else {
-                    // Reset header when timer not started
+                    // Timer not started for this question yet
                     const questionControlHeader = document.getElementById('questionControlHeader');
                     if (questionControlHeader) {
                         questionControlHeader.textContent = 'Current Question Control';
                     }
-                    if (questionTimerStatusEl) questionTimerStatusEl.textContent = 'Timer not started';
-                    if (startQuestionBtn) startQuestionBtn.style.display = 'inline-block';
+                    if (questionTimerStatusEl) {
+                        questionTimerStatusEl.textContent = 'Timer not started. Click "Start Question Timer" to begin.';
+                    }
+                    if (startQuestionBtn) {
+                        startQuestionBtn.style.display = 'inline-block';
+                        startQuestionBtn.disabled = false;
+                    }
                     if (nextQuestionBtn) nextQuestionBtn.style.display = 'none';
+                    
+                    // Reset timer flags when timer hasn't started
+                    if (currentSession) {
+                        currentSession.timerWasEnded = false;
+                    }
                 }
                 
                 // Timer updated
