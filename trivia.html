@@ -322,37 +322,40 @@
                         }
                     } else {
                         // Session exists but is not active
-                        // Check if session was just ended (has endedAt timestamp OR currentQuestionIndex >= questions.length)
-                        const sessionEnded = result.session.endedAt || (result.session.currentQuestionIndex >= questions.length && questions.length > 0);
-                        
-                        // CRITICAL: Check if leaderboard was reset
-                        // Reset state: currentQuestionIndex is -1 OR session is active but index is -1
-                        // Also check if we were showing completed but leaderboard is now empty (reset happened)
-                        const wasShowingCompleted = document.getElementById('completedState').style.display === 'block';
                         const currentIndex = result.session.currentQuestionIndex ?? -1;
-                        const leaderboardWasReset = (currentIndex === -1) || 
-                                                   (wasShowingCompleted && !result.session.endedAt && currentIndex < questions.length);
+                        const wasShowingCompleted = document.getElementById('completedState').style.display === 'block';
                         
-                        // Additional check: if leaderboard is empty and we were showing completed, it was reset
-                        if (wasShowingCompleted && !sessionEnded) {
-                            try {
-                                const leaderboardResponse = await fetch(`/api/get-trivia-leaderboard?sessionId=${result.session.id}`);
-                                const leaderboardResult = await leaderboardResponse.json();
-                                if (leaderboardResult.success && leaderboardResult.leaderboard.length === 0) {
-                                    // Leaderboard is empty - it was reset
-                                    showWaiting('The trivia session has been reset. Waiting for admin to start a new round.');
-                                    return;
-                                }
-                            } catch (error) {
-                                console.error('Error checking leaderboard:', error);
+                        // CRITICAL: ALWAYS check leaderboard first - if empty, leaderboard was reset
+                        // This is the most reliable way to detect reset, even if session state hasn't updated
+                        let leaderboardEmpty = false;
+                        try {
+                            const leaderboardResponse = await fetch(`/api/get-trivia-leaderboard?sessionId=${result.session.id}`);
+                            const leaderboardResult = await leaderboardResponse.json();
+                            if (leaderboardResult.success) {
+                                leaderboardEmpty = leaderboardResult.leaderboard.length === 0;
                             }
+                        } catch (error) {
+                            console.error('Error checking leaderboard:', error);
                         }
+                        
+                        // If leaderboard is empty, it means it was reset - show waiting state
+                        if (leaderboardEmpty) {
+                            console.log('Leaderboard is empty - session was reset, showing waiting state');
+                            showWaiting('The trivia session has been reset. Waiting for admin to start a new round.');
+                            return; // Exit early, don't show completed state
+                        }
+                        
+                        // Check if session was just ended (has endedAt timestamp OR currentQuestionIndex >= questions.length)
+                        const sessionEnded = result.session.endedAt || (currentIndex >= questions.length && questions.length > 0);
+                        
+                        // Check if leaderboard was reset by index
+                        const leaderboardWasReset = (currentIndex === -1);
                         
                         if (leaderboardWasReset) {
                             // Leaderboard was reset - revert to waiting state
                             showWaiting('The trivia session has been reset. Waiting for admin to start a new round.');
                         } else if (sessionEnded) {
-                            // Session was completed - show final results and leaderboard
+                            // Session was completed AND leaderboard has entries - show final results
                             if (!wasShowingCompleted && userTotal > 0) {
                                 // Show completed state with leaderboard if user participated
                                 await showCompleted();
@@ -1282,7 +1285,8 @@
         .completion-message {
             text-align: center;
             padding: 20px 15px; /* Reduced padding */
-            overflow: hidden; /* Prevent overflow */
+            overflow: visible; /* Allow content to be visible */
+            word-wrap: break-word;
         }
 
         .final-stats {
@@ -1290,7 +1294,7 @@
             grid-template-columns: repeat(2, 1fr); /* Changed from 3 to 2 columns */
             gap: 15px; /* Reduced gap */
             margin: 20px 0; /* Reduced margin */
-            overflow: hidden;
+            overflow: visible;
         }
 
         .stat-box {
@@ -1298,8 +1302,9 @@
             border: 2px solid var(--border-color);
             border-radius: 15px;
             padding: 20px; /* Reduced padding */
-            overflow: hidden;
+            overflow: visible; /* Allow content to be visible */
             word-wrap: break-word;
+            min-height: 0; /* Allow flex shrinking */
         }
 
         .stat-value {
@@ -1307,15 +1312,24 @@
             font-weight: bold;
             color: var(--primary-color);
             margin-bottom: 8px; /* Reduced margin */
-            overflow: hidden;
-            text-overflow: ellipsis;
+            overflow: visible;
+            word-wrap: break-word;
         }
 
         .stat-label {
             color: var(--text-secondary);
             font-size: 0.85rem; /* Reduced from 0.9rem */
-            overflow: hidden;
-            text-overflow: ellipsis;
+            overflow: visible;
+            word-wrap: break-word;
+        }
+        
+        .leaderboard-note {
+            margin-top: 20px; /* Reduced from 30px */
+            color: var(--text-secondary);
+            padding: 0 10px; /* Add horizontal padding */
+            overflow: visible;
+            word-wrap: break-word;
+            line-height: 1.4;
         }
         
         @media (max-width: 768px) {
@@ -1338,6 +1352,11 @@
             
             .stat-label {
                 font-size: 0.8rem;
+            }
+            
+            .leaderboard-note {
+                margin-top: 15px;
+                font-size: 0.9rem;
             }
         }
 
