@@ -602,9 +602,11 @@
                 }
                 
                 // Show timer status and check if timer has ended
+                // CRITICAL: Ensure we have the latest questionStartedAt from the session
                 if (currentSession.questionStartedAt) {
                     const startedAt = new Date(currentSession.questionStartedAt);
-                    const elapsed = Math.floor((Date.now() - startedAt.getTime()) / 1000);
+                    const now = Date.now();
+                    const elapsed = Math.floor((now - startedAt.getTime()) / 1000);
                     const remaining = Math.max(0, question.timeLimitSeconds - elapsed);
                     const timerEnded = remaining <= 0;
                     
