@@ -144,7 +144,7 @@
             <div class="admin-section" id="leaderboardSection" style="display: none;">
                 <div class="section-header">
                     <h2>Leaderboard</h2>
-                    ${currentSessionId ? `<button onclick="resetLeaderboard()" class="btn-secondary">🔄 Reset Leaderboard</button>` : ''}
+                    <button onclick="resetLeaderboard()" class="btn-secondary" id="resetLeaderboardBtnHeader">🔄 Reset Leaderboard</button>
                 </div>
                 <div id="leaderboard" class="leaderboard"></div>
             </div>
@@ -425,6 +425,7 @@
                         document.getElementById('leaderboardSection').style.display = 'block'; // Show leaderboard when session ends
                         document.getElementById('questionControlSection').style.display = 'none';
                         document.getElementById('bigScreenDisplay').style.display = 'none';
+                        document.getElementById('sessionControls').style.display = 'none'; // Hide session controls when ended
                         stopQuestionMonitoring();
                         stopBigScreenUpdates();
                         // Load leaderboard to show final winners
@@ -1272,6 +1273,11 @@
 
                 if (result.success) {
                     displayLeaderboard(result.leaderboard);
+                    // Show reset button if session exists
+                    const resetBtn = document.getElementById('resetLeaderboardBtnHeader');
+                    if (resetBtn && currentSessionId) {
+                        resetBtn.style.display = 'inline-block';
+                    }
                 }
             } catch (error) {
                 console.error('Error loading leaderboard:', error);
