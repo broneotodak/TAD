@@ -1303,13 +1303,13 @@ body {
 .draw-slot {
     width: 100%;
     text-align: center;
-    padding: 20px;
+    padding: 30px 20px;
     box-sizing: border-box;
     overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 300px;
+    min-height: 400px;
 }
 
 .rolling-names {

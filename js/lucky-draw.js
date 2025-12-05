@@ -196,30 +196,9 @@ function loadData() {
 }
 
 async function saveWinners() {
-    // Save to localStorage as backup
+    // Save to localStorage as backup only
+    // Database saving is handled in revealWinner() to avoid duplicate saves
     localStorage.setItem('luckyDrawWinners', JSON.stringify(winners));
-    
-    // Save latest winner to database if we have event ID
-    if (currentEventId && winners.length > 0 && window.dbAPI) {
-        const latestWinner = winners[winners.length - 1];
-        try {
-            const response = await fetch('/api/save-lucky-draw-winner', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    participantId: latestWinner.id,
-                    eventId: currentEventId
-                })
-            });
-            
-            const result = await response.json();
-            if (result.success) {
-                console.log('✅ Winner saved to database');
-            }
-        } catch (error) {
-            console.error('Error saving winner to database:', error);
-        }
-    }
 }
 
 function updateCounts() {
