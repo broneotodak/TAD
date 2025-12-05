@@ -70,7 +70,7 @@
                     <h2 style="margin: 0; font-size: 1.25rem; font-weight: 600;">Quick Actions</h2>
                     <span id="quickActionsToggle" class="collapse-icon">▼</span>
                 </div>
-                <div id="quickActionsContent" style="padding-top: 20px; display: none;">
+                <div id="quickActionsContent" style="padding-top: 20px; display: none; text-align: center;">
                     <div class="action-buttons" id="quickActionsContainer">
                         <!-- Actions will be populated based on event features -->
                     </div>
@@ -1667,6 +1667,8 @@
             grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
             gap: 15px;
             max-width: 100%;
+            justify-content: center;
+            justify-items: center;
         }
 
         .action-buttons .action-btn-square {
@@ -1691,6 +1693,7 @@
             gap: 10px;
             overflow: visible;
             position: relative;
+            margin: 0 auto;
         }
 
         .action-buttons .action-btn-square .action-icon {
@@ -1734,24 +1737,24 @@
 
         @media (max-width: 768px) {
             .action-buttons {
-                grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+                grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
                 gap: 12px;
             }
             
             .action-buttons .action-btn-square {
-                min-width: 90px;
-                max-width: 110px;
-                padding: 8px 4px !important;
-                gap: 5px;
+                min-width: 110px;
+                max-width: 130px;
+                padding: 12px 8px !important;
+                gap: 8px;
             }
             
             .action-buttons .action-btn-square .action-icon {
-                font-size: 1.5rem;
+                font-size: 2rem;
             }
             
             .action-buttons .action-btn-square .action-label {
-                font-size: 0.65rem;
-                line-height: 1.1;
+                font-size: 0.75rem;
+                line-height: 1.2;
             }
         }
 
