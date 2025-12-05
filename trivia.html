@@ -60,8 +60,7 @@
 
                     <!-- Waiting for Admin -->
                     <div id="waitingForQuestion" class="waiting-question" style="display: none;">
-                        <div class="waiting-icon">⏳</div>
-                        <p>Waiting for admin to start the question...</p>
+                        <!-- Removed hourglass and text - waiting message already shown at top -->
                     </div>
                 </div>
 
@@ -71,13 +70,10 @@
                     <div id="pointsEarned" class="points-display-kahoot"></div>
                 </div>
 
-                <!-- Progress Bar -->
-                <div class="progress-section-kahoot">
+                <!-- Progress Bar (removed Correct status - only show at end) -->
+                <div class="progress-section-kahoot" style="display: none;">
                     <div class="progress-bar-kahoot">
                         <div id="progressFill" class="progress-fill-kahoot"></div>
-                    </div>
-                    <div class="progress-text-kahoot">
-                        <span>Correct: <strong id="userCorrect">0</strong>/<strong id="userTotal">0</strong></span>
                     </div>
                 </div>
             </div>
@@ -309,7 +305,7 @@
                             const timerDisplay = document.getElementById('timerDisplay');
                             
                             if (waitingEl) waitingEl.style.display = 'block';
-                            if (questionTextEl) questionTextEl.textContent = 'Waiting for admin to start the first question...';
+                            if (questionTextEl) questionTextEl.textContent = '';
                             if (optionsContainer) optionsContainer.innerHTML = '';
                             if (timerDisplay) timerDisplay.style.display = 'none';
                         } else if (activeQuestionIndex >= questions.length) {
@@ -318,22 +314,26 @@
                         }
                     } else {
                         // Session exists but is not active
-                        // Check if session was just ended (has endedAt timestamp)
-                        if (result.session.endedAt) {
-                            // Session was completed - show final results if user participated
-                            // But after showing once, transition to waiting for next session
+                        // Check if session was just ended (has endedAt timestamp OR currentQuestionIndex >= questions.length)
+                        const sessionEnded = result.session.endedAt || (result.session.currentQuestionIndex >= questions.length && questions.length > 0);
+                        
+                        if (sessionEnded) {
+                            // Session was completed - show final results and leaderboard
                             const wasShowingCompleted = document.getElementById('completedState').style.display === 'block';
                             
                             if (!wasShowingCompleted && userTotal > 0) {
-                                // Show completed state once if user participated
+                                // Show completed state with leaderboard if user participated
                                 await showCompleted();
-                                // After 5 seconds, transition to waiting state
-                                setTimeout(() => {
-                                    showWaiting('The trivia session has ended. Waiting for a new session to start.');
-                                }, 5000);
+                            } else if (!wasShowingCompleted) {
+                                // User didn't participate but session ended - show leaderboard anyway
+                                await showCompleted();
                             } else {
-                                // Already showed completed or user didn't participate - show waiting
-                                showWaiting('The trivia session has ended. Waiting for a new session to start.');
+                                // Already showed completed - ensure leaderboard is visible
+                                const leaderboardSection = document.getElementById('leaderboardSection');
+                                if (leaderboardSection) {
+                                    leaderboardSection.style.display = 'block';
+                                }
+                                await loadLeaderboard();
                             }
                         } else {
                             // Session exists but not started yet
@@ -671,16 +671,8 @@
         }
 
         function updateProgress() {
-            if (questions.length === 0) return;
-            
-            const progress = (userTotal / questions.length) * 100;
-            const progressFill = document.getElementById('progressFill');
-            const userCorrectEl = document.getElementById('userCorrect');
-            const userTotalEl = document.getElementById('userTotal');
-            
-            if (progressFill) progressFill.style.width = `${progress}%`;
-            if (userCorrectEl) userCorrectEl.textContent = userCorrect;
-            if (userTotalEl) userTotalEl.textContent = userTotal;
+            // Progress bar hidden during session - only show results at end
+            // Keep function for potential future use but don't update visible elements
         }
 
         async function showCompleted() {
@@ -828,7 +820,8 @@
 
         /* Kahoot-style Question Display */
         .kahoot-question-display {
-            min-height: 80vh;
+            min-height: auto;
+            max-height: calc(100vh - 200px); /* Fit mobile screens better */
             display: flex;
             flex-direction: column;
         }
@@ -837,8 +830,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 20px;
-            margin-bottom: 30px;
+            padding: 15px 20px;
+            margin-bottom: 10px; /* Reduced from 30px */
         }
 
         .question-info {
@@ -897,8 +890,8 @@
 
         .question-text-kahoot {
             text-align: center;
-            padding: 40px 20px;
-            margin-bottom: 40px;
+            padding: 15px 20px; /* Reduced from 40px */
+            margin-bottom: 20px; /* Reduced from 40px */
         }
 
         .question-text-kahoot h1 {
@@ -996,13 +989,13 @@
 
         .waiting-question {
             text-align: center;
-            padding: 60px 20px;
+            padding: 20px; /* Reduced from 60px */
             color: var(--text-secondary);
+            min-height: auto; /* Remove excessive height */
         }
 
         .waiting-icon {
-            font-size: 4rem;
-            margin-bottom: 20px;
+            display: none; /* Hidden - removed hourglass */
         }
 
         .answer-feedback-kahoot {
