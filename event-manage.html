@@ -157,22 +157,26 @@
             </div>
 
             <!-- Participant Management Section -->
-            <div class="admin-section">
-                <div class="section-header">
-                    <h2>Participant Management</h2>
-                    <div style="display: flex; gap: 10px;">
-                        <button onclick="downloadCSVTemplate()" class="btn-secondary">
-                            <span>📥</span> Download CSV Template
-                        </button>
-                        <button onclick="showUploadModal()" class="btn-primary">
-                            <span>📤</span> Upload List
-                        </button>
-                        <button onclick="addNewParticipant()" class="btn-success">
-                            <span>+</span> Add Participant
-                        </button>
-                    </div>
+            <div class="admin-section" style="overflow: hidden;">
+                <div class="section-header-collapsible" onclick="toggleSection('participantManagementContent', 'participantManagementToggle')" style="padding: 20px 30px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); user-select: none; margin: -30px -30px 0 -30px;">
+                    <h2 style="margin: 0;">Participant Management</h2>
+                    <span id="participantManagementToggle" style="font-size: 1.5rem; transition: transform 0.3s ease;">▼</span>
                 </div>
-                <div class="search-bar">
+                <div id="participantManagementContent" style="padding-top: 20px;">
+                    <div class="section-header">
+                        <div style="display: flex; gap: 10px;">
+                            <button onclick="downloadCSVTemplate()" class="btn-secondary">
+                                <span>📥</span> Download CSV Template
+                            </button>
+                            <button onclick="showUploadModal()" class="btn-primary">
+                                <span>📤</span> Upload List
+                            </button>
+                            <button onclick="addNewParticipant()" class="btn-success">
+                                <span>+</span> Add Participant
+                            </button>
+                        </div>
+                    </div>
+                    <div class="search-bar">
                     <input type="text" id="searchParticipant" placeholder="Search by name or company..." onkeyup="filterParticipants()">
                     <label class="checkbox-label" id="vipFilterLabel">
                         <input type="checkbox" id="filterVIP" onchange="filterParticipants()">
@@ -221,6 +225,7 @@
                         </thead>
                         <tbody id="participantsTableBody"></tbody>
                     </table>
+                </div>
                 </div>
             </div>
 
@@ -352,6 +357,21 @@
         function toggleEventDetails() {
             const content = document.getElementById('eventDetailsContent');
             const toggle = document.getElementById('eventDetailsToggle');
+            if (!content || !toggle) return;
+            
+            if (content.style.display === 'none' || !content.style.display) {
+                content.style.display = 'block';
+                toggle.style.transform = 'rotate(180deg)';
+            } else {
+                content.style.display = 'none';
+                toggle.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        // Generic function to toggle any collapsible section
+        function toggleSection(contentId, toggleId) {
+            const content = document.getElementById(contentId);
+            const toggle = document.getElementById(toggleId);
             if (!content || !toggle) return;
             
             if (content.style.display === 'none' || !content.style.display) {
