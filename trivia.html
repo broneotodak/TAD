@@ -161,14 +161,18 @@
             }
             
             try {
-                await fetch('/api/track-trivia-user', {
+                const response = await fetch('/api/track-trivia-user', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ eventId: currentEventId, sessionId: sessionId })
                 });
+                const result = await response.json();
+                if (!result.success) {
+                    console.warn('Failed to track user presence:', result.error);
+                }
             } catch (error) {
-                // Silently fail - tracking is not critical
-                console.debug('Failed to track user presence:', error);
+                // Log error for debugging
+                console.error('Failed to track user presence:', error);
             }
         }
 
@@ -892,32 +896,38 @@
         .options-kahoot {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
             gap: 20px;
             flex: 1;
             padding: 0 20px;
+            min-height: 400px;
         }
 
         @media (max-width: 768px) {
             .options-kahoot {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(2, 1fr);
+                grid-template-rows: repeat(2, 1fr);
+                min-height: 300px;
             }
         }
 
         .option-button-kahoot {
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 20px;
             padding: 30px;
             border: none;
             border-radius: 20px;
             cursor: pointer;
             transition: all 0.3s ease;
-            text-align: left;
+            text-align: center;
             font-size: 1.5rem;
             font-weight: 600;
             color: #ffffff;
-            min-height: 120px;
+            min-height: 150px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            flex-direction: column;
         }
 
         .option-button-kahoot:hover:not(:disabled) {
