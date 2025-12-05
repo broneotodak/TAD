@@ -25,16 +25,19 @@ export default async (req, context) => {
 
     // Delete all winners for this event using a subquery join
     // This matches the same pattern used in get-lucky-draw-winners
-    await sql`
+    const result = await sql`
       DELETE FROM lucky_draw_winners ldw
       USING participants p
       WHERE ldw.participant_id = p.id
         AND p.event_id = ${eventId}
     `;
 
+    console.log(`Deleted ${result.count || 0} winners for event ${eventId}`);
+
     return new Response(JSON.stringify({
       success: true,
-      message: 'All winners have been reset'
+      message: 'All winners have been reset',
+      deletedCount: result.count || 0
     }), {
       status: 200,
       headers: { 
