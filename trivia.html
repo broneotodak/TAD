@@ -211,7 +211,7 @@
                     }
                     
                     // Only show if session is ACTIVE (admin has started it)
-                    if (result.session.isActive) {
+                    if (result.session.isActive === true) {
                         // Session is active
                         const previousQuestionIndex = currentSession?.currentQuestionIndex ?? -1;
                         const previousStartedAt = currentSession?.startedAt;
