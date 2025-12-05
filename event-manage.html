@@ -82,8 +82,8 @@
                 <div class="section-header-collapsible" onclick="toggleEventDetails()" style="padding: 15px 30px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); user-select: none; margin: -30px -30px 0 -30px;">
                     <h2 style="margin: 0; font-size: 1.25rem; font-weight: 600;">Event Details</h2>
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <button onclick="openEditEventModal(); return false;" class="btn-secondary" style="font-size: 0.9rem; padding: 6px 12px;" onmousedown="event.stopPropagation();">Edit</button>
-                        <span id="eventDetailsToggle" class="collapse-icon">▼</span>
+                        <button onclick="event.stopPropagation(); openEditEventModal();" class="btn-secondary" style="font-size: 0.9rem; padding: 6px 12px;">Edit</button>
+                        <span id="eventDetailsToggle" class="collapse-icon" onclick="event.stopPropagation(); toggleEventDetails();">▼</span>
                     </div>
                 </div>
                 <div id="eventDetailsContent" style="padding-top: 20px; display: none;">
