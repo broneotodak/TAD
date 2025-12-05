@@ -331,7 +331,7 @@
                     currentSessionId = result.session.id;
                     questions = result.questions || [];
                     
-                    displaySessionStatus();
+                    // displaySessionStatus() removed - Current Session section no longer exists
                     displayQuestions();
                     updateSessionControls();
                     
@@ -397,24 +397,13 @@
             }
         }
 
-        function displaySessionStatus() {
-            const container = document.getElementById('currentSessionStatus');
-            container.innerHTML = `
-                <div class="session-info">
-                    <h3>${currentSession.title}</h3>
-                    <p>Status: <strong>${currentSession.isActive ? '🟢 Active' : '⚪ Inactive'}</strong></p>
-                    <p>Questions: <strong>${questions.length}</strong></p>
-                    ${currentSession.startedAt ? `<p>Started: ${new Date(currentSession.startedAt).toLocaleString()}</p>` : ''}
-                </div>
-            `;
-        }
-
         function displayNoSession() {
-            document.getElementById('currentSessionStatus').innerHTML = 
-                '<p class="no-session">No trivia session. Create one above.</p>';
+            // Current Session section removed - just hide other sections
             document.getElementById('questionsSection').style.display = 'none';
             document.getElementById('sessionControls').style.display = 'none';
             document.getElementById('leaderboardSection').style.display = 'none';
+            document.getElementById('startFirstQuestionSection').style.display = 'none';
+            document.getElementById('questionControlSection').style.display = 'none';
             const resetBtn = document.getElementById('resetLeaderboardBtnHeader');
             if (resetBtn) resetBtn.style.display = 'none';
         }
@@ -748,10 +737,20 @@
                                     // CRITICAL: Reset auto-advance flag BEFORE advancing to ensure timer works for next question
                                     currentSession.autoAdvanceScheduled = false;
                                     currentSession.timerWasEnded = false;
+                                    // Clear timeout reference before advancing
+                                    if (currentSession.autoAdvanceTimeout) {
+                                        clearTimeout(currentSession.autoAdvanceTimeout);
+                                        currentSession.autoAdvanceTimeout = null;
+                                    }
                                     // Auto-advance to next question
                                     await advanceToNextQuestion();
                                 } else {
                                     // Last question - auto-complete session
+                                    // Clear timeout reference before completing
+                                    if (currentSession.autoAdvanceTimeout) {
+                                        clearTimeout(currentSession.autoAdvanceTimeout);
+                                        currentSession.autoAdvanceTimeout = null;
+                                    }
                                     await completeSession();
                                 }
                             }
