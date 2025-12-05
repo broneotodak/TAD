@@ -4,6 +4,9 @@
   "description": "Todak Annual Dinner Event Management System",
   "main": "index.html",
   "type": "module",
+  "engines": {
+    "node": ">=18.0.0 <21.0.0"
+  },
   "scripts": {
     "start": "python3 -m http.server 8000",
     "dev": "live-server"
