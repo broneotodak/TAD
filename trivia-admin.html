@@ -315,9 +315,8 @@
         }
         
         async function manageSession() {
-            isManagingQuestions = true;
-            await loadCurrentSession();
-            await loadSessions(); // Refresh list to update button states
+            // Navigate to separate manage page
+            window.location.href = `trivia-manage.html?event=${currentEventId}&session=${currentSessionId}`;
         }
 
         function showCreateSessionModal() {

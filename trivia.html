@@ -136,6 +136,10 @@
                 return;
             }
 
+            // Track user presence (heartbeat)
+            trackUserPresence();
+            presenceInterval = setInterval(trackUserPresence, 10000); // Send heartbeat every 10 seconds
+
             // Get participant ID from localStorage or prompt
             loadParticipantId();
             checkSession();
@@ -143,6 +147,21 @@
             // Check for session updates every 2 seconds (faster for question updates)
             sessionCheckInterval = setInterval(checkSession, 2000);
         });
+
+        async function trackUserPresence() {
+            if (!currentEventId) return;
+            
+            try {
+                await fetch('/api/track-trivia-user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ eventId: currentEventId })
+                });
+            } catch (error) {
+                // Silently fail - tracking is not critical
+                console.debug('Failed to track user presence:', error);
+            }
+        }
 
         function loadParticipantId() {
             // Try to get from localStorage (set during check-in) - event-specific key
@@ -724,6 +743,9 @@
             clearTimer();
             if (sessionCheckInterval) {
                 clearInterval(sessionCheckInterval);
+            }
+            if (presenceInterval) {
+                clearInterval(presenceInterval);
             }
         });
     </script>
