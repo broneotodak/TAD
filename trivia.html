@@ -325,12 +325,28 @@
                         // Check if session was just ended (has endedAt timestamp OR currentQuestionIndex >= questions.length)
                         const sessionEnded = result.session.endedAt || (result.session.currentQuestionIndex >= questions.length && questions.length > 0);
                         
-                        // CRITICAL: Check if leaderboard was reset - if session has no answers but was previously showing completed,
-                        // it means leaderboard was reset and we should show waiting state
-                        // Also check if currentQuestionIndex is -1 (reset state) even if isActive is false (might be a timing issue)
+                        // CRITICAL: Check if leaderboard was reset
+                        // Reset state: currentQuestionIndex is -1 OR session is active but index is -1
+                        // Also check if we were showing completed but leaderboard is now empty (reset happened)
                         const wasShowingCompleted = document.getElementById('completedState').style.display === 'block';
-                        const leaderboardWasReset = (result.session.currentQuestionIndex === -1) || 
-                                                   (wasShowingCompleted && !result.session.endedAt && result.session.currentQuestionIndex < questions.length);
+                        const currentIndex = result.session.currentQuestionIndex ?? -1;
+                        const leaderboardWasReset = (currentIndex === -1) || 
+                                                   (wasShowingCompleted && !result.session.endedAt && currentIndex < questions.length);
+                        
+                        // Additional check: if leaderboard is empty and we were showing completed, it was reset
+                        if (wasShowingCompleted && !sessionEnded) {
+                            try {
+                                const leaderboardResponse = await fetch(`/api/get-trivia-leaderboard?sessionId=${result.session.id}`);
+                                const leaderboardResult = await leaderboardResponse.json();
+                                if (leaderboardResult.success && leaderboardResult.leaderboard.length === 0) {
+                                    // Leaderboard is empty - it was reset
+                                    showWaiting('The trivia session has been reset. Waiting for admin to start a new round.');
+                                    return;
+                                }
+                            } catch (error) {
+                                console.error('Error checking leaderboard:', error);
+                            }
+                        }
                         
                         if (leaderboardWasReset) {
                             // Leaderboard was reset - revert to waiting state
@@ -712,10 +728,17 @@
             await loadLeaderboard();
         }
 
+        let isCheckingReset = false; // Prevent infinite loop
+
         async function loadLeaderboard() {
             try {
                 // Check if session still exists and is valid
                 if (!currentSession || !currentSession.id) {
+                    return;
+                }
+                
+                // Prevent infinite loop
+                if (isCheckingReset) {
                     return;
                 }
                 
@@ -729,8 +752,10 @@
                     // Re-check session state to see if it's been reset
                     if (result.leaderboard.length === 0 && wasShowingCompleted) {
                         console.log('Leaderboard is empty but was showing completed - checking if session was reset');
+                        isCheckingReset = true;
                         // Force a fresh session check
                         await checkSession();
+                        isCheckingReset = false;
                         return;
                     }
                     
@@ -738,6 +763,7 @@
                 }
             } catch (error) {
                 console.error('Error loading leaderboard:', error);
+                isCheckingReset = false;
             }
         }
 
