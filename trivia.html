@@ -77,7 +77,6 @@
                         <div id="progressFill" class="progress-fill-kahoot"></div>
                     </div>
                     <div class="progress-text-kahoot">
-                        <span>Score: <strong id="userScore">0</strong> pts</span>
                         <span>Correct: <strong id="userCorrect">0</strong>/<strong id="userTotal">0</strong></span>
                     </div>
                 </div>
@@ -88,10 +87,6 @@
                 <div class="completion-message">
                     <h2>🎉 Trivia Complete!</h2>
                     <div class="final-stats">
-                        <div class="stat-box">
-                            <div class="stat-value" id="finalScore">0</div>
-                            <div class="stat-label">Total Points</div>
-                        </div>
                         <div class="stat-box">
                             <div class="stat-value" id="finalCorrect">0</div>
                             <div class="stat-label">Correct Answers</div>
@@ -183,8 +178,22 @@
                     // Only show if session is ACTIVE (admin has started it)
                     if (result.session.isActive) {
                         // Session is active
+                        const previousQuestionIndex = currentSession?.currentQuestionIndex ?? -1;
                         currentSession = result.session;
                         questions = result.questions || [];
+                        
+                        // Check which question admin has activated
+                        const activeQuestionIndex = result.session.currentQuestionIndex ?? -1;
+                        
+                        // If session was just started/reset (question index is -1 and it wasn't before), reset user state
+                        if (activeQuestionIndex === -1 && previousQuestionIndex !== -1) {
+                            // Session was reset - clear user's local state
+                            userScore = 0;
+                            userCorrect = 0;
+                            userTotal = 0;
+                            userAnswers = {};
+                            updateProgress();
+                        }
                         
                         if (questions.length === 0) {
                             showWaiting('Session has no questions yet.');
@@ -196,9 +205,6 @@
                         
                         // Show active session
                         showActiveSession();
-                        
-                        // Check which question admin has activated
-                        const activeQuestionIndex = result.session.currentQuestionIndex ?? -1;
                         
                         // Update current session data
                         currentSession.currentQuestionIndex = activeQuestionIndex;
@@ -578,12 +584,10 @@
             
             const progress = (userTotal / questions.length) * 100;
             const progressFill = document.getElementById('progressFill');
-            const userScoreEl = document.getElementById('userScore');
             const userCorrectEl = document.getElementById('userCorrect');
             const userTotalEl = document.getElementById('userTotal');
             
             if (progressFill) progressFill.style.width = `${progress}%`;
-            if (userScoreEl) userScoreEl.textContent = userScore;
             if (userCorrectEl) userCorrectEl.textContent = userCorrect;
             if (userTotalEl) userTotalEl.textContent = userTotal;
         }
@@ -602,7 +606,6 @@
             if (completedStateEl) completedStateEl.style.display = 'block';
             if (leaderboardSectionEl) leaderboardSectionEl.style.display = 'block';
 
-            if (finalScoreEl) finalScoreEl.textContent = userScore;
             if (finalCorrectEl) finalCorrectEl.textContent = userCorrect;
             if (finalTotalEl) finalTotalEl.textContent = userTotal;
 
