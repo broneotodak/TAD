@@ -271,12 +271,38 @@ function startDraw() {
     // Start drumroll sound
     playDrumroll();
     
-    // Animate rolling names with tick sounds - automatically slow down and pick winner
-    let index = 0;
-    let currentDelay = 50; // Start fast (50ms)
-    const minDelay = 2000; // End slow (2000ms = 2 seconds)
-    const totalDuration = 5000; // Total animation duration (5 seconds)
+    // Animate rolling names - cycle through all participants before stopping
+    // Create a shuffled array that cycles through all participants at least once
+    const shuffledParticipants = [...eligible];
+    for (let i = shuffledParticipants.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffledParticipants[i], shuffledParticipants[j]] = [shuffledParticipants[j], shuffledParticipants[i]];
+    }
+    
+    // Cycle through participants multiple times (at least 2 full cycles)
+    const cycles = Math.max(2, Math.ceil(300 / eligible.length)); // Show at least 300 names or 2 full cycles
+    const participantSequence = [];
+    for (let cycle = 0; cycle < cycles; cycle++) {
+        // Shuffle again for each cycle to add randomness
+        const cycleShuffle = [...eligible];
+        for (let i = cycleShuffle.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [cycleShuffle[i], cycleShuffle[j]] = [cycleShuffle[j], cycleShuffle[i]];
+        }
+        participantSequence.push(...cycleShuffle);
+    }
+    
+    // Add final random selection at the end
+    const finalWinner = eligible[Math.floor(Math.random() * eligible.length)];
+    participantSequence.push(finalWinner);
+    
+    let currentIndex = 0;
+    let currentDelay = 80; // Start at 80ms (slightly slower)
+    const minDelay = 300; // End at 300ms (slower than before)
+    const maxDelay = 800; // Maximum delay before final reveal
+    const totalNames = participantSequence.length;
     const startTime = Date.now();
+    const totalDuration = 8000; // Total animation duration (8 seconds - longer)
     
     function updateName() {
         if (!isDrawing) return;
@@ -284,28 +310,40 @@ function startDraw() {
         const elapsed = Date.now() - startTime;
         const progress = Math.min(elapsed / totalDuration, 1);
         
-        // Gradually increase delay (slow down)
-        currentDelay = 50 + (progress * (minDelay - 50));
+        // Gradually increase delay (slow down) as we progress
+        if (currentIndex < totalNames - 1) {
+            // Calculate delay based on progress - slower as we get closer to the end
+            const nameProgress = currentIndex / totalNames;
+            if (nameProgress < 0.7) {
+                // First 70% of names: faster (80-150ms)
+                currentDelay = 80 + (nameProgress * 70);
+            } else {
+                // Last 30% of names: much slower (150-800ms)
+                const slowProgress = (nameProgress - 0.7) / 0.3;
+                currentDelay = 150 + (slowProgress * 650);
+            }
+        } else {
+            // Final name - hold for a moment before revealing winner
+            currentDelay = maxDelay;
+        }
         
-        const randomParticipant = eligible[Math.floor(Math.random() * eligible.length)];
+        const participant = participantSequence[currentIndex];
         rollingContainer.innerHTML = `
             <div class="rolling-name animate">
-                <div class="name">${randomParticipant.name}</div>
-                <div class="company">${randomParticipant.company}</div>
+                <div class="name">${participant.name}</div>
+                <div class="company">${participant.company}</div>
             </div>
         `;
         
         // Play tick sound for each name change
         playTickSound();
-        index++;
+        currentIndex++;
         
-        // If we've reached the end, pick the final winner
-        if (progress >= 1) {
-            // Select final random winner
-            const finalWinner = eligible[Math.floor(Math.random() * eligible.length)];
+        // If we've shown all names, reveal the final winner
+        if (currentIndex >= totalNames) {
             setTimeout(() => {
                 revealWinner(finalWinner);
-            }, 500);
+            }, 800);
         } else {
             // Schedule next update
             drawInterval = setTimeout(updateName, currentDelay);
