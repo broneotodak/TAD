@@ -5,12 +5,12 @@ import { neon } from '@neondatabase/serverless';
 export default async (req, context) => {
   try {
     const url = new URL(req.url);
-    const eventId = url.searchParams.get('eventId');
+    const eventIdParam = url.searchParams.get('eventId');
     const sessionId = url.searchParams.get('sessionId');
     
     const sql = neon(process.env.NETLIFY_DATABASE_URL);
 
-    if (!eventId && !sessionId) {
+    if (!eventIdParam && !sessionId) {
       return new Response(JSON.stringify({
         success: false,
         error: 'Event ID or Session ID is required'
@@ -23,13 +23,16 @@ export default async (req, context) => {
       });
     }
 
+    // Convert eventId to integer to ensure proper matching
+    const eventId = eventIdParam ? parseInt(eventIdParam, 10) : null;
+
     let session;
     if (sessionId) {
       // Get specific session
       [session] = await sql`
-        SELECT * FROM trivia_sessions WHERE id = ${sessionId}
+        SELECT * FROM trivia_sessions WHERE id = ${parseInt(sessionId, 10)}
       `;
-    } else {
+    } else if (eventId) {
       // Get active session for event first
       [session] = await sql`
         SELECT * FROM trivia_sessions 

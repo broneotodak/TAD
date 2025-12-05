@@ -193,12 +193,20 @@
                 const response = await fetch(`/api/get-trivia-session?eventId=${currentEventId}`);
                 const result = await response.json();
 
+                console.log('Session check result:', result); // Debug log
+
                 if (result.success && result.session) {
-                    const previousSessionEnded = currentSession && !currentSession.isActive && currentSession.endedAt;
-                    const newSessionActive = result.session.isActive;
+                    console.log('Session found:', {
+                        id: result.session.id,
+                        isActive: result.session.isActive,
+                        title: result.session.title,
+                        currentQuestionIndex: result.session.currentQuestionIndex
+                    }); // Debug log
                     
-                    currentSession = result.session;
-                    questions = result.questions || [];
+                    const previousSessionEnded = currentSession && !currentSession.isActive && currentSession.endedAt;
+                    const newSessionActive = result.session.isActive === true;
+                    
+                    console.log('Session active check:', { newSessionActive, isActive: result.session.isActive }); // Debug log
                     
                     // If previous session ended and new session is active, reset user state
                     if (previousSessionEnded && newSessionActive) {
@@ -210,8 +218,11 @@
                         updateProgress();
                     }
                     
+                    currentSession = result.session;
+                    questions = result.questions || [];
+                    
                     // Only show if session is ACTIVE (admin has started it)
-                    if (result.session.isActive === true) {
+                    if (newSessionActive) {
                         // Session is active
                         const previousQuestionIndex = currentSession?.currentQuestionIndex ?? -1;
                         const previousStartedAt = currentSession?.startedAt;
@@ -298,10 +309,6 @@
                             // All questions completed
                             showCompleted();
                         }
-                    } else {
-                        // Session exists but not active - show waiting message
-                        showWaiting('The trivia session hasn\'t started yet. Please wait for the admin to activate it.');
-                    }
                     } else {
                         // Session exists but is not active
                         // Check if session was just ended (has endedAt timestamp)
