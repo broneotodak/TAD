@@ -91,6 +91,60 @@
         </div>
     </div>
 
+    <!-- Edit Question Modal -->
+    <div id="editQuestionModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2>Edit Question</h2>
+            <form id="editQuestionForm" onsubmit="updateQuestion(event)">
+                <input type="hidden" id="editQuestionId">
+                <div class="form-group">
+                    <label>Question Text *</label>
+                    <textarea id="editQuestionText" rows="3" required placeholder="Enter your question here..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Option A *</label>
+                    <input type="text" id="editOptionA" required>
+                </div>
+                <div class="form-group">
+                    <label>Option B *</label>
+                    <input type="text" id="editOptionB" required>
+                </div>
+                <div class="form-group">
+                    <label>Option C *</label>
+                    <input type="text" id="editOptionC" required>
+                </div>
+                <div class="form-group">
+                    <label>Option D *</label>
+                    <input type="text" id="editOptionD" required>
+                </div>
+                <div class="form-group">
+                    <label>Correct Answer *</label>
+                    <select id="editCorrectAnswer" required>
+                        <option value="">Select...</option>
+                        <option value="A">A</option>
+                        <option value="B">B</option>
+                        <option value="C">C</option>
+                        <option value="D">D</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Time Limit (seconds)</label>
+                        <input type="number" id="editTimeLimit" min="5" max="300">
+                    </div>
+                    <div class="form-group">
+                        <label>Points</label>
+                        <input type="number" id="editPoints" min="1" max="100">
+                    </div>
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" onclick="closeEditQuestionModal()" class="btn-secondary">Cancel</button>
+                    <button type="submit" class="btn-primary">Update Question</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         let currentEventId = null;
         let currentSessionId = null;
@@ -169,7 +223,11 @@
                 <div class="question-card">
                     <div class="question-header">
                         <span class="question-number">Q${index + 1}</span>
-                        <span class="question-points">${q.points} points</span>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <span class="question-points">${q.points} points</span>
+                            <button onclick="editQuestion(${q.id})" class="btn-secondary btn-small" style="padding: 6px 12px; font-size: 0.85rem;">✏️ Edit</button>
+                            <button onclick="deleteQuestion(${q.id})" class="btn-danger btn-small" style="padding: 6px 12px; font-size: 0.85rem;">🗑️ Delete</button>
+                        </div>
                     </div>
                     <p class="question-text">${q.questionText}</p>
                     <div class="options">
