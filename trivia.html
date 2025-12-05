@@ -60,7 +60,8 @@
 
                     <!-- Waiting for Admin -->
                     <div id="waitingForQuestion" class="waiting-question" style="display: none;">
-                        <!-- Removed hourglass and text - waiting message already shown at top -->
+                        <div class="waiting-icon">⏳</div>
+                        <p>Waiting for admin to start the question...</p>
                     </div>
                 </div>
 
@@ -927,6 +928,26 @@
             
             .kahoot-question-display {
                 max-height: calc(100vh - 140px);
+            }
+            
+            /* Leaderboard mobile optimization */
+            .leaderboard-list {
+                max-height: calc(100vh - 300px);
+                overflow-y: auto;
+            }
+            
+            .leaderboard-entry {
+                padding: 12px;
+                font-size: 0.9rem;
+            }
+            
+            .winner-announcement {
+                padding: 20px !important;
+                margin-bottom: 20px !important;
+            }
+            
+            .winner-announcement h2 {
+                font-size: 1.5rem !important;
             }
         }
 
