@@ -151,7 +151,47 @@
             
             // Check for session updates every 2 seconds (faster for question updates)
             sessionCheckInterval = setInterval(checkSession, 2000);
+            
+            // Auto-scroll to trivia content on mobile devices after a short delay
+            // This focuses the user on the content but doesn't lock scrolling
+            setTimeout(() => {
+                autoScrollToContent();
+            }, 300);
         });
+        
+        function autoScrollToContent() {
+            // Only auto-scroll on mobile devices
+            if (window.innerWidth <= 768) {
+                const triviaContainer = document.querySelector('.trivia-container');
+                const header = document.querySelector('.header');
+                
+                if (triviaContainer && header) {
+                    // Calculate header height
+                    const headerHeight = header.offsetHeight || 60;
+                    
+                    // Get the position of the trivia container
+                    const containerTop = triviaContainer.getBoundingClientRect().top + window.pageYOffset;
+                    
+                    // Scroll to position that accounts for header, with a small buffer
+                    const scrollPosition = containerTop - headerHeight - 10;
+                    
+                    // Only scroll if we're not already at the right position (to avoid unnecessary scrolling)
+                    const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+                    if (Math.abs(currentScroll - scrollPosition) > 50) {
+                        window.scrollTo({
+                            top: scrollPosition,
+                            behavior: 'smooth'
+                        });
+                    }
+                } else if (triviaContainer) {
+                    // Fallback: simple scrollIntoView
+                    triviaContainer.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'start'
+                    });
+                }
+            }
+        }
 
         async function trackUserPresence() {
             if (!currentEventId) return;
@@ -465,6 +505,11 @@
             if (message) {
                 document.querySelector('.waiting-message p').textContent = message;
             }
+            
+            // Auto-scroll to content when showing waiting state (especially on mobile)
+            setTimeout(() => {
+                autoScrollToContent();
+            }, 100);
         }
 
         function showActiveSession() {
@@ -478,6 +523,11 @@
                 totalQuestionsEl.textContent = questions.length;
             }
             updateProgress();
+            
+            // Auto-scroll to content when showing active session (especially on mobile)
+            setTimeout(() => {
+                autoScrollToContent();
+            }, 100);
         }
 
         function displayQuestion(question, index) {
@@ -1000,6 +1050,11 @@
 
             // Load and display leaderboard with winner
             await loadLeaderboard();
+            
+            // Auto-scroll to content when showing completed state (especially on mobile)
+            setTimeout(() => {
+                autoScrollToContent();
+            }, 100);
         }
 
         let isCheckingReset = false; // Prevent infinite loop
