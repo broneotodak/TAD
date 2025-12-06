@@ -572,29 +572,29 @@
             const statsDisplay = document.getElementById('statsDisplay');
             const statsDisplayVisible = statsDisplay && statsDisplay.style.display === 'block';
             
-            // Check if we're showing stats for a different question (wait period)
-            const isShowingStatsForDifferentQuestion = statsDisplayVisible && 
-                                                       lastQuestionStatsShown !== null && 
-                                                       lastQuestionStatsShown !== index &&
-                                                       statsShownAt !== null &&
-                                                       (Date.now() - statsShownAt) / 1000 < 5;
+            // Check if we're in wait period (stats were shown recently)
+            const timeSinceStatsShown = statsShownAt ? (Date.now() - statsShownAt) / 1000 : Infinity;
+            const isInWaitPeriodFromStats = statsDisplayVisible && 
+                                           lastQuestionStatsShown !== null && 
+                                           timeSinceStatsShown < 5;
             
             const questionStarted = currentSession.questionStartedAt && 
                                    currentSession.currentQuestionIndex === index &&
                                    currentSession.isActive;
-            let isInWaitPeriod = false;
+            let isInWaitPeriodFromTimer = false;
             
             if (questionStarted) {
                 const startedAt = new Date(currentSession.questionStartedAt);
                 const elapsed = Math.floor((Date.now() - startedAt.getTime()) / 1000);
-                isInWaitPeriod = elapsed >= question.timeLimitSeconds;
+                isInWaitPeriodFromTimer = elapsed >= question.timeLimitSeconds;
             }
             
-            // If stats are currently visible and we're showing stats for a different question (wait period), preserve that display
-            if (isShowingStatsForDifferentQuestion || (statsDisplayVisible && lastQuestionStatsShown !== index)) {
-                // Don't change anything - stats are already showing for previous question
+            // If stats are currently visible and we're in wait period, preserve that display
+            // This handles both cases: showing stats for same question or different question
+            if (isInWaitPeriodFromStats) {
+                // Don't change anything - stats are already showing
                 // Just update the question text to match what we're showing stats for
-                console.log('Preserving stats display for question', lastQuestionStatsShown, 'while question index is', index);
+                console.log('Preserving stats display for question', lastQuestionStatsShown, 'while question index is', index, 'time since stats:', timeSinceStatsShown.toFixed(1), 's');
                 return; // Exit early - don't process further during wait period
             }
             
