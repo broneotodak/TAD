@@ -129,6 +129,7 @@
         let presenceInterval = null;
         let statsDisplayInterval = null;
         let nextQuestionCountdown = 0;
+        let hasAutoScrolled = false; // Track if auto-scroll has already run
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -152,43 +153,42 @@
             // Check for session updates every 2 seconds (faster for question updates)
             sessionCheckInterval = setInterval(checkSession, 2000);
             
-            // Auto-scroll to trivia content on mobile devices after a short delay
-            // This focuses the user on the content but doesn't lock scrolling
-            setTimeout(() => {
-                autoScrollToContent();
-            }, 300);
+            // Auto-scroll to trivia content on mobile devices ONCE after page loads
+            // Only run once when user first enters or refreshes the page
+            if (!hasAutoScrolled) {
+                setTimeout(() => {
+                    autoScrollToContent();
+                    hasAutoScrolled = true; // Mark as done, don't run again
+                }, 500); // Slightly longer delay to ensure content is rendered
+            }
         });
         
         function autoScrollToContent() {
-            // Only auto-scroll on mobile devices
-            if (window.innerWidth <= 768) {
+            // Only auto-scroll on mobile devices and only if not already scrolled
+            if (window.innerWidth <= 768 && !hasAutoScrolled) {
                 const triviaContainer = document.querySelector('.trivia-container');
                 const header = document.querySelector('.header');
                 
                 if (triviaContainer && header) {
-                    // Calculate header height
+                    // Calculate header height including browser UI
                     const headerHeight = header.offsetHeight || 60;
                     
-                    // Get the position of the trivia container
-                    const containerTop = triviaContainer.getBoundingClientRect().top + window.pageYOffset;
+                    // Get the position of the trivia container relative to document
+                    const containerRect = triviaContainer.getBoundingClientRect();
+                    const containerTop = containerRect.top + window.pageYOffset;
                     
-                    // Scroll to position that accounts for header, with a small buffer
-                    const scrollPosition = containerTop - headerHeight - 10;
+                    // Scroll DOWN to position content just below header (scroll to content, not top)
+                    // Add small buffer to ensure content is visible
+                    const scrollPosition = containerTop - headerHeight - 20;
                     
-                    // Only scroll if we're not already at the right position (to avoid unnecessary scrolling)
+                    // Only scroll if we're near the top (user hasn't manually scrolled)
                     const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
-                    if (Math.abs(currentScroll - scrollPosition) > 50) {
+                    if (currentScroll < 100) { // Only if user is at/near top
                         window.scrollTo({
-                            top: scrollPosition,
+                            top: Math.max(0, scrollPosition), // Ensure non-negative
                             behavior: 'smooth'
                         });
                     }
-                } else if (triviaContainer) {
-                    // Fallback: simple scrollIntoView
-                    triviaContainer.scrollIntoView({ 
-                        behavior: 'smooth', 
-                        block: 'start'
-                    });
                 }
             }
         }
@@ -505,11 +505,6 @@
             if (message) {
                 document.querySelector('.waiting-message p').textContent = message;
             }
-            
-            // Auto-scroll to content when showing waiting state (especially on mobile)
-            setTimeout(() => {
-                autoScrollToContent();
-            }, 100);
         }
 
         function showActiveSession() {
@@ -523,11 +518,6 @@
                 totalQuestionsEl.textContent = questions.length;
             }
             updateProgress();
-            
-            // Auto-scroll to content when showing active session (especially on mobile)
-            setTimeout(() => {
-                autoScrollToContent();
-            }, 100);
         }
 
         function displayQuestion(question, index) {
@@ -1050,11 +1040,6 @@
 
             // Load and display leaderboard with winner
             await loadLeaderboard();
-            
-            // Auto-scroll to content when showing completed state (especially on mobile)
-            setTimeout(() => {
-                autoScrollToContent();
-            }, 100);
         }
 
         let isCheckingReset = false; // Prevent infinite loop
