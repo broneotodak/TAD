@@ -855,8 +855,10 @@
                                     }
                                     // CRITICAL: Add a small delay before advancing to ensure all clients have processed the timer end
                                     await new Promise(resolve => setTimeout(resolve, 200));
-                                    // Auto-advance to next question
-                                    await advanceToNextQuestion();
+                                    // Auto-advance to next question (only if not already completing)
+                                    if (!isCompletingSession) {
+                                        await advanceToNextQuestion();
+                                    }
                                 } else if (currentIdx === scheduledQuestionIndex && currentIdx >= totalQuestions - 1) {
                                     // Last question - auto-complete session
                                     // Clear timeout reference before completing
@@ -869,7 +871,10 @@
                                         clearTimeout(currentSession.autoAdvanceTimeout);
                                         currentSession.autoAdvanceTimeout = null;
                                     }
-                                    await completeSession();
+                                    // Only complete if not already completing
+                                    if (!isCompletingSession) {
+                                        await completeSession();
+                                    }
                                 } else {
                                     // Question changed - cancel auto-advance
                                     if (currentSession) {
@@ -1279,6 +1284,9 @@
                 }
             } catch (error) {
                 console.error('Error ending session:', error);
+            } finally {
+                // Always reset flag, even on error
+                isEndingSession = false;
             }
         }
 
