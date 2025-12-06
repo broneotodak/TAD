@@ -976,7 +976,7 @@
             statsDisplayInterval = setInterval(() => {
                 nextQuestionCountdown--;
                 
-                // Update countdown within statsContent
+                // Update countdown within statsContent (it's now part of the statsContent HTML)
                 const countdownEl = document.getElementById('nextQuestionCountdown');
                 if (countdownEl && nextQuestionCountdown > 0) {
                     countdownEl.innerHTML = `
