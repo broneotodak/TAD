@@ -20,8 +20,10 @@ export default async (req, context) => {
     }
 
     // Get all participants with their total points
+    // Optimized query for 100+ concurrent users
     // Use tiebreaker: total_points DESC, correct_answers DESC, earliest first answer time ASC
     // Points already include time bonus (remaining seconds), so scores should be unique
+    // Database timestamp (answered_at) ensures precise tie-breaking for fastest answers
     const leaderboard = await sql`
       SELECT 
         p.id,

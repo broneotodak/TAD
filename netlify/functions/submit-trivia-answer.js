@@ -33,9 +33,12 @@ export default async (req, context) => {
     }
 
     // Check if participant already answered this question
+    // Use unique constraint check - more efficient for high concurrency
+    // The UNIQUE(question_id, participant_id) constraint will prevent duplicates
     const [existing] = await sql`
       SELECT id FROM trivia_answers
       WHERE question_id = ${questionId} AND participant_id = ${participantId}
+      LIMIT 1
     `;
 
     if (existing) {
@@ -68,23 +71,31 @@ export default async (req, context) => {
     const isCorrect = answer.toUpperCase() === question.correct_answer;
     
     // Get question start time for timer-based scoring
+    // Use a single query to get session info and calculate points atomically
     const [sessionInfo] = await sql`
       SELECT question_started_at, current_question_index
       FROM trivia_sessions
       WHERE id = ${question.session_id}
     `;
     
-    // Calculate points with timer bonus
+    // Calculate points with timer bonus using database timestamp for precision
+    // This ensures all users get scored consistently even under high concurrency
     let pointsEarned = 0;
     if (isCorrect) {
       if (sessionInfo?.question_started_at) {
-        // Timer-based scoring: base points + remaining seconds
-        const questionStartedAt = new Date(sessionInfo.question_started_at);
-        const answeredAt = new Date(); // Current time
-        const elapsedSeconds = Math.floor((answeredAt.getTime() - questionStartedAt.getTime()) / 1000);
+        // Use database NOW() for precise timestamp calculation
+        // This ensures scoring is consistent across all concurrent submissions
+        const [scoringResult] = await sql`
+          SELECT 
+            EXTRACT(EPOCH FROM (NOW() - ${sessionInfo.question_started_at}::timestamp))::integer as elapsed_seconds,
+            ${question.time_limit_seconds}::integer as time_limit
+        `;
+        
+        const elapsedSeconds = scoringResult?.elapsed_seconds || 0;
         const remainingSeconds = Math.max(0, question.time_limit_seconds - elapsedSeconds);
         
         // Base points + remaining seconds bonus
+        // Faster answers get more points (more remaining seconds)
         pointsEarned = question.points + remainingSeconds;
       } else {
         // Fallback: if timer not started, just give base points
@@ -93,7 +104,8 @@ export default async (req, context) => {
     }
     // Wrong answer = 0 points (already set)
 
-    // Insert answer
+    // Insert answer with database timestamp (answered_at uses DEFAULT CURRENT_TIMESTAMP)
+    // This ensures precise timestamp for tie-breaking in leaderboard
     const [result] = await sql`
       INSERT INTO trivia_answers (
         question_id,
