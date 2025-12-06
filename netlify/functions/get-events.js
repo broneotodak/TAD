@@ -18,6 +18,7 @@ export default async (req, context) => {
         e.time_end as "timeEnd",
         e.features,
         e.is_active as "isActive",
+        COALESCE(e.is_visible, true) as "isVisible",
         e.created_at as "createdAt",
         e.card_icon_url as "cardIconUrl",
         e.card_background_url as "cardBackgroundUrl",

@@ -163,9 +163,18 @@
 
             const eventsHTML = events.map(event => `
                 <div class="event-card">
-                    <button class="delete-event-btn" data-event-id="${event.id}" data-event-name="${event.name.replace(/"/g, '&quot;')}" onclick="deleteEvent(this.dataset.eventId, this.dataset.eventName); return false;" title="Delete event">
-                        ×
-                    </button>
+                    <div class="event-card-actions-top">
+                        <button class="toggle-visibility-btn ${event.isVisible !== false ? 'visible' : 'hidden'}" 
+                                data-event-id="${event.id}" 
+                                data-event-name="${event.name.replace(/"/g, '&quot;')}" 
+                                onclick="toggleEventVisibility(this.dataset.eventId, this.dataset.eventName); return false;" 
+                                title="${event.isVisible !== false ? 'Hide from main page' : 'Show on main page'}">
+                            ${event.isVisible !== false ? '👁️' : '👁️‍🗨️'}
+                        </button>
+                        <button class="delete-event-btn" data-event-id="${event.id}" data-event-name="${event.name.replace(/"/g, '&quot;')}" onclick="deleteEvent(this.dataset.eventId, this.dataset.eventName); return false;" title="Delete event">
+                            ×
+                        </button>
+                    </div>
                     <div class="event-card-header">
                         <div>
                             <div class="event-card-title">${event.name}</div>
@@ -243,6 +252,30 @@
         }
 
         // Delete event
+        async function toggleEventVisibility(eventId, eventName) {
+            try {
+                const response = await fetch('/api/toggle-event-visibility', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ id: eventId })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Reload events to update the UI
+                    loadEvents();
+                } else {
+                    alert(`❌ Failed to toggle visibility: ${result.error}`);
+                }
+            } catch (error) {
+                console.error('Error toggling event visibility:', error);
+                alert(`❌ Error toggling visibility: ${error.message}`);
+            }
+        }
+
         async function deleteEvent(eventId, eventName) {
             console.log('Delete event called:', eventId, eventName);
             

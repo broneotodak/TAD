@@ -1738,10 +1738,11 @@
 
         @media (max-width: 768px) {
             .action-buttons {
-                grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+                grid-template-columns: repeat(auto-fit, minmax(110px, auto));
                 gap: 12px;
                 justify-content: center;
                 justify-items: center;
+                place-items: center;
             }
             
             .action-buttons .action-btn-square {

@@ -78,9 +78,13 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    // Filter active events and exclude events that have ended
+                    // Filter visible and active events, exclude events that have ended
                     const now = new Date();
                     const activeEvents = result.events.filter(e => {
+                        // Must be visible (default to true if not set)
+                        if (e.isVisible === false) return false;
+                        
+                        // Must be active
                         if (!e.isActive) return false;
                         
                         // Check if event has ended based on date and timeEnd

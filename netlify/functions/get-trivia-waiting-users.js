@@ -4,14 +4,26 @@ import { neon } from '@neondatabase/serverless';
 export default async (req, context) => {
   try {
     const url = new URL(req.url);
-    const eventId = url.searchParams.get('eventId');
+    const eventIdParam = url.searchParams.get('eventId');
     
     const sql = neon(process.env.NETLIFY_DATABASE_URL);
 
-    if (!eventId) {
+    if (!eventIdParam) {
       return new Response(JSON.stringify({
         success: false,
         error: 'Event ID is required'
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Convert eventId to integer to ensure proper matching
+    const eventId = parseInt(eventIdParam, 10);
+    if (isNaN(eventId)) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Invalid Event ID'
       }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
@@ -45,6 +57,8 @@ export default async (req, context) => {
     `;
 
     const count = parseInt(activeUsers[0]?.count || 0);
+    
+    console.log(`Waiting users count for eventId=${eventId}: ${count}`);
     
     return new Response(JSON.stringify({
       success: true,

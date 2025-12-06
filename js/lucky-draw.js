@@ -292,9 +292,7 @@ function startDraw() {
     const finalWinner = eligible[Math.floor(Math.random() * eligible.length)];
     
     const startTime = Date.now();
-    const fastDuration = 10000; // Keep fast for 10 seconds
-    const slowDuration = 3000; // Then slow down for 3 seconds
-    const totalDuration = fastDuration + slowDuration; // Total 13 seconds
+    const totalDuration = 10000; // Exactly 10 seconds
     let currentIndex = 0;
     let hasShownWinner = false;
     
@@ -303,27 +301,20 @@ function startDraw() {
         
         const elapsed = Date.now() - startTime;
         const remaining = totalDuration - elapsed;
+        const progress = elapsed / totalDuration;
         
-        // Calculate delay based on elapsed time
+        // Calculate delay based on progress - smooth deceleration curve
         let currentDelay;
         
-        if (elapsed < fastDuration) {
-            // First 10 seconds: keep it fast (50-80ms)
-            const fastProgress = elapsed / fastDuration;
-            currentDelay = 50 + (fastProgress * 30); // Range: 50ms to 80ms
-        } else {
-            // After 10 seconds: start slowing down smoothly
-            const slowElapsed = elapsed - fastDuration;
-            const slowProgress = slowElapsed / slowDuration;
-            
-            // Use exponential easing for smooth deceleration
-            const easedProgress = 1 - Math.pow(1 - slowProgress, 3);
-            currentDelay = 80 + (easedProgress * 720); // Range: 80ms to 800ms
-        }
+        // Use exponential easing for smooth deceleration
+        // Fast at start (50ms), gradually slowing down to very slow at end (800ms)
+        // Using ease-out cubic curve: 1 - (1 - t)^3
+        const easedProgress = 1 - Math.pow(1 - progress, 3);
+        currentDelay = 50 + (easedProgress * 750); // Range: 50ms to 800ms
         
-        // When we're very close to the end (last 200ms), show the winner
-        if (remaining <= 200 && !hasShownWinner) {
-            // Show winner name in rolling container first
+        // When we're very close to the end (last 100ms), show the winner directly
+        if (remaining <= 100 && !hasShownWinner) {
+            // Show winner name in rolling container and immediately transition
             rollingContainer.innerHTML = `
                 <div class="rolling-name animate">
                     <div class="name">${finalWinner.name}</div>
@@ -333,10 +324,10 @@ function startDraw() {
             hasShownWinner = true;
             playTickSound();
             
-            // Wait a brief moment then reveal winner display
-            drawInterval = setTimeout(() => {
+            // Immediately reveal winner display without pause
+            setTimeout(() => {
                 revealWinner(finalWinner);
-            }, 150);
+            }, 50);
             return;
         }
         
@@ -346,14 +337,14 @@ function startDraw() {
         }
         
         // Ensure we don't exceed remaining time
-        currentDelay = Math.min(currentDelay, remaining - 250);
+        currentDelay = Math.min(currentDelay, remaining - 150);
         
         // Pick next participant (cycle through shuffled array, but never show winner until the end)
         let participant;
         do {
             participant = shuffledParticipants[currentIndex % shuffledParticipants.length];
             currentIndex++;
-        } while (participant.id === finalWinner.id && remaining > 200);
+        } while (participant.id === finalWinner.id && remaining > 100);
         
         rollingContainer.innerHTML = `
             <div class="rolling-name animate">

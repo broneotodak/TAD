@@ -157,13 +157,24 @@ export default async (req, context) => {
       participantCount = parseInt(count?.count || 0);
     }
 
+    // Ensure isActive is a boolean (PostgreSQL returns true/false, but ensure it's explicit)
+    const isActive = session.is_active === true || session.is_active === 'true' || session.is_active === 1;
+    
+    console.log('Session data:', {
+      id: session.id,
+      event_id: session.event_id,
+      is_active: session.is_active,
+      is_active_type: typeof session.is_active,
+      isActive_computed: isActive
+    });
+
     return new Response(JSON.stringify({
       success: true,
       session: {
         id: session.id,
         eventId: session.event_id,
         title: session.title,
-        isActive: session.is_active,
+        isActive: isActive,
         startedAt: session.started_at,
         endedAt: session.ended_at,
         createdAt: session.created_at,
