@@ -820,6 +820,12 @@
                 return;
             }
             
+            // Prevent multiple calls - if stats are already showing for this question, don't reset
+            if (lastQuestionStatsShown === currentIndex && statsShownAt && (Date.now() - statsShownAt) < 5000) {
+                console.log('Stats already showing for question', currentIndex, '- skipping duplicate call');
+                return;
+            }
+            
             // Track that we're showing stats for this question
             lastQuestionStatsShown = currentIndex;
             statsShownAt = Date.now();
@@ -847,16 +853,19 @@
                 activeSession.style.display = 'block';
             }
             
-            console.log('Stats display element:', statsDisplay, 'display:', statsDisplay.style.display, 'computed:', window.getComputedStyle(statsDisplay).display);
-            console.log('Stats display parent:', statsDisplay.parentElement);
-            console.log('Active session display:', activeSession ? activeSession.style.display : 'not found');
+            // Clear any existing interval to prevent multiple countdowns
+            if (statsDisplayInterval) {
+                clearInterval(statsDisplayInterval);
+                statsDisplayInterval = null;
+            }
             
             // Show loading state while fetching
             statsContent.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">Loading results...</div>';
             
-            // Start countdown immediately (don't wait for API)
-            nextQuestionCountdown = 5;
-            updateNextQuestionCountdown();
+            // Start countdown immediately (don't wait for API) - only if not already counting down
+            if (nextQuestionCountdown <= 0) {
+                nextQuestionCountdown = 5;
+            }
             
             try {
                 // Fetch answer breakdown
@@ -966,32 +975,29 @@
                 `;
             }
             
-            // Clear any existing interval
-            if (statsDisplayInterval) {
-                clearInterval(statsDisplayInterval);
+            // Start countdown interval (only if not already running)
+            if (!statsDisplayInterval) {
+                statsDisplayInterval = setInterval(() => {
+                    nextQuestionCountdown--;
+                    
+                    // Update countdown within statsContent (it's now part of the statsContent HTML)
+                    const countdownEl = document.getElementById('nextQuestionCountdown');
+                    if (countdownEl && nextQuestionCountdown > 0) {
+                        countdownEl.innerHTML = `
+                            <div style="font-size: 3rem; font-weight: bold; color: #4CAF50; margin-bottom: 10px;">${nextQuestionCountdown}</div>
+                            <div style="font-size: 1.2rem; color: var(--text-primary);">Next question in ${nextQuestionCountdown} second${nextQuestionCountdown !== 1 ? 's' : ''}</div>
+                        `;
+                    } else if (countdownEl) {
+                        countdownEl.innerHTML = '<div style="font-size: 1.2rem; color: var(--text-secondary);">Loading next question...</div>';
+                    }
+                    
+                    if (nextQuestionCountdown <= 0) {
+                        clearInterval(statsDisplayInterval);
+                        statsDisplayInterval = null;
+                        // Stats will be hidden when next question loads
+                    }
+                }, 1000);
             }
-            
-            // Update countdown in statsContent
-            statsDisplayInterval = setInterval(() => {
-                nextQuestionCountdown--;
-                
-                // Update countdown within statsContent (it's now part of the statsContent HTML)
-                const countdownEl = document.getElementById('nextQuestionCountdown');
-                if (countdownEl && nextQuestionCountdown > 0) {
-                    countdownEl.innerHTML = `
-                        <div style="font-size: 3rem; font-weight: bold; color: #4CAF50; margin-bottom: 10px;">${nextQuestionCountdown}</div>
-                        <div style="font-size: 1.2rem; color: var(--text-primary);">Next question in ${nextQuestionCountdown} second${nextQuestionCountdown !== 1 ? 's' : ''}</div>
-                    `;
-                } else if (countdownEl) {
-                    countdownEl.innerHTML = '<div style="font-size: 1.2rem; color: var(--text-secondary);">Loading next question...</div>';
-                }
-                
-                if (nextQuestionCountdown <= 0) {
-                    clearInterval(statsDisplayInterval);
-                    statsDisplayInterval = null;
-                    // Stats will be hidden when next question loads
-                }
-            }, 1000);
         }
         
         function updateNextQuestionCountdown() {
