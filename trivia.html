@@ -74,7 +74,6 @@
                 <!-- Stats Display (shown during wait period between questions) -->
                 <div id="statsDisplay" class="stats-display-kahoot" style="display: none;">
                     <div id="statsContent"></div>
-                    <div id="nextQuestionCountdown" class="next-question-countdown"></div>
                 </div>
 
                 <!-- Progress Bar (removed Correct status - only show at end) -->
@@ -835,6 +834,13 @@
             statsDisplay.style.display = 'block';
             statsDisplay.style.visibility = 'visible';
             statsDisplay.style.opacity = '1';
+            statsDisplay.classList.add('stats-visible');
+            
+            // Hide question display when showing stats
+            const questionDisplay = document.getElementById('questionDisplay');
+            if (questionDisplay) {
+                questionDisplay.style.display = 'none';
+            }
             
             // Ensure parent containers are visible
             const activeSession = document.getElementById('activeSession');
@@ -843,6 +849,8 @@
             }
             
             console.log('Stats display element:', statsDisplay, 'display:', statsDisplay.style.display, 'computed:', window.getComputedStyle(statsDisplay).display);
+            console.log('Stats display parent:', statsDisplay.parentElement);
+            console.log('Active session display:', activeSession ? activeSession.style.display : 'not found');
             
             // Show loading state while fetching
             statsContent.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">Loading results...</div>';
@@ -885,7 +893,7 @@
                             Total Answers: <strong style="font-size: 1.1rem;">${totalAnswers}</strong>
                         </div>
                         
-                        <div style="margin-top: 20px;">
+                        <div style="margin-top: 20px; margin-bottom: 30px;">
                             <strong style="display: block; margin-bottom: 15px; text-align: center;">Answer Distribution:</strong>
                             ${['A', 'B', 'C', 'D'].map(option => {
                                 const optionData = breakdown[option];
@@ -914,15 +922,28 @@
                                 `;
                             }).join('')}
                         </div>
+                        
+                        <!-- Countdown integrated into results -->
+                        <div id="nextQuestionCountdown" style="text-align: center; padding: 20px; background: rgba(76, 175, 80, 0.1); border-radius: 10px; border: 2px solid #4CAF50; margin-top: 20px;">
+                            <div style="font-size: 3rem; font-weight: bold; color: #4CAF50; margin-bottom: 10px;">${nextQuestionCountdown}</div>
+                            <div style="font-size: 1.2rem; color: var(--text-primary);">Next question in ${nextQuestionCountdown} second${nextQuestionCountdown !== 1 ? 's' : ''}</div>
+                        </div>
                     `;
                 } else {
-                    // API failed but still show basic info
+                    // API failed but still show basic info with countdown
                     statsContent.innerHTML = `
                         <div style="text-align: center; margin-bottom: 20px;">
                             <h2 style="font-size: 1.5rem; margin-bottom: 15px; color: var(--text-primary);">Question Results</h2>
                             <div style="font-size: 1.1rem; margin-bottom: 10px;">
                                 <strong>Correct Answer: <span style="color: #4CAF50; font-size: 1.3rem;">${question.correctAnswer}</span></strong>
                             </div>
+                        </div>
+                        <div style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 30px;">
+                            Statistics are being calculated...
+                        </div>
+                        <div id="nextQuestionCountdown" style="text-align: center; padding: 20px; background: rgba(76, 175, 80, 0.1); border-radius: 10px; border: 2px solid #4CAF50; margin-top: 20px;">
+                            <div style="font-size: 3rem; font-weight: bold; color: #4CAF50; margin-bottom: 10px;">${nextQuestionCountdown}</div>
+                            <div style="font-size: 1.2rem; color: var(--text-primary);">Next question in ${nextQuestionCountdown} second${nextQuestionCountdown !== 1 ? 's' : ''}</div>
                         </div>
                     `;
                 }
@@ -935,24 +956,36 @@
                         <div style="font-size: 1.1rem; margin-bottom: 10px;">
                             <strong>Correct Answer: <span style="color: #4CAF50; font-size: 1.3rem;">${question.correctAnswer}</span></strong>
                         </div>
-                        <div style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 20px;">
-                            Statistics are being calculated...
-                        </div>
+                    </div>
+                    <div style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 30px;">
+                        Statistics are being calculated...
+                    </div>
+                    <div id="nextQuestionCountdown" style="text-align: center; padding: 20px; background: rgba(76, 175, 80, 0.1); border-radius: 10px; border: 2px solid #4CAF50; margin-top: 20px;">
+                        <div style="font-size: 3rem; font-weight: bold; color: #4CAF50; margin-bottom: 10px;">${nextQuestionCountdown}</div>
+                        <div style="font-size: 1.2rem; color: var(--text-primary);">Next question in ${nextQuestionCountdown} second${nextQuestionCountdown !== 1 ? 's' : ''}</div>
                     </div>
                 `;
             }
-            
-            // Countdown was already started above, just ensure it's updated
-            updateNextQuestionCountdown();
             
             // Clear any existing interval
             if (statsDisplayInterval) {
                 clearInterval(statsDisplayInterval);
             }
             
+            // Update countdown in statsContent
             statsDisplayInterval = setInterval(() => {
                 nextQuestionCountdown--;
-                updateNextQuestionCountdown();
+                
+                // Update countdown within statsContent
+                const countdownEl = document.getElementById('nextQuestionCountdown');
+                if (countdownEl && nextQuestionCountdown > 0) {
+                    countdownEl.innerHTML = `
+                        <div style="font-size: 3rem; font-weight: bold; color: #4CAF50; margin-bottom: 10px;">${nextQuestionCountdown}</div>
+                        <div style="font-size: 1.2rem; color: var(--text-primary);">Next question in ${nextQuestionCountdown} second${nextQuestionCountdown !== 1 ? 's' : ''}</div>
+                    `;
+                } else if (countdownEl) {
+                    countdownEl.innerHTML = '<div style="font-size: 1.2rem; color: var(--text-secondary);">Loading next question...</div>';
+                }
                 
                 if (nextQuestionCountdown <= 0) {
                     clearInterval(statsDisplayInterval);
@@ -986,8 +1019,15 @@
         function hideStatsDisplay() {
             const statsDisplay = document.getElementById('statsDisplay');
             const optionsContainer = document.getElementById('optionsContainer');
-            
-            if (statsDisplay) statsDisplay.style.display = 'none';
+            const questionDisplay = document.getElementById('questionDisplay');
+
+            if (statsDisplay) {
+                statsDisplay.style.display = 'none';
+                statsDisplay.classList.remove('stats-visible');
+            }
+            if (questionDisplay) {
+                questionDisplay.style.display = 'flex';
+            }
             if (optionsContainer) optionsContainer.style.display = 'grid';
             
             if (statsDisplayInterval) {
