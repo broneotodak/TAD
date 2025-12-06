@@ -191,7 +191,7 @@
             currentEventId = urlParams.get('event');
             
             if (!currentEventId) {
-                alert('No event ID provided');
+                console.error('No event ID provided');
                 document.getElementById('backBtn').href = 'admin-dashboard.html';
                 return;
             }
@@ -438,13 +438,12 @@
                     await loadCurrentSession();
                     await loadSessions(); // Refresh sessions list
                     
-                    alert('Session created! Add questions to start.');
+                    // No alert - UI updates are sufficient
                 } else {
-                    alert('Error: ' + result.error);
+                    console.error('Error creating session:', result.error);
                 }
             } catch (error) {
                 console.error('Error creating session:', error);
-                alert('Failed to create session');
             }
         }
 
@@ -490,13 +489,12 @@
                     closeAddQuestionModal();
                     // Reload questions without resetting session state
                     await loadCurrentSession();
-                    alert('Question added!');
+                    // No alert - UI updates are sufficient
                 } else {
-                    alert('Error: ' + result.error);
+                    console.error('Error adding question:', result.error);
                 }
             } catch (error) {
                 console.error('Error adding question:', error);
-                alert('Failed to add question');
             }
         }
 
@@ -797,6 +795,8 @@
                                         clearTimeout(currentSession.autoAdvanceTimeout);
                                         currentSession.autoAdvanceTimeout = null;
                                     }
+                                    // CRITICAL: Add a small delay before advancing to ensure all clients have processed the timer end
+                                    await new Promise(resolve => setTimeout(resolve, 200));
                                     // Auto-advance to next question
                                     await advanceToNextQuestion();
                                 } else if (currentIdx === scheduledQuestionIndex && currentIdx >= totalQuestions - 1) {
@@ -817,6 +817,7 @@
                             } else {
                                 // Session ended - clear timeout
                                 if (currentSession) {
+                                    currentSession.autoAdvanceScheduled = false;
                                     currentSession.autoAdvanceTimeout = null;
                                 }
                             }
@@ -964,11 +965,10 @@
                         await updateQuestionControl();
                     }, 500);
                 } else {
-                    alert('Error: ' + result.error);
+                    console.error('Error advancing question:', result.error);
                 }
             } catch (error) {
                 console.error('Error advancing question:', error);
-                alert('Failed to advance question');
             }
         }
 
@@ -1025,19 +1025,17 @@
                     
                     // Reload sessions list
                     await loadSessions();
-                    alert('Session deleted successfully!');
+                    // No alert - UI updates are sufficient
                 } else {
-                    alert('Error: ' + result.error);
+                    console.error('Error deleting session:', result.error);
                 }
             } catch (error) {
                 console.error('Error deleting session:', error);
-                alert('Failed to delete session');
             }
         }
 
         async function activateSession(sessionId) {
             if (!sessionId) {
-                alert('Please select a session first');
                 return;
             }
 
@@ -1072,11 +1070,10 @@
                     await loadLeaderboard();
                     // Session controls will be shown automatically by loadCurrentSession
                 } else {
-                    alert('Error: ' + result.error);
+                    console.error('Error activating session:', result.error);
                 }
             } catch (error) {
                 console.error('Error activating session:', error);
-                alert('Failed to activate session');
             }
         }
         
@@ -1089,13 +1086,12 @@
 
         async function completeSession() {
             if (!currentSessionId) {
-                alert('Please select a session first');
                 return;
             }
 
-            // Check if session is already ended to prevent duplicate alerts
+            // Check if session is already ended to prevent duplicate operations
             if (currentSession && !currentSession.isActive && sessionCompletedAlertShown) {
-                return; // Already completed, don't show alert again
+                return; // Already completed
             }
 
             if (!confirm('Complete this trivia session? This will end the session and show the final leaderboard to all participants.')) return;
@@ -1110,26 +1106,25 @@
                 const result = await response.json();
                 if (result.success) {
                     isManagingQuestions = false;
-                    sessionCompletedAlertShown = true; // Mark alert as shown
+                    sessionCompletedAlertShown = true;
                     await loadCurrentSession();
                     await loadSessions();
                     document.getElementById('sessionsListSection').style.display = 'block';
                     document.getElementById('leaderboardSection').style.display = 'block'; // Show leaderboard when session ends
                     
-                    // Open user trivia page in new tab to show leaderboard and winner
-                    const userTriviaUrl = `trivia.html?event=${currentEventId}`;
-                    window.open(userTriviaUrl, '_blank');
+                    // Load leaderboard immediately to show top 10
+                    await loadLeaderboard();
                     
-                    // Only show alert once
-                    if (!sessionCompletedAlertShown) {
-                        alert('Session completed! The leaderboard and winner are now visible to participants.');
+                    // Scroll to leaderboard section for better visibility on big screen
+                    const leaderboardSection = document.getElementById('leaderboardSection');
+                    if (leaderboardSection) {
+                        leaderboardSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }
                 } else {
-                    alert('Error: ' + result.error);
+                    console.error('Error completing session:', result.error);
                 }
             } catch (error) {
                 console.error('Error completing session:', error);
-                alert('Failed to complete session');
             }
         }
 
@@ -1150,13 +1145,14 @@
                     currentSession.isActive = false;
                     updateSessionControls();
                     stopLeaderboardUpdates();
-                    alert('Session ended!');
+                    // Show leaderboard directly instead of alert
+                    document.getElementById('leaderboardSection').style.display = 'block';
+                    await loadLeaderboard();
                 } else {
-                    alert('Error: ' + result.error);
+                    console.error('Error ending session:', result.error);
                 }
             } catch (error) {
                 console.error('Error ending session:', error);
-                alert('Failed to end session');
             }
         }
 
@@ -1209,7 +1205,6 @@
 
         async function resetLeaderboard() {
             if (!currentSessionId) {
-                alert('Please select a session first');
                 return;
             }
 
@@ -1230,13 +1225,13 @@
                     await loadCurrentSession();
                     // Reload leaderboard to show it's empty
                     await loadLeaderboard();
-                    alert(`✓ Leaderboard reset! Cleared ${result.deletedCount || 0} answers. Session is now ready for a new round.`);
+                    // No alert - just update the UI silently
+                    console.log(`Leaderboard reset! Cleared ${result.deletedCount || 0} answers.`);
                 } else {
-                    alert('Error: ' + result.error);
+                    console.error('Error resetting leaderboard:', result.error);
                 }
             } catch (error) {
                 console.error('Error resetting leaderboard:', error);
-                alert('Failed to reset leaderboard');
             }
         }
 
@@ -1608,6 +1603,19 @@
         
         .admin-content {
             overflow: visible !important;
+        }
+        
+        /* Leaderboard section should be scrollable */
+        #leaderboardSection {
+            max-height: none;
+            overflow-y: visible;
+            overflow-x: hidden;
+        }
+        
+        #leaderboard {
+            overflow-y: visible;
+            overflow-x: hidden;
+            max-height: none;
         }
     </style>
 </body>

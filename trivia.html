@@ -71,6 +71,12 @@
                     <div id="pointsEarned" class="points-display-kahoot"></div>
                 </div>
 
+                <!-- Stats Display (shown during wait period between questions) -->
+                <div id="statsDisplay" class="stats-display-kahoot" style="display: none;">
+                    <div id="statsContent"></div>
+                    <div id="nextQuestionCountdown" class="next-question-countdown"></div>
+                </div>
+
                 <!-- Progress Bar (removed Correct status - only show at end) -->
                 <div class="progress-section-kahoot" style="display: none;">
                     <div class="progress-bar-kahoot">
@@ -121,6 +127,8 @@
         let sessionCheckInterval = null;
         let participantId = null;
         let presenceInterval = null;
+        let statsDisplayInterval = null;
+        let nextQuestionCountdown = 0;
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -326,16 +334,23 @@
                                 const elapsed = Math.floor((Date.now() - startedAt.getTime()) / 1000);
                                 const timerEnded = elapsed >= currentQuestion.timeLimitSeconds;
                                 
-                                if (timerEnded && userAnswers[currentQuestion.id]) {
-                                    // Timer ended and user has answered - show correct answer
+                                // CRITICAL: Only show correct answer if timer has FULLY ended (elapsed >= timeLimit)
+                                // Add a small buffer to ensure timer truly ended
+                                if (timerEnded) {
+                                    // Timer ended - show correct answer and stats
                                     displayQuestion(questions[activeQuestionIndex], activeQuestionIndex);
                                     showCorrectAnswerAfterTimer(currentQuestion);
+                                    // Show stats with countdown during wait period
+                                    showStatsBetweenQuestions(currentQuestion, activeQuestionIndex);
                                 } else {
+                                    // Timer still running - show question normally
                                     displayQuestion(questions[activeQuestionIndex], activeQuestionIndex);
+                                    hideStatsDisplay();
                                 }
                             } else {
                                 // Timer not started yet, doesn't match current question, or timestamp is stale
                                 displayQuestion(questions[activeQuestionIndex], activeQuestionIndex);
+                                hideStatsDisplay();
                             }
                         } else if (activeQuestionIndex === -1 && questions.length > 0) {
                             // No question started yet - session is active but waiting for first question
@@ -507,6 +522,9 @@
             const timerDisplayEl = document.getElementById('timerDisplay');
             
             if (questionStarted && !existingAnswer) {
+                // Hide stats display when showing new question
+                hideStatsDisplay();
+                
                 // Calculate remaining time based on server timestamp
                 const startedAt = new Date(currentSession.questionStartedAt);
                 const elapsed = Math.floor((Date.now() - startedAt.getTime()) / 1000);
@@ -528,9 +546,12 @@
                     clearTimer();
                     // Show correct answer if timer expired
                     showCorrectAnswerAfterTimer(question);
+                    // Show stats
+                    showStatsBetweenQuestions(question, index);
                 }
             } else if (!existingAnswer) {
                 // Waiting for admin to start question
+                hideStatsDisplay();
                 if (waitingEl) waitingEl.style.display = 'block';
                 if (timerDisplayEl) timerDisplayEl.style.display = 'none';
                 clearTimer(); // CRITICAL: Clear timer when waiting
@@ -543,11 +564,31 @@
                 if (questionStartedForAnswer) {
                     const startedAt = new Date(currentSession.questionStartedAt);
                     const elapsed = Math.floor((Date.now() - startedAt.getTime()) / 1000);
+                    // CRITICAL: Only show answer if timer has FULLY ended (elapsed >= timeLimit)
                     const timerEnded = elapsed >= question.timeLimitSeconds;
                     
                     if (timerEnded) {
                         // Timer ended - show correct answer
                         showCorrectAnswerAfterTimer(question);
+                    } else {
+                        // Timer still running - keep buttons disabled but don't show answer yet
+                        // Re-render buttons as disabled
+                        const options = [
+                            { letter: 'A', text: question.optionA, color: '#FF6B6B' },
+                            { letter: 'B', text: question.optionB, color: '#4ECDC4' },
+                            { letter: 'C', text: question.optionC, color: '#45B7D1' },
+                            { letter: 'D', text: question.optionD, color: '#FFA07A' }
+                        ];
+                        container.innerHTML = options.map(opt => `
+                            <button 
+                                class="option-button-kahoot ${existingAnswer === opt.letter ? 'selected' : ''}"
+                                disabled
+                                style="background: ${opt.color};"
+                            >
+                                <span class="option-letter-kahoot">${opt.letter}</span>
+                                <span class="option-text-kahoot">${opt.text}</span>
+                            </button>
+                        `).join('');
                     }
                 }
                 
@@ -563,6 +604,10 @@
         function showCorrectAnswerAfterTimer(question) {
             const container = document.getElementById('optionsContainer');
             if (!container) return;
+            
+            // Hide timer display
+            const timerDisplay = document.getElementById('timerDisplay');
+            if (timerDisplay) timerDisplay.style.display = 'none';
             
             // Highlight the correct answer
             const options = [
@@ -599,6 +644,159 @@
                     </button>
                 `;
             }).join('');
+        }
+        
+        async function showStatsBetweenQuestions(question, currentIndex) {
+            const statsDisplay = document.getElementById('statsDisplay');
+            const statsContent = document.getElementById('statsContent');
+            const countdownEl = document.getElementById('nextQuestionCountdown');
+            const optionsContainer = document.getElementById('optionsContainer');
+            
+            if (!statsDisplay || !statsContent || !countdownEl) return;
+            
+            // Hide options container and show stats
+            if (optionsContainer) optionsContainer.style.display = 'none';
+            statsDisplay.style.display = 'block';
+            
+            try {
+                // Fetch answer breakdown
+                const breakdownResponse = await fetch(`/api/get-trivia-answer-breakdown?questionId=${question.id}`);
+                const breakdownResult = await breakdownResponse.json();
+                
+                if (breakdownResult.success) {
+                    const breakdown = breakdownResult.breakdown;
+                    const totalAnswers = breakdownResult.totalAnswers;
+                    const correctAnswers = breakdownResult.correctAnswers;
+                    const incorrectAnswers = breakdownResult.incorrectAnswers;
+                    
+                    statsContent.innerHTML = `
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <h2 style="font-size: 1.5rem; margin-bottom: 15px; color: var(--text-primary);">Question Results</h2>
+                            <div style="font-size: 1.1rem; margin-bottom: 10px;">
+                                <strong>Correct Answer: <span style="color: #4CAF50; font-size: 1.3rem;">${question.correctAnswer}</span></strong>
+                            </div>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px;">
+                            <div style="text-align: center; padding: 15px; background: #4CAF50; border-radius: 8px; color: white;">
+                                <div style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 5px;">Correct</div>
+                                <div style="font-size: 2rem; font-weight: bold;">${correctAnswers}</div>
+                            </div>
+                            <div style="text-align: center; padding: 15px; background: #f44336; border-radius: 8px; color: white;">
+                                <div style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 5px;">Incorrect</div>
+                                <div style="font-size: 2rem; font-weight: bold;">${incorrectAnswers}</div>
+                            </div>
+                        </div>
+                        
+                        <div style="text-align: center; color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 20px;">
+                            Total Answers: <strong style="font-size: 1.1rem;">${totalAnswers}</strong>
+                        </div>
+                        
+                        <div style="margin-top: 20px;">
+                            <strong style="display: block; margin-bottom: 15px; text-align: center;">Answer Distribution:</strong>
+                            ${['A', 'B', 'C', 'D'].map(option => {
+                                const optionData = breakdown[option];
+                                const optionText = question[`option${option}`];
+                                const isCorrect = question.correctAnswer === option;
+                                const barWidth = totalAnswers > 0 ? optionData.percentage : 0;
+                                const barColor = isCorrect ? '#4CAF50' : (optionData.count > 0 ? '#FF9800' : '#666');
+                                
+                                return `
+                                    <div style="margin-bottom: 12px;">
+                                        <div style="display: flex; align-items: center; margin-bottom: 5px; font-size: 0.9rem;">
+                                            <span style="font-weight: bold; width: 30px; color: ${isCorrect ? '#4CAF50' : 'var(--text-primary)'};">
+                                                ${option}${isCorrect ? ' ✓' : ''}:
+                                            </span>
+                                            <span style="flex: 1; margin-left: 10px; overflow: hidden; text-overflow: ellipsis;">${optionText}</span>
+                                            <span style="margin-left: 10px; font-weight: bold; min-width: 50px; text-align: right;">
+                                                ${optionData.count} (${optionData.percentage}%)
+                                            </span>
+                                        </div>
+                                        <div style="background: var(--dark-bg); height: 20px; border-radius: 4px; overflow: hidden;">
+                                            <div style="background: ${barColor}; height: 100%; width: ${barWidth}%; transition: width 0.3s ease; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; color: white; font-size: 0.75rem; font-weight: bold;">
+                                                ${barWidth > 10 ? `${barWidth}%` : ''}
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    `;
+                } else {
+                    statsContent.innerHTML = `
+                        <div style="text-align: center;">
+                            <h2 style="font-size: 1.5rem; margin-bottom: 15px;">Question Results</h2>
+                            <div style="font-size: 1.1rem;">
+                                <strong>Correct Answer: <span style="color: #4CAF50;">${question.correctAnswer}</span></strong>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+                statsContent.innerHTML = `
+                    <div style="text-align: center;">
+                        <h2 style="font-size: 1.5rem; margin-bottom: 15px;">Question Results</h2>
+                        <div style="font-size: 1.1rem;">
+                            <strong>Correct Answer: <span style="color: #4CAF50;">${question.correctAnswer}</span></strong>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Start countdown (5 seconds)
+            nextQuestionCountdown = 5;
+            updateNextQuestionCountdown();
+            
+            // Clear any existing interval
+            if (statsDisplayInterval) {
+                clearInterval(statsDisplayInterval);
+            }
+            
+            statsDisplayInterval = setInterval(() => {
+                nextQuestionCountdown--;
+                updateNextQuestionCountdown();
+                
+                if (nextQuestionCountdown <= 0) {
+                    clearInterval(statsDisplayInterval);
+                    statsDisplayInterval = null;
+                    // Stats will be hidden when next question loads
+                }
+            }, 1000);
+        }
+        
+        function updateNextQuestionCountdown() {
+            const countdownEl = document.getElementById('nextQuestionCountdown');
+            if (countdownEl) {
+                if (nextQuestionCountdown > 0) {
+                    const isLastQuestion = currentQuestionIndex >= questions.length - 1;
+                    countdownEl.innerHTML = `
+                        <div style="text-align: center; margin-top: 20px; padding: 15px; background: var(--dark-bg); border-radius: 8px;">
+                            <div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 5px;">
+                                ${isLastQuestion ? 'Session ending in' : 'Next question in'}
+                            </div>
+                            <div style="font-size: 2rem; font-weight: bold; color: var(--primary-color);">
+                                ${nextQuestionCountdown}s
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    countdownEl.innerHTML = '';
+                }
+            }
+        }
+        
+        function hideStatsDisplay() {
+            const statsDisplay = document.getElementById('statsDisplay');
+            const optionsContainer = document.getElementById('optionsContainer');
+            
+            if (statsDisplay) statsDisplay.style.display = 'none';
+            if (optionsContainer) optionsContainer.style.display = 'grid';
+            
+            if (statsDisplayInterval) {
+                clearInterval(statsDisplayInterval);
+                statsDisplayInterval = null;
+            }
         }
 
         function startTimer() {
@@ -657,8 +855,11 @@
                     document.querySelectorAll('.option-button-kahoot').forEach(btn => {
                         if (!btn.disabled) btn.disabled = true;
                     });
-                    // Show correct answer after timer ends
-                    showCorrectAnswerAfterTimer(currentQuestion);
+                    // CRITICAL: Only show correct answer after timer FULLY ends (timeRemaining <= 0)
+                    // Add a small delay to ensure timer display updates first
+                    setTimeout(() => {
+                        showCorrectAnswerAfterTimer(currentQuestion);
+                    }, 100);
                 } else {
                     updateTimerDisplay();
                 }
@@ -701,8 +902,8 @@
                 return;
             }
 
-            // Disable all buttons
-            document.querySelectorAll('.option-button').forEach(btn => {
+            // Disable all buttons (use correct class name)
+            document.querySelectorAll('.option-button-kahoot').forEach(btn => {
                 btn.disabled = true;
             });
 
@@ -740,16 +941,16 @@
                     // The checkSession interval will handle showing next question when admin advances
                 } else {
                     alert('Error: ' + result.error);
-                    // Re-enable buttons
-                    document.querySelectorAll('.option-button').forEach(btn => {
+                    // Re-enable buttons (use correct class name)
+                    document.querySelectorAll('.option-button-kahoot').forEach(btn => {
                         if (!userAnswers[questionId]) btn.disabled = false;
                     });
                 }
             } catch (error) {
                 console.error('Error submitting answer:', error);
                 alert('Failed to submit answer. Please try again.');
-                // Re-enable buttons
-                document.querySelectorAll('.option-button').forEach(btn => {
+                // Re-enable buttons (use correct class name)
+                document.querySelectorAll('.option-button-kahoot').forEach(btn => {
                     if (!userAnswers[questionId]) btn.disabled = false;
                 });
             }
@@ -893,6 +1094,9 @@
             if (presenceInterval) {
                 clearInterval(presenceInterval);
             }
+            if (statsDisplayInterval) {
+                clearInterval(statsDisplayInterval);
+            }
         });
     </script>
 
@@ -903,13 +1107,23 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            padding: 0;
+            margin: 0;
         }
         
         .trivia-container ~ .header,
         .container-full > .header {
-            padding: 10px 20px !important;
-            margin-bottom: 15px !important;
+            padding: 8px 15px !important;
+            margin-bottom: 0 !important;
             flex-shrink: 0; /* Don't shrink header */
+            position: relative;
+            z-index: 10;
+        }
+        
+        @media (max-width: 768px) {
+            .container-full > .header {
+                padding: 8px 10px !important;
+            }
         }
         
         .container-full > .header .header-title h1 {
@@ -917,9 +1131,22 @@
             margin: 0 !important;
         }
         
+        @media (max-width: 768px) {
+            .container-full > .header .header-title h1 {
+                font-size: 1.2rem !important;
+            }
+        }
+        
         .container-full > .header .back-btn {
             font-size: 0.9rem !important;
             padding: 6px 12px !important;
+        }
+        
+        @media (max-width: 768px) {
+            .container-full > .header .back-btn {
+                font-size: 0.85rem !important;
+                padding: 5px 10px !important;
+            }
         }
         
         .container-full > .header .back-btn span {
@@ -933,28 +1160,51 @@
             display: flex;
             flex-direction: column;
             min-height: 0; /* Allow flex shrinking */
+            width: 100%;
+            padding: 0;
+        }
+        
+        @media (max-width: 768px) {
+            .trivia-container {
+                max-width: 100%;
+                padding: 0;
+                margin: 0;
+            }
         }
 
         .trivia-section {
             background: var(--card-bg);
             border: 2px solid var(--border-color);
             border-radius: 20px;
-            padding: 15px; /* Reduced padding */
+            padding: 15px;
             margin-bottom: 15px;
-            height: 100%; /* Fill container height */
-            overflow: hidden; /* No scrolling - fixed content */
+            height: 100%;
+            overflow: hidden;
             display: flex;
             flex-direction: column;
         }
         
         @media (max-width: 768px) {
-            .trivia-container {
-                height: calc(100vh - 70px); /* Adjust for smaller header on mobile */
-            }
-            
             .trivia-section {
-                padding: 12px;
-                margin-bottom: 10px;
+                border-radius: 0;
+                border-left: none;
+                border-right: none;
+                padding: 10px;
+                margin-bottom: 0;
+                height: 100%;
+            }
+        }
+        
+        /* Leaderboard section should be scrollable */
+        #leaderboardSection.trivia-section {
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        
+        @media (max-width: 768px) {
+            #leaderboardSection.trivia-section {
+                height: auto;
+                min-height: 100%;
             }
         }
 
@@ -1039,6 +1289,14 @@
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
             flex-shrink: 0;
         }
+        
+        @media (max-width: 768px) {
+            .timer-kahoot {
+                width: 80px;
+                height: 80px;
+                font-size: 1.5rem;
+            }
+        }
 
         .timer-kahoot #timerValue {
             font-size: 2rem;
@@ -1098,13 +1356,17 @@
             
             /* Leaderboard mobile optimization */
             .leaderboard-list {
-                max-height: calc(100vh - 300px);
                 overflow-y: auto;
+                overflow-x: hidden;
+                max-height: none;
+                height: auto;
             }
             
             .leaderboard-entry {
                 padding: 12px;
                 font-size: 0.9rem;
+                grid-template-columns: 50px 1fr 80px 70px;
+                gap: 10px;
             }
             
             .winner-announcement {
@@ -1121,17 +1383,18 @@
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             grid-template-rows: repeat(2, 1fr);
-            gap: 12px; /* Reduced from 20px */
-            flex: 1; /* Take remaining space */
-            padding: 0 15px; /* Reduced padding */
-            min-height: 0; /* Allow flex shrinking */
-            overflow: hidden; /* No scrolling */
+            gap: 12px;
+            flex: 1;
+            padding: 0 15px;
+            min-height: 0;
+            overflow: hidden;
         }
 
         @media (max-width: 768px) {
             .options-kahoot {
-                gap: 10px;
-                padding: 0 10px;
+                gap: 8px;
+                padding: 0 8px;
+                aspect-ratio: 1;
             }
         }
 
@@ -1139,27 +1402,29 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 12px; /* Reduced from 20px */
-            padding: 15px; /* Reduced from 30px */
+            gap: 12px;
+            padding: 15px;
             border: none;
-            border-radius: 15px; /* Reduced from 20px */
+            border-radius: 15px;
             cursor: pointer;
             transition: all 0.3s ease;
             text-align: center;
-            font-size: 1.2rem; /* Reduced from 1.5rem */
+            font-size: 1.2rem;
             font-weight: 600;
             color: #ffffff;
-            min-height: 0; /* Allow flex shrinking */
+            min-height: 0;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
             flex-direction: column;
-            overflow: hidden; /* Prevent content overflow */
+            overflow: hidden;
+            aspect-ratio: 1; /* Make buttons square */
         }
         
         @media (max-width: 768px) {
             .option-button-kahoot {
-                padding: 12px;
-                font-size: 1rem;
-                gap: 8px;
+                padding: 8px;
+                font-size: 0.9rem;
+                gap: 6px;
+                aspect-ratio: 1; /* Ensure square on mobile */
             }
         }
 
@@ -1255,6 +1520,27 @@
             .waiting-question {
                 padding: 15px;
             }
+        }
+        
+        /* Stats Display */
+        .stats-display-kahoot {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            background: var(--card-bg);
+            border-radius: 15px;
+            margin-top: 15px;
+        }
+        
+        @media (max-width: 768px) {
+            .stats-display-kahoot {
+                padding: 10px;
+                margin-top: 10px;
+            }
+        }
+        
+        .next-question-countdown {
+            margin-top: 20px;
         }
 
         .answer-feedback-kahoot {
@@ -1434,6 +1720,9 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            max-height: none;
         }
 
         .leaderboard-entry {
