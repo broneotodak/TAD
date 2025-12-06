@@ -627,8 +627,8 @@
                 hideStatsDisplay();
             }
             
-            // If we're in wait period for THIS question, show stats
-            if (isInWaitPeriodFromTimer) {
+            // If we're in wait period for THIS question, show stats (but only if countdown hasn't ended)
+            if (isInWaitPeriodFromTimer && nextQuestionCountdown >= 0) {
                 // Hide options container during wait period
                 const container = document.getElementById('optionsContainer');
                 if (container) container.style.display = 'none';
@@ -821,8 +821,15 @@
             }
             
             // Prevent multiple calls - if stats are already showing for this question, don't reset
+            // Also prevent if countdown has ended (nextQuestionCountdown <= 0) - wait for new question
             if (lastQuestionStatsShown === currentIndex && statsShownAt && (Date.now() - statsShownAt) < 5000) {
                 console.log('Stats already showing for question', currentIndex, '- skipping duplicate call');
+                return;
+            }
+            
+            // If countdown has ended, don't show stats again - wait for new question
+            if (nextQuestionCountdown <= 0 && lastQuestionStatsShown === currentIndex) {
+                console.log('Countdown ended for question', currentIndex, '- waiting for new question, not showing stats again');
                 return;
             }
             
@@ -987,14 +994,13 @@
                             <div style="font-size: 3rem; font-weight: bold; color: #4CAF50; margin-bottom: 10px;">${nextQuestionCountdown}</div>
                             <div style="font-size: 1.2rem; color: var(--text-primary);">Next question in ${nextQuestionCountdown} second${nextQuestionCountdown !== 1 ? 's' : ''}</div>
                         `;
-                    } else if (countdownEl) {
+                    } else if (countdownEl && nextQuestionCountdown <= 0) {
+                        // Countdown ended - show loading message and stop updating
                         countdownEl.innerHTML = '<div style="font-size: 1.2rem; color: var(--text-secondary);">Loading next question...</div>';
-                    }
-                    
-                    if (nextQuestionCountdown <= 0) {
                         clearInterval(statsDisplayInterval);
                         statsDisplayInterval = null;
-                        // Stats will be hidden when next question loads
+                        // Mark that countdown has ended to prevent stats from showing again
+                        nextQuestionCountdown = -1;
                     }
                 }, 1000);
             }
