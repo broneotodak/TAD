@@ -354,12 +354,21 @@
                                 const wasShowingStats = lastQuestionStatsShown === prevQIdx3;
                                 const timeSinceStatsShown = statsShownAt ? (Date.now() - statsShownAt) / 1000 : Infinity;
                                 
-                                // If we were showing stats and it's been less than 5 seconds, keep showing them
-                                if (wasShowingStats && timeSinceStatsShown < 5) {
+                                // Also check if previous question timer ended
+                                const previousQuestionStarted = currentSession.questionStartedAt;
+                                let previousTimerEnded = false;
+                                if (previousQuestionStarted) {
+                                    const startedAt = new Date(previousQuestionStarted);
+                                    const elapsed = Math.floor((Date.now() - startedAt.getTime()) / 1000);
+                                    previousTimerEnded = elapsed >= previousQuestion.timeLimitSeconds;
+                                }
+                                
+                                // If we were showing stats OR timer ended for previous question, and it's been less than 5 seconds, keep showing them
+                                if ((wasShowingStats || previousTimerEnded) && timeSinceStatsShown < 5) {
                                     isInWaitPeriod = true;
                                     console.log('Wait period detected: Showing stats for question', prevQIdx3, 'during wait period (', timeSinceStatsShown.toFixed(1), 's ago)');
                                     // Keep showing stats for PREVIOUS question during wait period
-                                    displayQuestion(previousQuestion, prevQIdx3);
+                                    // Don't call displayQuestion here - it will be called in the wait period check
                                     showCorrectAnswerAfterTimer(previousQuestion);
                                     showStatsBetweenQuestions(previousQuestion, prevQIdx3);
                                     // Don't process new question yet - we're still showing previous question's results
@@ -559,7 +568,12 @@
             const existingAnswer = userAnswers[question.id];
             
             // CRITICAL: Check if we're in wait period (timer ended but next question not started)
-            // Don't hide stats if we're showing stats during wait period
+            // Check if we're showing stats for a different question (wait period)
+            const isShowingStatsForDifferentQuestion = lastQuestionStatsShown !== null && 
+                                                       lastQuestionStatsShown !== index &&
+                                                       statsShownAt !== null &&
+                                                       (Date.now() - statsShownAt) / 1000 < 5;
+            
             const questionStarted = currentSession.questionStartedAt && 
                                    currentSession.currentQuestionIndex === index &&
                                    currentSession.isActive;
@@ -571,33 +585,55 @@
                 isInWaitPeriod = elapsed >= question.timeLimitSeconds;
             }
             
-            // Only render options if NOT in wait period (stats will show instead)
-            if (!isInWaitPeriod) {
-                const options = [
-                    { letter: 'A', text: question.optionA, color: '#FF6B6B' },
-                    { letter: 'B', text: question.optionB, color: '#4ECDC4' },
-                    { letter: 'C', text: question.optionC, color: '#45B7D1' },
-                    { letter: 'D', text: question.optionD, color: '#FFA07A' }
-                ];
-
-                const container = document.getElementById('optionsContainer');
-                container.innerHTML = options.map(opt => `
-                    <button 
-                        class="option-button-kahoot ${existingAnswer === opt.letter ? 'selected' : ''}"
-                        onclick="selectAnswer('${opt.letter}', ${question.id})"
-                        ${existingAnswer ? 'disabled' : ''}
-                        style="background: ${opt.color};"
-                    >
-                        <span class="option-letter-kahoot">${opt.letter}</span>
-                        <span class="option-text-kahoot">${opt.text}</span>
-                    </button>
-                `).join('');
+            // If we're showing stats for a different question (wait period), preserve that display
+            if (isShowingStatsForDifferentQuestion) {
+                // Don't change anything - stats are already showing for previous question
+                // Just update the question text to match what we're showing stats for
+                return; // Exit early - don't process further during wait period
             }
+            
+            // If we're in wait period for THIS question, show stats
+            if (isInWaitPeriod) {
+                // Hide options container during wait period
+                const container = document.getElementById('optionsContainer');
+                if (container) container.style.display = 'none';
+                
+                // Ensure stats are shown
+                const waitingEl = document.getElementById('waitingForQuestion');
+                const timerDisplayEl = document.getElementById('timerDisplay');
+                if (waitingEl) waitingEl.style.display = 'none';
+                if (timerDisplayEl) timerDisplayEl.style.display = 'none';
+                
+                showCorrectAnswerAfterTimer(question);
+                showStatsBetweenQuestions(question, index);
+                return; // Exit early - stats are now showing
+            }
+            
+            // Only render options if NOT in wait period (stats will show instead)
+            const options = [
+                { letter: 'A', text: question.optionA, color: '#FF6B6B' },
+                { letter: 'B', text: question.optionB, color: '#4ECDC4' },
+                { letter: 'C', text: question.optionC, color: '#45B7D1' },
+                { letter: 'D', text: question.optionD, color: '#FFA07A' }
+            ];
+
+            const container = document.getElementById('optionsContainer');
+            container.innerHTML = options.map(opt => `
+                <button 
+                    class="option-button-kahoot ${existingAnswer === opt.letter ? 'selected' : ''}"
+                    onclick="selectAnswer('${opt.letter}', ${question.id})"
+                    ${existingAnswer ? 'disabled' : ''}
+                    style="background: ${opt.color};"
+                >
+                    <span class="option-letter-kahoot">${opt.letter}</span>
+                    <span class="option-text-kahoot">${opt.text}</span>
+                </button>
+            `).join('');
             
             const waitingEl = document.getElementById('waitingForQuestion');
             const timerDisplayEl = document.getElementById('timerDisplay');
             
-            if (questionStarted && !existingAnswer && !isInWaitPeriod) {
+            if (questionStarted && !existingAnswer) {
                 // Hide stats display when showing new question (not in wait period)
                 hideStatsDisplay();
                 
@@ -627,9 +663,7 @@
                 }
             } else if (!existingAnswer) {
                 // Waiting for admin to start question
-                if (!isInWaitPeriod) {
-                    hideStatsDisplay();
-                }
+                hideStatsDisplay();
                 if (waitingEl) waitingEl.style.display = 'block';
                 if (timerDisplayEl) timerDisplayEl.style.display = 'none';
                 clearTimer(); // CRITICAL: Clear timer when waiting
