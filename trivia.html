@@ -944,10 +944,9 @@
                         if (!btn.disabled) btn.disabled = true;
                     });
                     // CRITICAL: Only show correct answer after timer FULLY ends (timeRemaining <= 0)
-                    // Add a small delay to ensure timer display updates first
-                    setTimeout(() => {
-                        showCorrectAnswerAfterTimer(currentQuestion);
-                    }, 100);
+                    // Show correct answer and stats immediately
+                    showCorrectAnswerAfterTimer(currentQuestion);
+                    showStatsBetweenQuestions(currentQuestion);
                 } else {
                     updateTimerDisplay();
                 }
