@@ -568,8 +568,13 @@
             const existingAnswer = userAnswers[question.id];
             
             // CRITICAL: Check if we're in wait period (timer ended but next question not started)
+            // First, check if stats display is currently visible (meaning we're in wait period)
+            const statsDisplay = document.getElementById('statsDisplay');
+            const statsDisplayVisible = statsDisplay && statsDisplay.style.display === 'block';
+            
             // Check if we're showing stats for a different question (wait period)
-            const isShowingStatsForDifferentQuestion = lastQuestionStatsShown !== null && 
+            const isShowingStatsForDifferentQuestion = statsDisplayVisible && 
+                                                       lastQuestionStatsShown !== null && 
                                                        lastQuestionStatsShown !== index &&
                                                        statsShownAt !== null &&
                                                        (Date.now() - statsShownAt) / 1000 < 5;
@@ -585,10 +590,11 @@
                 isInWaitPeriod = elapsed >= question.timeLimitSeconds;
             }
             
-            // If we're showing stats for a different question (wait period), preserve that display
-            if (isShowingStatsForDifferentQuestion) {
+            // If stats are currently visible and we're showing stats for a different question (wait period), preserve that display
+            if (isShowingStatsForDifferentQuestion || (statsDisplayVisible && lastQuestionStatsShown !== index)) {
                 // Don't change anything - stats are already showing for previous question
                 // Just update the question text to match what we're showing stats for
+                console.log('Preserving stats display for question', lastQuestionStatsShown, 'while question index is', index);
                 return; // Exit early - don't process further during wait period
             }
             
