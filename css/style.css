@@ -539,6 +539,29 @@ body {
     gap: 15px;
 }
 
+.section-header > div {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    min-width: 0;
+}
+
+@media (max-width: 768px) {
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .section-header > div {
+        width: 100%;
+        flex-direction: column;
+    }
+    
+    .section-header > div > button {
+        width: 100%;
+    }
+}
+
 .table-config {
     display: flex;
     gap: 10px;
