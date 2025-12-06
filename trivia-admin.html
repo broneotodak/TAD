@@ -1251,7 +1251,11 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    displayLeaderboard(result.leaderboard, result.totalQuestions);
+                    // Ensure totalQuestions is passed correctly (default to questions.length if not provided)
+                    const totalQuestions = result.totalQuestions !== undefined && result.totalQuestions !== null 
+                        ? result.totalQuestions 
+                        : (questions.length || 0);
+                    displayLeaderboard(result.leaderboard, totalQuestions);
                     // Show reset button
                     const resetBtn = document.getElementById('resetLeaderboardBtnHeader');
                     if (resetBtn) {
@@ -1313,7 +1317,7 @@
                                 <td>${entry.rank === 1 ? '👑' : entry.rank}</td>
                                 <td><strong>${entry.name}</strong></td>
                                 <td>${entry.company || '-'}</td>
-                                <td>${entry.correctAnswers}/${totalQuestions || entry.questionsAnswered}</td>
+                                <td>${entry.correctAnswers}/${totalQuestions !== undefined && totalQuestions !== null ? totalQuestions : entry.questionsAnswered}</td>
                                 <td>${formatTime(entry.avgAnswerTimeMs)}</td>
                             </tr>
                         `).join('')}

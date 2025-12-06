@@ -402,17 +402,19 @@
                                 }
                             }
                             
-                            // Additional check: if question changed, verify timestamp is recent (within last 3 seconds)
+                            // Additional check: if question changed, verify timestamp is recent (within last 10 seconds for connection delays)
+                            // REMOVED strict timestamp check - allow up to 10 seconds to compensate for connection delays
                             let timestampIsFresh = true;
                             if (questionChanged && questionStarted && !isInWaitPeriod) {
                                 const startedAt = new Date(questionStarted);
                                 const age = Math.floor((Date.now() - startedAt.getTime()) / 1000);
-                                // Timestamp should be very recent (within last 3 seconds) for a new question
-                                timestampIsFresh = age >= 0 && age <= 3;
+                                // Timestamp should be recent (within last 10 seconds) to allow for connection delays
+                                timestampIsFresh = age >= 0 && age <= 10;
                             }
                             
                             // Check if timer has ended for this question
-                            if (questionStartedMatches && timestampIsFresh && !isInWaitPeriod) {
+                            // CRITICAL: Always show question if index changed, even if timestamp check fails (for connection delays)
+                            if (questionStartedMatches && (timestampIsFresh || questionChanged) && !isInWaitPeriod) {
                                 const startedAt = new Date(questionStarted);
                                 const elapsed = Math.floor((Date.now() - startedAt.getTime()) / 1000);
                                 const timerEnded = elapsed >= currentQuestion.timeLimitSeconds;
@@ -442,13 +444,31 @@
                             } else if (!isInWaitPeriod) {
                                 // Timer not started yet, doesn't match current question, or timestamp is stale
                                 // But NOT in wait period - show question normally
-                                // Clear stats if we're showing a new question
-                                if (lastQuestionStatsShown !== null && lastQuestionStatsShown !== activeQuestionIndex) {
+                                // CRITICAL: Always show question if index changed, even with connection delays
+                                if (questionChanged || activeQuestionIndex >= 0) {
+                                    // Clear stats if we're showing a new question
+                                    if (lastQuestionStatsShown !== null && lastQuestionStatsShown !== activeQuestionIndex) {
+                                        hideStatsDisplay();
+                                        lastQuestionStatsShown = null;
+                                        statsShownAt = null;
+                                        nextQuestionCountdown = 0; // Reset countdown
+                                    }
+                                    displayQuestion(questions[activeQuestionIndex], activeQuestionIndex);
+                                }
+                            }
+                            
+                            // CRITICAL: Fallback - if question index changed but question wasn't displayed above, show it now
+                            // This handles edge cases with connection delays
+                            if (questionChanged && activeQuestionIndex >= 0 && activeQuestionIndex < questions.length) {
+                                const questionDisplayed = document.getElementById('questionText')?.textContent === questions[activeQuestionIndex].questionText;
+                                if (!questionDisplayed && !isInWaitPeriod) {
+                                    console.log('Fallback: Displaying question', activeQuestionIndex, 'due to index change');
                                     hideStatsDisplay();
                                     lastQuestionStatsShown = null;
                                     statsShownAt = null;
+                                    nextQuestionCountdown = 0;
+                                    displayQuestion(questions[activeQuestionIndex], activeQuestionIndex);
                                 }
-                                displayQuestion(questions[activeQuestionIndex], activeQuestionIndex);
                             }
                         } else if (activeQuestionIndex === -1 && questions.length > 0) {
                             // No question started yet - session is active but waiting for first question
@@ -648,7 +668,9 @@
             }
             
             // CRITICAL: If new question has started, ALWAYS show it (don't let stats block it)
-            if (questionStarted && !isInWaitPeriodFromTimer) {
+            // Also show question if index matches, even if timestamp is slightly stale (connection delay)
+            const questionIndexMatches = currentSession.currentQuestionIndex === index;
+            if ((questionStarted || questionIndexMatches) && !isInWaitPeriodFromTimer) {
                 // New question started and timer hasn't ended - show question immediately
                 hideStatsDisplay();
                 lastQuestionStatsShown = null;
@@ -670,7 +692,8 @@
                     class="option-button-kahoot ${existingAnswer === opt.letter ? 'selected' : ''}"
                     onclick="selectAnswer('${opt.letter}', ${question.id})"
                     ${existingAnswer ? 'disabled' : ''}
-                    style="background: ${opt.color};"
+                    style="background: ${opt.color}; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;"
+                    type="button"
                 >
                     <span class="option-letter-kahoot">${opt.letter}</span>
                     <span class="option-text-kahoot">${opt.text}</span>
@@ -1155,19 +1178,45 @@
             }
         }
 
+        let isSubmittingAnswer = false; // Prevent double submissions
+
         async function selectAnswer(answer, questionId) {
+            // Prevent double submissions
+            if (isSubmittingAnswer) {
+                console.log('Answer submission already in progress, ignoring duplicate click');
+                return;
+            }
+
             if (!participantId) {
                 alert('Please check in first to participate.');
                 return;
             }
 
+            // Check if already answered
+            if (userAnswers[questionId]) {
+                console.log('Already answered this question');
+                return;
+            }
+
+            // Set flag to prevent duplicate submissions
+            isSubmittingAnswer = true;
+
             // Disable all buttons (use correct class name)
             document.querySelectorAll('.option-button-kahoot').forEach(btn => {
                 btn.disabled = true;
+                btn.style.pointerEvents = 'none'; // Additional protection
             });
 
-            // Mark as selected
+            // Mark as selected immediately for visual feedback
             userAnswers[questionId] = answer;
+            
+            // Update button visual state
+            document.querySelectorAll('.option-button-kahoot').forEach(btn => {
+                if (btn.textContent.includes(answer)) {
+                    btn.classList.add('selected');
+                }
+            });
+            
             clearTimer();
 
             try {
@@ -1202,16 +1251,29 @@
                     alert('Error: ' + result.error);
                     // Re-enable buttons (use correct class name)
                     document.querySelectorAll('.option-button-kahoot').forEach(btn => {
-                        if (!userAnswers[questionId]) btn.disabled = false;
+                        if (!userAnswers[questionId]) {
+                            btn.disabled = false;
+                            btn.style.pointerEvents = 'auto';
+                        }
                     });
+                    // Remove selection if error
+                    delete userAnswers[questionId];
                 }
             } catch (error) {
                 console.error('Error submitting answer:', error);
                 alert('Failed to submit answer. Please try again.');
                 // Re-enable buttons (use correct class name)
                 document.querySelectorAll('.option-button-kahoot').forEach(btn => {
-                    if (!userAnswers[questionId]) btn.disabled = false;
+                    if (!userAnswers[questionId]) {
+                        btn.disabled = false;
+                        btn.style.pointerEvents = 'auto';
+                    }
                 });
+                // Remove selection if error
+                delete userAnswers[questionId];
+            } finally {
+                // Always reset flag
+                isSubmittingAnswer = false;
             }
         }
 
