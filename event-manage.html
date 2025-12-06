@@ -138,14 +138,16 @@
                     </div>
                     <div class="search-bar">
                     <input type="text" id="searchParticipant" placeholder="Search by name or company..." onkeyup="filterParticipants()">
-                    <label class="checkbox-label" id="vipFilterLabel">
-                        <input type="checkbox" id="filterVIP" onchange="filterParticipants()">
-                        VIP Only
-                    </label>
-                    <label class="checkbox-label" id="checkedInFilterLabel">
-                        <input type="checkbox" id="filterCheckedIn" onchange="filterParticipants()">
-                        Checked In Only
-                    </label>
+                    <div class="filter-checkboxes" style="display: flex; align-items: center; gap: 20px; margin-left: 15px;">
+                        <label class="checkbox-label" id="vipFilterLabel" style="margin-left: 0;">
+                            <input type="checkbox" id="filterVIP" onchange="filterParticipants()">
+                            VIP Only
+                        </label>
+                        <label class="checkbox-label" id="checkedInFilterLabel" style="margin-left: 0;">
+                            <input type="checkbox" id="filterCheckedIn" onchange="filterParticipants()">
+                            Checked In Only
+                        </label>
+                    </div>
                 </div>
                 
                 <!-- Bulk Actions Bar -->
@@ -1090,20 +1092,37 @@
             window.open(`trivia-admin.html?event=${currentEventId}`, '_blank');
         }
 
-        // Export data
+        // Export data as CSV
         function exportData() {
-            const data = {
-                event: currentEvent,
-                participants: participants,
-                tables: tables,
-                exportDate: new Date().toISOString()
-            };
+            if (!participants || participants.length === 0) {
+                alert('No participants to export.');
+                return;
+            }
 
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            // Create CSV header
+            const headers = ['Full Name', 'Company', 'VIP', 'Table', 'Status', 'Checked In At'];
+            const csvRows = [headers.join(',')];
+
+            // Add participant data
+            participants.forEach(p => {
+                const row = [
+                    `"${(p.name || '').replace(/"/g, '""')}"`,
+                    `"${(p.company || '').replace(/"/g, '""')}"`,
+                    p.isVIP ? 'Yes' : 'No',
+                    p.tableName || '',
+                    p.checkedIn ? 'Checked In' : 'Not Checked In',
+                    p.checkedInAt ? `"${p.checkedInAt}"` : ''
+                ];
+                csvRows.push(row.join(','));
+            });
+
+            // Create CSV content
+            const csvContent = csvRows.join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `event-${currentEventId}-data.json`;
+            a.download = `event-${currentEventId}-participants-${new Date().toISOString().split('T')[0]}.csv`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -1608,12 +1627,16 @@
         .checkbox-label {
             display: inline-flex;
             align-items: center;
-            margin-left: 15px;
+            margin-left: 0;
             cursor: pointer;
         }
 
-        .checkbox-label input {
-            margin-right: 5px;
+        .checkbox-label input[type="checkbox"] {
+            margin-right: 8px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            flex-shrink: 0;
         }
 
         .btn-small {
