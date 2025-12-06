@@ -332,14 +332,15 @@
                             
                             if (questionChanged) {
                                 // Question changed, reset state IMMEDIATELY
-                                currentQuestionIndex = activeQuestionIndex;
-                                userAnswers = {}; // Reset answers for new question
-                                clearTimer(); // CRITICAL: Clear any existing timer when question changes
-                                
-                                // CRITICAL: If question index increased, this is a new question
-                                // We need to ensure we have the FRESH questionStartedAt timestamp
-                                // The API should have returned it, but double-check it matches the new question
+                                // CRITICAL: Only reset if moving FORWARD to a new question
+                                // Don't reset if going backwards or if question index decreased unexpectedly
                                 if (prevQIdx3 !== undefined && activeQuestionIndex > prevQIdx3) {
+                                    // Moving forward to new question - reset state
+                                    currentQuestionIndex = activeQuestionIndex;
+                                    userAnswers = {}; // Reset answers for new question
+                                    clearTimer(); // CRITICAL: Clear any existing timer when question changes
+                                    hideStatsDisplay(); // Hide stats when new question starts
+                                    
                                     // New question started - verify timestamp is fresh
                                     // If questionStartedAt is null or very old, wait for next check
                                     if (!currentSession.questionStartedAt) {
@@ -347,7 +348,12 @@
                                         displayQuestion(questions[activeQuestionIndex], activeQuestionIndex);
                                         return; // Exit early, let next checkSession() get the fresh timestamp
                                     }
+                                } else if (prevQIdx3 !== undefined && activeQuestionIndex < prevQIdx3) {
+                                    // Question index decreased - this shouldn't happen normally
+                                    // But if it does, don't reset - might be a display issue
+                                    console.warn('Question index decreased unexpectedly:', prevQIdx3, '->', activeQuestionIndex);
                                 }
+                                // If question index is same, no need to reset
                             }
                             
                             const currentQuestion = questions[activeQuestionIndex];
@@ -378,19 +384,45 @@
                                 // Add a small buffer to ensure timer truly ended
                                 if (timerEnded) {
                                     // Timer ended - show correct answer and stats
+                                    // Check if user has answered to determine what to show
+                                    const userHasAnswered = userAnswers[currentQuestion.id];
                                     displayQuestion(questions[activeQuestionIndex], activeQuestionIndex);
                                     showCorrectAnswerAfterTimer(currentQuestion);
-                                    // Show stats with countdown during wait period
+                                    // Always show stats during wait period between questions
                                     showStatsBetweenQuestions(currentQuestion, activeQuestionIndex);
                                 } else {
                                     // Timer still running - show question normally
                                     displayQuestion(questions[activeQuestionIndex], activeQuestionIndex);
-                                    hideStatsDisplay();
+                                    // Don't hide stats if we're in wait period (timer ended but checkSession hasn't updated yet)
+                                    // Only hide if timer is actually still running
+                                    const statsDisplay = document.getElementById('statsDisplay');
+                                    if (statsDisplay && statsDisplay.style.display === 'none') {
+                                        hideStatsDisplay();
+                                    }
                                 }
                             } else {
                                 // Timer not started yet, doesn't match current question, or timestamp is stale
-                                displayQuestion(questions[activeQuestionIndex], activeQuestionIndex);
-                                hideStatsDisplay();
+                                // Check if we're in wait period (timer ended but next question not started)
+                                const startedAt = questionStarted ? new Date(questionStarted) : null;
+                                let isInWaitPeriod = false;
+                                
+                                if (startedAt && currentSession.currentQuestionIndex === activeQuestionIndex) {
+                                    const elapsed = Math.floor((Date.now() - startedAt.getTime()) / 1000);
+                                    const timerEnded = elapsed >= currentQuestion.timeLimitSeconds;
+                                    // If timer ended for current question, we're in wait period
+                                    if (timerEnded) {
+                                        isInWaitPeriod = true;
+                                        // Show stats during wait period
+                                        displayQuestion(questions[activeQuestionIndex], activeQuestionIndex);
+                                        showCorrectAnswerAfterTimer(currentQuestion);
+                                        showStatsBetweenQuestions(currentQuestion, activeQuestionIndex);
+                                    }
+                                }
+                                
+                                if (!isInWaitPeriod) {
+                                    displayQuestion(questions[activeQuestionIndex], activeQuestionIndex);
+                                    hideStatsDisplay();
+                                }
                             }
                         } else if (activeQuestionIndex === -1 && questions.length > 0) {
                             // No question started yet - session is active but waiting for first question
@@ -596,7 +628,7 @@
                 if (timerDisplayEl) timerDisplayEl.style.display = 'none';
                 clearTimer(); // CRITICAL: Clear timer when waiting
             } else {
-                // Already answered - check if timer has ended to show correct answer
+                // Already answered - check if timer has ended to show correct answer and stats
                 const questionStartedForAnswer = currentSession.questionStartedAt && 
                                                 currentSession.currentQuestionIndex === index &&
                                                 currentSession.isActive;
@@ -608,11 +640,14 @@
                     const timerEnded = elapsed >= question.timeLimitSeconds;
                     
                     if (timerEnded) {
-                        // Timer ended - show correct answer
+                        // Timer ended - show correct answer and stats
                         showCorrectAnswerAfterTimer(question);
+                        // Show stats during wait period between questions
+                        showStatsBetweenQuestions(question, index);
                     } else {
                         // Timer still running - keep buttons disabled but don't show answer yet
                         // Re-render buttons as disabled
+                        hideStatsDisplay();
                         const options = [
                             { letter: 'A', text: question.optionA, color: '#FF6B6B' },
                             { letter: 'B', text: question.optionB, color: '#4ECDC4' },
@@ -630,6 +665,9 @@
                             </button>
                         `).join('');
                     }
+                } else {
+                    // Question not started or doesn't match - hide stats
+                    hideStatsDisplay();
                 }
                 
                 if (waitingEl) waitingEl.style.display = 'none';
@@ -1114,10 +1152,10 @@
                                 ${isWinner ? '👑' : `#${entry.rank}`}
                             </div>
                             <div class="participant-info" style="overflow: hidden; min-width: 0;">
-                                <div class="name" style="${isWinner ? 'font-weight: bold; font-size: 1rem;' : ''} overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
+                                <div class="name" style="${isWinner ? 'font-weight: bold; font-size: 1rem;' : ''} word-wrap: break-word; white-space: normal;">
                                     ${entry.name} ${isCurrentUser ? '(You)' : ''}
                                 </div>
-                                <div class="company" style="overflow: hidden; text-overflow: ellipsis;">${entry.company || ''}</div>
+                                <div class="company" style="word-wrap: break-word; white-space: normal;">${entry.company || ''}</div>
                             </div>
                         </div>
                     `;
@@ -1428,6 +1466,7 @@
             padding: 0 15px;
             min-height: 0;
             overflow: hidden;
+            width: 100%;
         }
 
         @media (max-width: 768px) {
@@ -1435,6 +1474,10 @@
                 gap: 8px;
                 padding: 0 8px;
                 aspect-ratio: 1;
+                width: 100%;
+                /* Ensure buttons fill the available space */
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: 1fr 1fr;
             }
         }
 
@@ -1457,6 +1500,8 @@
             flex-direction: column;
             overflow: hidden;
             aspect-ratio: 1; /* Make buttons square */
+            width: 100%;
+            height: 100%;
         }
         
         @media (max-width: 768px) {
@@ -1465,6 +1510,11 @@
                 font-size: 0.9rem;
                 gap: 6px;
                 aspect-ratio: 1; /* Ensure square on mobile */
+                width: 100%;
+                height: 100%;
+                /* Ensure buttons fill their grid cells */
+                min-width: 0;
+                min-height: 0;
             }
         }
 
@@ -1774,6 +1824,33 @@
             background: var(--dark-bg);
             border: 2px solid var(--border-color);
             border-radius: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .leaderboard-entry {
+                grid-template-columns: 50px 1fr 70px;
+                gap: 10px;
+                padding: 12px;
+            }
+            
+            .leaderboard-entry .name {
+                font-size: 0.95rem;
+                line-height: 1.4;
+                word-wrap: break-word;
+                white-space: normal;
+                overflow: visible;
+                text-overflow: clip;
+                -webkit-line-clamp: none;
+                display: block;
+            }
+            
+            .leaderboard-entry .company {
+                font-size: 0.85rem;
+                word-wrap: break-word;
+                white-space: normal;
+                overflow: visible;
+                text-overflow: clip;
+            }
         }
 
         .leaderboard-entry.current-user {
