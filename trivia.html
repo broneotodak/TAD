@@ -420,10 +420,15 @@
                                 // CRITICAL: Only show correct answer if timer has FULLY ended (elapsed >= timeLimit)
                                 if (timerEnded) {
                                     // Timer ended - show correct answer and stats
-                                    displayQuestion(questions[activeQuestionIndex], activeQuestionIndex);
+                                    // Don't call displayQuestion here - it will hide stats
+                                    // Just show the correct answer and stats directly
                                     showCorrectAnswerAfterTimer(currentQuestion);
-                                    // Always show stats during wait period between questions
                                     showStatsBetweenQuestions(currentQuestion, activeQuestionIndex);
+                                    // Update question text without calling displayQuestion (which would hide stats)
+                                    const questionTextEl = document.getElementById('questionText');
+                                    const currentQuestionNumEl = document.getElementById('currentQuestionNum');
+                                    if (questionTextEl) questionTextEl.textContent = currentQuestion.questionText;
+                                    if (currentQuestionNumEl) currentQuestionNumEl.textContent = activeQuestionIndex + 1;
                                 } else {
                                     // Timer still running - show question normally
                                     // Clear stats if we're showing a new question
@@ -825,10 +830,26 @@
             
             // Hide options container and show stats IMMEDIATELY (before async fetch)
             if (optionsContainer) optionsContainer.style.display = 'none';
+            
+            // Force stats display to be visible with important styles
             statsDisplay.style.display = 'block';
+            statsDisplay.style.visibility = 'visible';
+            statsDisplay.style.opacity = '1';
+            
+            // Ensure parent containers are visible
+            const activeSession = document.getElementById('activeSession');
+            if (activeSession) {
+                activeSession.style.display = 'block';
+            }
+            
+            console.log('Stats display element:', statsDisplay, 'display:', statsDisplay.style.display, 'computed:', window.getComputedStyle(statsDisplay).display);
             
             // Show loading state while fetching
             statsContent.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">Loading results...</div>';
+            
+            // Start countdown immediately (don't wait for API)
+            nextQuestionCountdown = 5;
+            updateNextQuestionCountdown();
             
             try {
                 // Fetch answer breakdown
@@ -895,29 +916,33 @@
                         </div>
                     `;
                 } else {
+                    // API failed but still show basic info
                     statsContent.innerHTML = `
-                        <div style="text-align: center;">
-                            <h2 style="font-size: 1.5rem; margin-bottom: 15px;">Question Results</h2>
-                            <div style="font-size: 1.1rem;">
-                                <strong>Correct Answer: <span style="color: #4CAF50;">${question.correctAnswer}</span></strong>
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <h2 style="font-size: 1.5rem; margin-bottom: 15px; color: var(--text-primary);">Question Results</h2>
+                            <div style="font-size: 1.1rem; margin-bottom: 10px;">
+                                <strong>Correct Answer: <span style="color: #4CAF50; font-size: 1.3rem;">${question.correctAnswer}</span></strong>
                             </div>
                         </div>
                     `;
                 }
             } catch (error) {
                 console.error('Error loading stats:', error);
+                // Even if API fails, show basic info and countdown
                 statsContent.innerHTML = `
-                    <div style="text-align: center;">
-                        <h2 style="font-size: 1.5rem; margin-bottom: 15px;">Question Results</h2>
-                        <div style="font-size: 1.1rem;">
-                            <strong>Correct Answer: <span style="color: #4CAF50;">${question.correctAnswer}</span></strong>
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <h2 style="font-size: 1.5rem; margin-bottom: 15px; color: var(--text-primary);">Question Results</h2>
+                        <div style="font-size: 1.1rem; margin-bottom: 10px;">
+                            <strong>Correct Answer: <span style="color: #4CAF50; font-size: 1.3rem;">${question.correctAnswer}</span></strong>
+                        </div>
+                        <div style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 20px;">
+                            Statistics are being calculated...
                         </div>
                     </div>
                 `;
             }
             
-            // Start countdown (5 seconds)
-            nextQuestionCountdown = 5;
+            // Countdown was already started above, just ensure it's updated
             updateNextQuestionCountdown();
             
             // Clear any existing interval
