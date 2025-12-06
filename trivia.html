@@ -381,11 +381,9 @@
                                 const timerEnded = elapsed >= currentQuestion.timeLimitSeconds;
                                 
                                 // CRITICAL: Only show correct answer if timer has FULLY ended (elapsed >= timeLimit)
-                                // Add a small buffer to ensure timer truly ended
                                 if (timerEnded) {
                                     // Timer ended - show correct answer and stats
-                                    // Check if user has answered to determine what to show
-                                    const userHasAnswered = userAnswers[currentQuestion.id];
+                                    // displayQuestion will detect wait period and preserve stats
                                     displayQuestion(questions[activeQuestionIndex], activeQuestionIndex);
                                     showCorrectAnswerAfterTimer(currentQuestion);
                                     // Always show stats during wait period between questions
@@ -393,12 +391,6 @@
                                 } else {
                                     // Timer still running - show question normally
                                     displayQuestion(questions[activeQuestionIndex], activeQuestionIndex);
-                                    // Don't hide stats if we're in wait period (timer ended but checkSession hasn't updated yet)
-                                    // Only hide if timer is actually still running
-                                    const statsDisplay = document.getElementById('statsDisplay');
-                                    if (statsDisplay && statsDisplay.style.display === 'none') {
-                                        hideStatsDisplay();
-                                    }
                                 }
                             } else {
                                 // Timer not started yet, doesn't match current question, or timestamp is stale
@@ -421,7 +413,6 @@
                                 
                                 if (!isInWaitPeriod) {
                                     displayQuestion(questions[activeQuestionIndex], activeQuestionIndex);
-                                    hideStatsDisplay();
                                 }
                             }
                         } else if (activeQuestionIndex === -1 && questions.length > 0) {
@@ -564,37 +555,47 @@
             // Check if user already answered this question
             const existingAnswer = userAnswers[question.id];
             
-            const options = [
-                { letter: 'A', text: question.optionA, color: '#FF6B6B' },
-                { letter: 'B', text: question.optionB, color: '#4ECDC4' },
-                { letter: 'C', text: question.optionC, color: '#45B7D1' },
-                { letter: 'D', text: question.optionD, color: '#FFA07A' }
-            ];
-
-            const container = document.getElementById('optionsContainer');
-            container.innerHTML = options.map(opt => `
-                <button 
-                    class="option-button-kahoot ${existingAnswer === opt.letter ? 'selected' : ''}"
-                    onclick="selectAnswer('${opt.letter}', ${question.id})"
-                    ${existingAnswer ? 'disabled' : ''}
-                    style="background: ${opt.color};"
-                >
-                    <span class="option-letter-kahoot">${opt.letter}</span>
-                    <span class="option-text-kahoot">${opt.text}</span>
-                </button>
-            `).join('');
-
-            // CRITICAL: Check if admin has started this question
-            // Verify questionStartedAt matches current question index AND session is active
+            // CRITICAL: Check if we're in wait period (timer ended but next question not started)
+            // Don't hide stats if we're showing stats during wait period
             const questionStarted = currentSession.questionStartedAt && 
                                    currentSession.currentQuestionIndex === index &&
                                    currentSession.isActive;
+            let isInWaitPeriod = false;
+            
+            if (questionStarted) {
+                const startedAt = new Date(currentSession.questionStartedAt);
+                const elapsed = Math.floor((Date.now() - startedAt.getTime()) / 1000);
+                isInWaitPeriod = elapsed >= question.timeLimitSeconds;
+            }
+            
+            // Only render options if NOT in wait period (stats will show instead)
+            if (!isInWaitPeriod) {
+                const options = [
+                    { letter: 'A', text: question.optionA, color: '#FF6B6B' },
+                    { letter: 'B', text: question.optionB, color: '#4ECDC4' },
+                    { letter: 'C', text: question.optionC, color: '#45B7D1' },
+                    { letter: 'D', text: question.optionD, color: '#FFA07A' }
+                ];
+
+                const container = document.getElementById('optionsContainer');
+                container.innerHTML = options.map(opt => `
+                    <button 
+                        class="option-button-kahoot ${existingAnswer === opt.letter ? 'selected' : ''}"
+                        onclick="selectAnswer('${opt.letter}', ${question.id})"
+                        ${existingAnswer ? 'disabled' : ''}
+                        style="background: ${opt.color};"
+                    >
+                        <span class="option-letter-kahoot">${opt.letter}</span>
+                        <span class="option-text-kahoot">${opt.text}</span>
+                    </button>
+                `).join('');
+            }
             
             const waitingEl = document.getElementById('waitingForQuestion');
             const timerDisplayEl = document.getElementById('timerDisplay');
             
-            if (questionStarted && !existingAnswer) {
-                // Hide stats display when showing new question
+            if (questionStarted && !existingAnswer && !isInWaitPeriod) {
+                // Hide stats display when showing new question (not in wait period)
                 hideStatsDisplay();
                 
                 // Calculate remaining time based on server timestamp
@@ -609,7 +610,7 @@
                     clearTimer();
                     startTimer();
                 } else {
-                    // Time already expired
+                    // Time already expired - show stats
                     if (waitingEl) waitingEl.style.display = 'none';
                     if (timerDisplayEl) timerDisplayEl.style.display = 'none';
                     document.querySelectorAll('.option-button-kahoot').forEach(btn => {
@@ -618,12 +619,14 @@
                     clearTimer();
                     // Show correct answer if timer expired
                     showCorrectAnswerAfterTimer(question);
-                    // Show stats
+                    // Show stats during wait period
                     showStatsBetweenQuestions(question, index);
                 }
             } else if (!existingAnswer) {
                 // Waiting for admin to start question
-                hideStatsDisplay();
+                if (!isInWaitPeriod) {
+                    hideStatsDisplay();
+                }
                 if (waitingEl) waitingEl.style.display = 'block';
                 if (timerDisplayEl) timerDisplayEl.style.display = 'none';
                 clearTimer(); // CRITICAL: Clear timer when waiting
@@ -647,27 +650,34 @@
                     } else {
                         // Timer still running - keep buttons disabled but don't show answer yet
                         // Re-render buttons as disabled
-                        hideStatsDisplay();
-                        const options = [
-                            { letter: 'A', text: question.optionA, color: '#FF6B6B' },
-                            { letter: 'B', text: question.optionB, color: '#4ECDC4' },
-                            { letter: 'C', text: question.optionC, color: '#45B7D1' },
-                            { letter: 'D', text: question.optionD, color: '#FFA07A' }
-                        ];
-                        container.innerHTML = options.map(opt => `
-                            <button 
-                                class="option-button-kahoot ${existingAnswer === opt.letter ? 'selected' : ''}"
-                                disabled
-                                style="background: ${opt.color};"
-                            >
-                                <span class="option-letter-kahoot">${opt.letter}</span>
-                                <span class="option-text-kahoot">${opt.text}</span>
-                            </button>
-                        `).join('');
+                        if (!isInWaitPeriod) {
+                            hideStatsDisplay();
+                        }
+                        const container = document.getElementById('optionsContainer');
+                        if (container) {
+                            const options = [
+                                { letter: 'A', text: question.optionA, color: '#FF6B6B' },
+                                { letter: 'B', text: question.optionB, color: '#4ECDC4' },
+                                { letter: 'C', text: question.optionC, color: '#45B7D1' },
+                                { letter: 'D', text: question.optionD, color: '#FFA07A' }
+                            ];
+                            container.innerHTML = options.map(opt => `
+                                <button 
+                                    class="option-button-kahoot ${existingAnswer === opt.letter ? 'selected' : ''}"
+                                    disabled
+                                    style="background: ${opt.color};"
+                                >
+                                    <span class="option-letter-kahoot">${opt.letter}</span>
+                                    <span class="option-text-kahoot">${opt.text}</span>
+                                </button>
+                            `).join('');
+                        }
                     }
                 } else {
-                    // Question not started or doesn't match - hide stats
-                    hideStatsDisplay();
+                    // Question not started or doesn't match - hide stats only if not in wait period
+                    if (!isInWaitPeriod) {
+                        hideStatsDisplay();
+                    }
                 }
                 
                 if (waitingEl) waitingEl.style.display = 'none';
