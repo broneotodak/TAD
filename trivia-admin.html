@@ -837,12 +837,14 @@
                     // Show "Next Question" button only after timer ends (for manual override)
                     if (nextQuestionBtn) {
                         if (timerEnded) {
-                            nextQuestionBtn.style.display = 'inline-block';
-                            nextQuestionBtn.style.fontSize = '1.3rem';
-                            nextQuestionBtn.style.padding = '15px 40px';
-                            nextQuestionBtn.style.marginTop = '30px';
-                            nextQuestionBtn.style.width = '100%';
-                            nextQuestionBtn.style.maxWidth = '400px';
+                            nextQuestionBtn.style.display = 'flex';
+                            nextQuestionBtn.style.flex = '1';
+                            nextQuestionBtn.style.minWidth = '200px';
+                            nextQuestionBtn.style.padding = '12px 20px';
+                            nextQuestionBtn.style.fontSize = '1rem';
+                            nextQuestionBtn.style.marginTop = '0';
+                            nextQuestionBtn.style.width = 'auto';
+                            nextQuestionBtn.style.maxWidth = 'none';
                             if (currentIndex >= totalQuestions - 1) {
                                 nextQuestionBtn.textContent = '✅ Complete Session';
                                 nextQuestionBtn.disabled = false;

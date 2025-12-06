@@ -558,6 +558,17 @@ body {
 .session-control-buttons > button {
     flex: 1;
     min-width: 150px;
+    white-space: nowrap;
+}
+
+.admin-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+#sessionControls[style*="order: 999"] {
+    order: 999;
 }
 
 @media (max-width: 768px) {
