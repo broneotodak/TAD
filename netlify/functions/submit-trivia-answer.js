@@ -85,6 +85,7 @@ export default async (req, context) => {
       if (sessionInfo?.question_started_at) {
         // Use database NOW() for precise timestamp calculation
         // This ensures scoring is consistent across all concurrent submissions
+        // Pass the question_started_at as a parameter to SQL
         const [scoringResult] = await sql`
           SELECT 
             EXTRACT(EPOCH FROM (NOW() - ${sessionInfo.question_started_at}::timestamp))::integer as elapsed_seconds,
@@ -96,6 +97,7 @@ export default async (req, context) => {
         
         // Base points + remaining seconds bonus
         // Faster answers get more points (more remaining seconds)
+        // Example: 10 base points + 25 remaining seconds = 35 points
         pointsEarned = question.points + remainingSeconds;
       } else {
         // Fallback: if timer not started, just give base points
