@@ -347,6 +347,7 @@
                             if (questionChanged && prevQIdx3 !== undefined && prevQIdx3 >= 0 && prevQIdx3 < questions.length && activeQuestionIndex > prevQIdx3) {
                                 // Question advanced forward - check if we're in wait period
                                 // Wait period = we were showing stats for previous question, and it's been less than 5 seconds
+                                // BUT: If countdown has ended (nextQuestionCountdown <= 0), we're ready for new question
                                 previousQuestion = questions[prevQIdx3];
                                 
                                 // Check if we were showing stats for the previous question
@@ -362,8 +363,13 @@
                                     previousTimerEnded = elapsed >= previousQuestion.timeLimitSeconds;
                                 }
                                 
+                                // CRITICAL: Only show wait period if countdown hasn't ended yet
+                                // If countdown ended (nextQuestionCountdown <= 0), we're ready for new question
+                                const countdownEnded = nextQuestionCountdown <= 0;
+                                
                                 // If we were showing stats OR timer ended for previous question, and it's been less than 5 seconds, keep showing them
-                                if ((wasShowingStats || previousTimerEnded) && timeSinceStatsShown < 5) {
+                                // BUT: If countdown ended, don't block new question
+                                if (!countdownEnded && (wasShowingStats || previousTimerEnded) && timeSinceStatsShown < 5) {
                                     isInWaitPeriod = true;
                                     console.log('Wait period detected: Showing stats for question', prevQIdx3, 'during wait period (', timeSinceStatsShown.toFixed(1), 's ago)');
                                     // Keep showing stats for PREVIOUS question during wait period
@@ -372,6 +378,13 @@
                                     showStatsBetweenQuestions(previousQuestion, prevQIdx3);
                                     // Don't process new question yet - we're still showing previous question's results
                                     return;
+                                } else if (countdownEnded) {
+                                    // Countdown ended - clear stats and allow new question to show
+                                    console.log('Countdown ended, clearing stats and showing new question', activeQuestionIndex);
+                                    hideStatsDisplay();
+                                    lastQuestionStatsShown = null;
+                                    statsShownAt = null;
+                                    isInWaitPeriod = false; // Force exit wait period
                                 }
                             }
                             
@@ -379,6 +392,7 @@
                                 // Question changed and NOT in wait period - reset state for new question
                                 if (prevQIdx3 !== undefined && activeQuestionIndex > prevQIdx3) {
                                     // Moving forward to new question - reset state
+                                    console.log('Question changed from', prevQIdx3, 'to', activeQuestionIndex, '- resetting state and showing new question');
                                     currentQuestionIndex = activeQuestionIndex;
                                     userAnswers = {}; // Reset answers for new question
                                     clearTimer(); // CRITICAL: Clear any existing timer when question changes
@@ -387,16 +401,24 @@
                                     statsShownAt = null;
                                     nextQuestionCountdown = 0; // CRITICAL: Reset countdown when question changes
                                     
+                                    // Clear stats display interval if still running
+                                    if (statsDisplayInterval) {
+                                        clearInterval(statsDisplayInterval);
+                                        statsDisplayInterval = null;
+                                    }
+                                    
                                     // Check if new question has actually started (timestamp matches)
                                     const newQuestionStarted = currentSession.questionStartedAt && 
                                                                currentSession.currentQuestionIndex === activeQuestionIndex;
                                     
                                     if (newQuestionStarted) {
                                         // New question has started - show it immediately
+                                        console.log('New question started - displaying immediately');
                                         displayQuestion(questions[activeQuestionIndex], activeQuestionIndex);
                                     } else {
                                         // Timestamp not set yet - wait for next checkSession cycle
                                         // But still show the question (without timer) so user knows what's coming
+                                        console.log('New question index detected but timestamp not set yet - showing question preview');
                                         displayQuestion(questions[activeQuestionIndex], activeQuestionIndex);
                                     }
                                 }
@@ -1021,7 +1043,7 @@
             if (!statsDisplayInterval) {
                 statsDisplayInterval = setInterval(() => {
                     nextQuestionCountdown--;
-                    
+
                     // Update countdown within statsContent (it's now part of the statsContent HTML)
                     const countdownEl = document.getElementById('nextQuestionCountdown');
                     if (countdownEl && nextQuestionCountdown > 0) {
@@ -1031,11 +1053,14 @@
                         `;
                     } else if (countdownEl && nextQuestionCountdown <= 0) {
                         // Countdown ended - show loading message and stop updating
-                        countdownEl.innerHTML = '<div style="font-size: 1.2rem; color: var(--text-secondary);">Loading next question...</div>';
+                        countdownEl.innerHTML = '<div style="font-size: 1.2rem; color: var(--text-secondary);">Waiting for next question...</div>';
                         clearInterval(statsDisplayInterval);
                         statsDisplayInterval = null;
-                        // Mark that countdown has ended to prevent stats from showing again
+                        // Mark that countdown has ended - but don't hide stats yet, wait for admin to advance
                         nextQuestionCountdown = -1;
+                        // CRITICAL: Clear the wait period flag so new question can show when admin advances
+                        lastQuestionStatsShown = null;
+                        statsShownAt = null;
                     }
                 }, 1000);
             }
