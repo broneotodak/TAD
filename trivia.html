@@ -375,7 +375,7 @@
                                 }
                             }
                             
-                            if (questionChanged && !isInWaitPeriod) {
+                                if (questionChanged && !isInWaitPeriod) {
                                 // Question changed and NOT in wait period - reset state for new question
                                 if (prevQIdx3 !== undefined && activeQuestionIndex > prevQIdx3) {
                                     // Moving forward to new question - reset state
@@ -385,6 +385,7 @@
                                     hideStatsDisplay(); // Hide stats when new question starts
                                     lastQuestionStatsShown = null; // Clear stats tracking
                                     statsShownAt = null;
+                                    nextQuestionCountdown = 0; // CRITICAL: Reset countdown when question changes
                                     
                                     // Check if new question has actually started (timestamp matches)
                                     const newQuestionStarted = currentSession.questionStartedAt && 
@@ -624,11 +625,13 @@
                 console.log('New question started (index', index, '), clearing stats for previous question', lastQuestionStatsShown);
                 lastQuestionStatsShown = null;
                 statsShownAt = null;
+                nextQuestionCountdown = 0; // Reset countdown for new question
                 hideStatsDisplay();
             }
             
             // If we're in wait period for THIS question, show stats (but only if countdown hasn't ended)
-            if (isInWaitPeriodFromTimer && nextQuestionCountdown >= 0) {
+            // CRITICAL: Only show stats if this is the CURRENT question and timer ended
+            if (isInWaitPeriodFromTimer && nextQuestionCountdown >= 0 && questionStarted) {
                 // Hide options container during wait period
                 const container = document.getElementById('optionsContainer');
                 if (container) container.style.display = 'none';
@@ -642,6 +645,15 @@
                 showCorrectAnswerAfterTimer(question);
                 showStatsBetweenQuestions(question, index);
                 return; // Exit early - stats are now showing
+            }
+            
+            // CRITICAL: If new question has started, ALWAYS show it (don't let stats block it)
+            if (questionStarted && !isInWaitPeriodFromTimer) {
+                // New question started and timer hasn't ended - show question immediately
+                hideStatsDisplay();
+                lastQuestionStatsShown = null;
+                statsShownAt = null;
+                nextQuestionCountdown = 0; // Reset countdown
             }
             
             // Only render options if NOT in wait period (stats will show instead)

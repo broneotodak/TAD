@@ -798,6 +798,9 @@
                         
                         // Update button countdown every second (same as user's page)
                         autoAdvanceCountdownInterval = setInterval(() => {
+                            // Get fresh reference to button each time
+                            const nextBtn = document.getElementById('nextQuestionBtn');
+                            
                             if (!currentSession || !currentSession.autoAdvanceScheduled) {
                                 if (autoAdvanceCountdownInterval) {
                                     clearInterval(autoAdvanceCountdownInterval);
@@ -809,11 +812,12 @@
                             const elapsed = Math.floor((Date.now() - currentSession.autoAdvanceStartTime) / 1000);
                             currentSession.autoAdvanceCountdown = Math.max(0, 5 - elapsed);
                             
-                            if (nextQuestionBtn && nextQuestionBtn.style.display !== 'none') {
+                            // Always update button if it exists, regardless of display state
+                            if (nextBtn) {
                                 if (currentSession.autoAdvanceCountdown > 0) {
-                                    nextQuestionBtn.textContent = `➡️ Next Question (Auto in ${currentSession.autoAdvanceCountdown}s)`;
+                                    nextBtn.textContent = `➡️ Next Question (Auto in ${currentSession.autoAdvanceCountdown}s)`;
                                 } else {
-                                    nextQuestionBtn.textContent = '➡️ Next Question (Loading...)';
+                                    nextBtn.textContent = '➡️ Next Question (Loading...)';
                                     // Stop countdown when it reaches 0
                                     if (autoAdvanceCountdownInterval) {
                                         clearInterval(autoAdvanceCountdownInterval);
@@ -1178,9 +1182,16 @@
         }
 
         let sessionCompletedAlertShown = false; // Track if alert already shown
+        let isCompletingSession = false; // Track if session completion is in progress
 
         async function completeSession() {
             if (!currentSessionId) {
+                return;
+            }
+
+            // CRITICAL: Prevent duplicate calls
+            if (isCompletingSession) {
+                console.log('Session completion already in progress, skipping duplicate call');
                 return;
             }
 
@@ -1189,7 +1200,13 @@
                 return; // Already completed
             }
 
-            if (!confirm('Complete this trivia session? This will end the session and show the final leaderboard to all participants.')) return;
+            // Set flag to prevent duplicate calls
+            isCompletingSession = true;
+
+            if (!confirm('Complete this trivia session? This will end the session and show the final leaderboard to all participants.')) {
+                isCompletingSession = false; // Reset if user cancels
+                return;
+            }
 
             try {
                 const response = await fetch('/api/end-trivia-session', {
@@ -1220,13 +1237,27 @@
                 }
             } catch (error) {
                 console.error('Error completing session:', error);
+            } finally {
+                // Always reset flag, even on error
+                isCompletingSession = false;
             }
         }
 
+        let isEndingSession = false; // Track if session ending is in progress
+
         async function endSession() {
+            // CRITICAL: Prevent duplicate calls
+            if (isEndingSession) {
+                console.log('Session ending already in progress, skipping duplicate call');
+                return;
+            }
+
             if (!confirm('End this trivia session? Participants will no longer be able to answer.')) {
                 return;
             }
+
+            // Set flag to prevent duplicate calls
+            isEndingSession = true;
 
             try {
                 const response = await fetch('/api/end-trivia-session', {
