@@ -781,120 +781,8 @@
                     }
                     if (startQuestionBtn) startQuestionBtn.style.display = 'none';
                     
-                    // Auto-advance to next question after timer ends (with 5 second delay to match user's countdown)
-                    // CRITICAL: Only schedule auto-advance once per question
-                    if (timerEnded && !currentSession.autoAdvanceScheduled && currentSession.isActive) {
-                        // Verify we're still on the same question before scheduling
-                        const scheduledQuestionIndex = currentIndex;
-                        currentSession.autoAdvanceScheduled = true;
-                        currentSession.autoAdvanceStartTime = Date.now(); // Track when auto-advance started
-                        currentSession.autoAdvanceCountdown = 5; // Start countdown at 5 seconds
-                        
-                        // Clear any existing countdown interval
-                        if (autoAdvanceCountdownInterval) {
-                            clearInterval(autoAdvanceCountdownInterval);
-                            autoAdvanceCountdownInterval = null;
-                        }
-                        
-                        // Update button countdown every second (same as user's page)
-                        autoAdvanceCountdownInterval = setInterval(() => {
-                            // Get fresh reference to button each time
-                            const nextBtn = document.getElementById('nextQuestionBtn');
-                            
-                            if (!currentSession || !currentSession.autoAdvanceScheduled) {
-                                if (autoAdvanceCountdownInterval) {
-                                    clearInterval(autoAdvanceCountdownInterval);
-                                    autoAdvanceCountdownInterval = null;
-                                }
-                                return;
-                            }
-                            
-                            const elapsed = Math.floor((Date.now() - currentSession.autoAdvanceStartTime) / 1000);
-                            currentSession.autoAdvanceCountdown = Math.max(0, 5 - elapsed);
-                            
-                            // Always update button if it exists, regardless of display state
-                            if (nextBtn) {
-                                if (currentSession.autoAdvanceCountdown > 0) {
-                                    nextBtn.textContent = `➡️ Next Question (Auto in ${currentSession.autoAdvanceCountdown}s)`;
-                                } else {
-                                    nextBtn.textContent = '➡️ Next Question (Loading...)';
-                                    // Stop countdown when it reaches 0
-                                    if (autoAdvanceCountdownInterval) {
-                                        clearInterval(autoAdvanceCountdownInterval);
-                                        autoAdvanceCountdownInterval = null;
-                                    }
-                                }
-                            }
-                        }, 1000); // Update every second, same as user's page
-                        
-                        // Store timeout reference so we can clear it if needed
-                        currentSession.autoAdvanceTimeout = setTimeout(async () => {
-                            // Clear countdown interval
-                            if (autoAdvanceCountdownInterval) {
-                                clearInterval(autoAdvanceCountdownInterval);
-                                autoAdvanceCountdownInterval = null;
-                            }
-                            
-                            // Double-check session is still active and we're still on the same question
-                            await loadCurrentSession();
-                            if (currentSession && currentSession.isActive) {
-                                const currentIdx = currentSession.currentQuestionIndex ?? -1;
-                                
-                                // CRITICAL: Verify we're still on the question we scheduled for
-                                if (currentIdx === scheduledQuestionIndex && currentIdx < totalQuestions - 1) {
-                                    // CRITICAL: Reset ALL flags BEFORE advancing to ensure timer works for next question
-                                    currentSession.autoAdvanceScheduled = false;
-                                    currentSession.timerWasEnded = false;
-                                    currentSession.previousTimerQuestionIndex = -1; // Force reset
-                                    currentSession.autoAdvanceStartTime = null;
-                                    currentSession.autoAdvanceCountdown = 0;
-                                    // Clear timeout reference before advancing
-                                    if (currentSession.autoAdvanceTimeout) {
-                                        clearTimeout(currentSession.autoAdvanceTimeout);
-                                        currentSession.autoAdvanceTimeout = null;
-                                    }
-                                    // CRITICAL: Add a small delay before advancing to ensure all clients have processed the timer end
-                                    await new Promise(resolve => setTimeout(resolve, 200));
-                                    // Auto-advance to next question (only if not already completing)
-                                    if (!isCompletingSession) {
-                                        await advanceToNextQuestion();
-                                    }
-                                } else if (currentIdx === scheduledQuestionIndex && currentIdx >= totalQuestions - 1) {
-                                    // Last question - auto-complete session
-                                    // Clear timeout reference before completing
-                                    if (currentSession) {
-                                        currentSession.autoAdvanceScheduled = false;
-                                        currentSession.autoAdvanceStartTime = null;
-                                        currentSession.autoAdvanceCountdown = 0;
-                                    }
-                                    if (currentSession.autoAdvanceTimeout) {
-                                        clearTimeout(currentSession.autoAdvanceTimeout);
-                                        currentSession.autoAdvanceTimeout = null;
-                                    }
-                                    // Only complete if not already completing
-                                    if (!isCompletingSession) {
-                                        await completeSession();
-                                    }
-                                } else {
-                                    // Question changed - cancel auto-advance
-                                    if (currentSession) {
-                                        currentSession.autoAdvanceScheduled = false;
-                                        currentSession.autoAdvanceStartTime = null;
-                                        currentSession.autoAdvanceCountdown = 0;
-                                        currentSession.autoAdvanceTimeout = null;
-                                    }
-                                }
-                            } else {
-                                // Session ended - clear timeout
-                                if (currentSession) {
-                                    currentSession.autoAdvanceScheduled = false;
-                                    currentSession.autoAdvanceStartTime = null;
-                                    currentSession.autoAdvanceCountdown = 0;
-                                    currentSession.autoAdvanceTimeout = null;
-                                }
-                            }
-                        }, 5000); // 5 seconds delay to match user's countdown exactly
-                    }
+                    // REMOVED: Auto-advance functionality - user requested removal
+                    // Admin can manually click "Next Question" button instead
                     
                     // Show "Next Question" button only after timer ends (for manual override)
                     if (nextQuestionBtn) {
@@ -912,28 +800,10 @@
                                 nextQuestionBtn.disabled = false;
                                 nextQuestionBtn.onclick = () => completeSession();
                             } else {
-                                // Show countdown if auto-advance is scheduled (updated by interval)
-                                if (currentSession && currentSession.autoAdvanceScheduled && currentSession.autoAdvanceCountdown !== undefined) {
-                                    nextQuestionBtn.textContent = `➡️ Next Question (Auto in ${currentSession.autoAdvanceCountdown}s)`;
-                                } else {
-                                    nextQuestionBtn.textContent = '➡️ Next Question (Auto in 5s)';
-                                }
+                                // Simple button text - no auto-advance timer
+                                nextQuestionBtn.textContent = '➡️ Next Question';
                                 nextQuestionBtn.disabled = false;
                                 nextQuestionBtn.onclick = () => {
-                                    // Cancel auto-advance
-                                    if (autoAdvanceCountdownInterval) {
-                                        clearInterval(autoAdvanceCountdownInterval);
-                                        autoAdvanceCountdownInterval = null;
-                                    }
-                                    if (currentSession) {
-                                        currentSession.autoAdvanceScheduled = false;
-                                        currentSession.autoAdvanceStartTime = null;
-                                        currentSession.autoAdvanceCountdown = 0;
-                                        if (currentSession.autoAdvanceTimeout) {
-                                            clearTimeout(currentSession.autoAdvanceTimeout);
-                                            currentSession.autoAdvanceTimeout = null;
-                                        }
-                                    }
                                     advanceToNextQuestion();
                                 };
                             }
@@ -1381,7 +1251,7 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    displayLeaderboard(result.leaderboard);
+                    displayLeaderboard(result.leaderboard, result.totalQuestions);
                     // Show reset button
                     const resetBtn = document.getElementById('resetLeaderboardBtnHeader');
                     if (resetBtn) {
@@ -1393,7 +1263,7 @@
             }
         }
 
-        function displayLeaderboard(leaderboard) {
+        function displayLeaderboard(leaderboard, totalQuestions) {
             const container = document.getElementById('leaderboard');
             if (!container) return;
             
@@ -1405,6 +1275,17 @@
             // Limit to top 10
             const top10 = leaderboard.slice(0, 10);
             const winner = top10[0];
+            
+            // Format time function
+            const formatTime = (ms) => {
+                if (!ms || ms === 0) return '-';
+                const seconds = Math.floor(ms / 1000);
+                const milliseconds = ms % 1000;
+                if (seconds > 0) {
+                    return `${seconds}.${String(Math.floor(milliseconds / 10)).padStart(2, '0')}s`;
+                }
+                return `${Math.floor(milliseconds / 10)}ms`;
+            };
 
             container.innerHTML = `
                 ${winner && !currentSession?.isActive ? `
@@ -1423,6 +1304,7 @@
                             <th>Name</th>
                             <th>Company</th>
                             <th>Correct</th>
+                            <th>Avg Time</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1431,7 +1313,8 @@
                                 <td>${entry.rank === 1 ? '👑' : entry.rank}</td>
                                 <td><strong>${entry.name}</strong></td>
                                 <td>${entry.company || '-'}</td>
-                                <td>${entry.correctAnswers}/${entry.questionsAnswered}</td>
+                                <td>${entry.correctAnswers}/${totalQuestions || entry.questionsAnswered}</td>
+                                <td>${formatTime(entry.avgAnswerTimeMs)}</td>
                             </tr>
                         `).join('')}
                     </tbody>
