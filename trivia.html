@@ -665,22 +665,23 @@
             const timerDisplayEl = document.getElementById('timerDisplay');
             
             if (questionStarted && !existingAnswer) {
-                // Hide stats display when showing new question (not in wait period)
-                hideStatsDisplay();
-                
                 // Calculate remaining time based on server timestamp
                 const startedAt = new Date(currentSession.questionStartedAt);
                 const elapsed = Math.floor((Date.now() - startedAt.getTime()) / 1000);
                 timeRemaining = Math.max(0, question.timeLimitSeconds - elapsed);
                 
                 if (timeRemaining > 0) {
+                    // Timer still running - hide stats and show question with timer
+                    if (!isInWaitPeriodFromTimer) {
+                        hideStatsDisplay();
+                    }
                     if (waitingEl) waitingEl.style.display = 'none';
                     if (timerDisplayEl) timerDisplayEl.style.display = 'flex';
                     // CRITICAL: Clear any existing timer before starting new one
                     clearTimer();
                     startTimer();
                 } else {
-                    // Time already expired - show stats
+                    // Time already expired - show stats (wait period)
                     if (waitingEl) waitingEl.style.display = 'none';
                     if (timerDisplayEl) timerDisplayEl.style.display = 'none';
                     document.querySelectorAll('.option-button-kahoot').forEach(btn => {
@@ -694,7 +695,10 @@
                 }
             } else if (!existingAnswer) {
                 // Waiting for admin to start question
-                hideStatsDisplay();
+                // Only hide stats if we're not in wait period
+                if (!isInWaitPeriodFromTimer && lastQuestionStatsShown !== index) {
+                    hideStatsDisplay();
+                }
                 if (waitingEl) waitingEl.style.display = 'block';
                 if (timerDisplayEl) timerDisplayEl.style.display = 'none';
                 clearTimer(); // CRITICAL: Clear timer when waiting
