@@ -780,12 +780,33 @@
                     }
                     if (startQuestionBtn) startQuestionBtn.style.display = 'none';
                     
-                    // Auto-advance to next question after timer ends (with 10 second delay to allow users to see results)
+                    // Auto-advance to next question after timer ends (with 5 second delay to match user's countdown)
                     // CRITICAL: Only schedule auto-advance once per question
                     if (timerEnded && !currentSession.autoAdvanceScheduled && currentSession.isActive) {
                         // Verify we're still on the same question before scheduling
                         const scheduledQuestionIndex = currentIndex;
                         currentSession.autoAdvanceScheduled = true;
+                        currentSession.autoAdvanceStartTime = Date.now(); // Track when auto-advance started
+                        
+                        // Update button countdown every second
+                        const updateCountdown = () => {
+                            if (!currentSession || !currentSession.autoAdvanceScheduled) return;
+                            const elapsed = Math.floor((Date.now() - currentSession.autoAdvanceStartTime) / 1000);
+                            const remaining = Math.max(0, 5 - elapsed);
+                            
+                            if (nextQuestionBtn && nextQuestionBtn.style.display !== 'none') {
+                                if (remaining > 0) {
+                                    nextQuestionBtn.textContent = `➡️ Next Question (Auto in ${remaining}s)`;
+                                } else {
+                                    nextQuestionBtn.textContent = '➡️ Next Question (Loading...)';
+                                }
+                            }
+                            
+                            if (remaining > 0) {
+                                setTimeout(updateCountdown, 1000);
+                            }
+                        };
+                        updateCountdown();
                         
                         // Store timeout reference so we can clear it if needed
                         currentSession.autoAdvanceTimeout = setTimeout(async () => {
@@ -800,6 +821,7 @@
                                     currentSession.autoAdvanceScheduled = false;
                                     currentSession.timerWasEnded = false;
                                     currentSession.previousTimerQuestionIndex = -1; // Force reset
+                                    currentSession.autoAdvanceStartTime = null;
                                     // Clear timeout reference before advancing
                                     if (currentSession.autoAdvanceTimeout) {
                                         clearTimeout(currentSession.autoAdvanceTimeout);
@@ -812,6 +834,10 @@
                                 } else if (currentIdx === scheduledQuestionIndex && currentIdx >= totalQuestions - 1) {
                                     // Last question - auto-complete session
                                     // Clear timeout reference before completing
+                                    if (currentSession) {
+                                        currentSession.autoAdvanceScheduled = false;
+                                        currentSession.autoAdvanceStartTime = null;
+                                    }
                                     if (currentSession.autoAdvanceTimeout) {
                                         clearTimeout(currentSession.autoAdvanceTimeout);
                                         currentSession.autoAdvanceTimeout = null;
@@ -821,6 +847,7 @@
                                     // Question changed - cancel auto-advance
                                     if (currentSession) {
                                         currentSession.autoAdvanceScheduled = false;
+                                        currentSession.autoAdvanceStartTime = null;
                                         currentSession.autoAdvanceTimeout = null;
                                     }
                                 }
@@ -828,10 +855,11 @@
                                 // Session ended - clear timeout
                                 if (currentSession) {
                                     currentSession.autoAdvanceScheduled = false;
+                                    currentSession.autoAdvanceStartTime = null;
                                     currentSession.autoAdvanceTimeout = null;
                                 }
                             }
-                        }, 10000); // 10 seconds delay
+                        }, 5000); // 5 seconds delay to match user's countdown
                     }
                     
                     // Show "Next Question" button only after timer ends (for manual override)
@@ -850,10 +878,25 @@
                                 nextQuestionBtn.disabled = false;
                                 nextQuestionBtn.onclick = () => completeSession();
                             } else {
-                                nextQuestionBtn.textContent = '➡️ Next Question (Auto in 5s)';
+                                // Show countdown if auto-advance is scheduled
+                                if (currentSession && currentSession.autoAdvanceScheduled && currentSession.autoAdvanceStartTime) {
+                                    const elapsed = Math.floor((Date.now() - currentSession.autoAdvanceStartTime) / 1000);
+                                    const remaining = Math.max(0, 5 - elapsed);
+                                    nextQuestionBtn.textContent = `➡️ Next Question (Auto in ${remaining}s)`;
+                                } else {
+                                    nextQuestionBtn.textContent = '➡️ Next Question (Auto in 5s)';
+                                }
                                 nextQuestionBtn.disabled = false;
                                 nextQuestionBtn.onclick = () => {
-                                    currentSession.autoAdvanceScheduled = true; // Cancel auto-advance
+                                    // Cancel auto-advance
+                                    if (currentSession) {
+                                        currentSession.autoAdvanceScheduled = false;
+                                        currentSession.autoAdvanceStartTime = null;
+                                        if (currentSession.autoAdvanceTimeout) {
+                                            clearTimeout(currentSession.autoAdvanceTimeout);
+                                            currentSession.autoAdvanceTimeout = null;
+                                        }
+                                    }
                                     advanceToNextQuestion();
                                 };
                             }
@@ -954,6 +997,7 @@
                         // CRITICAL: Reset all timer-related flags when advancing to new question
                         currentSession.autoAdvanceScheduled = false;
                         currentSession.timerWasEnded = false;
+                        currentSession.autoAdvanceStartTime = null;
                         // Clear any pending timeouts that might interfere
                         if (currentSession.autoAdvanceTimeout) {
                             clearTimeout(currentSession.autoAdvanceTimeout);
