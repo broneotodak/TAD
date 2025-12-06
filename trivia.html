@@ -387,11 +387,17 @@
                                     lastQuestionStatsShown = null; // Clear stats tracking
                                     statsShownAt = null;
                                     
-                                    // New question started - verify timestamp is fresh
-                                    if (!currentSession.questionStartedAt) {
-                                        // Timestamp not set yet - wait for next checkSession cycle
+                                    // Check if new question has actually started (timestamp matches)
+                                    const newQuestionStarted = currentSession.questionStartedAt && 
+                                                               currentSession.currentQuestionIndex === activeQuestionIndex;
+                                    
+                                    if (newQuestionStarted) {
+                                        // New question has started - show it immediately
                                         displayQuestion(questions[activeQuestionIndex], activeQuestionIndex);
-                                        return; // Exit early, let next checkSession() get the fresh timestamp
+                                    } else {
+                                        // Timestamp not set yet - wait for next checkSession cycle
+                                        // But still show the question (without timer) so user knows what's coming
+                                        displayQuestion(questions[activeQuestionIndex], activeQuestionIndex);
                                     }
                                 }
                             }
@@ -420,11 +426,23 @@
                                     showStatsBetweenQuestions(currentQuestion, activeQuestionIndex);
                                 } else {
                                     // Timer still running - show question normally
+                                    // Clear stats if we're showing a new question
+                                    if (lastQuestionStatsShown !== null && lastQuestionStatsShown !== activeQuestionIndex) {
+                                        hideStatsDisplay();
+                                        lastQuestionStatsShown = null;
+                                        statsShownAt = null;
+                                    }
                                     displayQuestion(questions[activeQuestionIndex], activeQuestionIndex);
                                 }
                             } else if (!isInWaitPeriod) {
                                 // Timer not started yet, doesn't match current question, or timestamp is stale
                                 // But NOT in wait period - show question normally
+                                // Clear stats if we're showing a new question
+                                if (lastQuestionStatsShown !== null && lastQuestionStatsShown !== activeQuestionIndex) {
+                                    hideStatsDisplay();
+                                    lastQuestionStatsShown = null;
+                                    statsShownAt = null;
+                                }
                                 displayQuestion(questions[activeQuestionIndex], activeQuestionIndex);
                             }
                         } else if (activeQuestionIndex === -1 && questions.length > 0) {
