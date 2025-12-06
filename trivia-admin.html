@@ -80,8 +80,23 @@
                 </div>
             </div>
 
-            <!-- Session Controls -->
-            <div class="admin-section" id="sessionControls" style="display: none;">
+            <!-- Question Control (shown when session is active) -->
+            <div id="questionControlSection" style="display: none; margin-top: 30px; padding: 20px; background: var(--dark-bg); border-radius: 10px;">
+                    <h3 id="questionControlHeader">Current Question Control</h3>
+                    <div id="currentQuestionDisplay" style="margin: 20px 0;">
+                        <p><strong>Question:</strong> <span id="currentQuestionNum">-</span> of <span id="totalQuestionsDisplay">0</span></p>
+                        <div id="currentQuestionText" style="font-size: 1.1rem; margin: 15px 0; padding: 15px; background: var(--card-bg); border-radius: 8px;"></div>
+                        <div id="questionTimerStatus" style="margin: 10px 0; color: var(--text-secondary);"></div>
+                    </div>
+                    <div class="control-buttons" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: stretch; margin-top: 20px;">
+                        <button id="startQuestionBtn" onclick="startCurrentQuestion()" class="btn-primary" style="flex: 1; min-width: 200px; padding: 12px 20px; font-size: 1rem;">▶️ Start Question Timer</button>
+                        <button id="previousQuestionBtn" onclick="goToPreviousQuestion()" class="btn-secondary" style="flex: 1; min-width: 200px; padding: 12px 20px; font-size: 1rem;">⬅️ Previous Question</button>
+                        <button id="nextQuestionBtn" onclick="advanceToNextQuestion()" class="btn-success" style="display: none; flex: 1; min-width: 200px; padding: 12px 20px; font-size: 1rem;">➡️ Next Question</button>
+                    </div>
+                </div>
+
+            <!-- Session Controls (moved to bottom when stats are shown) -->
+            <div class="admin-section" id="sessionControls" style="display: none; order: 999;">
                 <div class="section-header">
                     <h2>Session Controls</h2>
                     <div class="session-control-buttons">
@@ -89,25 +104,6 @@
                         <button id="endSessionBtn" onclick="endSession()" class="btn-danger btn-large" style="display: none;">⏹️ End Session</button>
                     </div>
                 </div>
-                
-
-            <!-- Question Control (shown when session is active) -->
-                <div id="questionControlSection" style="display: none; margin-top: 30px; padding: 20px; background: var(--dark-bg); border-radius: 10px;">
-                    <h3 id="questionControlHeader">Current Question Control</h3>
-                    <div id="currentQuestionDisplay" style="margin: 20px 0;">
-                        <p><strong>Question:</strong> <span id="currentQuestionNum">-</span> of <span id="totalQuestionsDisplay">0</span></p>
-                        <div id="currentQuestionText" style="font-size: 1.1rem; margin: 15px 0; padding: 15px; background: var(--card-bg); border-radius: 8px;"></div>
-                        <div id="questionTimerStatus" style="margin: 10px 0; color: var(--text-secondary);"></div>
-                    </div>
-                    <div class="control-buttons" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
-                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                            <button id="startQuestionBtn" onclick="startCurrentQuestion()" class="btn-primary">▶️ Start Question Timer</button>
-                            <button id="previousQuestionBtn" onclick="goToPreviousQuestion()" class="btn-secondary">⬅️ Previous Question</button>
-                        </div>
-                        <button id="nextQuestionBtn" onclick="advanceToNextQuestion()" class="btn-success" style="display: none;">➡️ Next Question</button>
-                    </div>
-                </div>
-                
             </div>
 
             <!-- Leaderboard -->
@@ -648,11 +644,18 @@
                                     const correctAnswers = breakdownResult.correctAnswers;
                                     const incorrectAnswers = breakdownResult.incorrectAnswers;
                                     
+                                    // Move session controls to bottom when showing results
+                                    const sessionControls = document.getElementById('sessionControls');
+                                    if (sessionControls) {
+                                        sessionControls.style.order = '999';
+                                        sessionControls.style.marginTop = '30px';
+                                    }
+                                    
                                     questionTimerStatusEl.innerHTML = `
                                         <div style="color: var(--warning-color); font-weight: bold; margin-bottom: 15px; font-size: 1.2rem;">
                                             ⏱️ Timer Ended
                                         </div>
-                                        <div style="background: var(--card-bg); padding: 20px; border-radius: 8px; margin-top: 15px;">
+                                        <div id="questionResultBox" style="background: var(--card-bg); padding: 20px; border-radius: 8px; margin-top: 15px; max-width: 100%; overflow-x: auto;">
                                             <div style="margin-bottom: 20px;">
                                                 <strong style="font-size: 1.1rem;">Correct Answer: <span style="color: #4CAF50;">${question.correctAnswer}</span></strong>
                                             </div>
@@ -720,11 +723,18 @@
                             } catch (error) {
                                 console.error('Error loading answer breakdown:', error);
                                 // Fallback display
+                                // Move session controls to bottom when showing results
+                                const sessionControls = document.getElementById('sessionControls');
+                                if (sessionControls) {
+                                    sessionControls.style.order = '999';
+                                    sessionControls.style.marginTop = '30px';
+                                }
+                                
                                 questionTimerStatusEl.innerHTML = `
                                     <div style="color: var(--warning-color); font-weight: bold; margin-bottom: 15px;">
                                         ⏱️ Timer Ended
                                     </div>
-                                    <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin-top: 10px;">
+                                    <div id="questionResultBox" style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin-top: 10px; max-width: 100%; overflow-x: auto;">
                                         <strong>Correct Answer:</strong> ${question.correctAnswer}
                                     </div>
                                 `;

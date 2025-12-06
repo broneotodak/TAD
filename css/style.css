@@ -555,6 +555,11 @@ body {
     max-width: 100%;
 }
 
+.session-control-buttons > button {
+    flex: 1;
+    min-width: 150px;
+}
+
 @media (max-width: 768px) {
     .section-header {
         flex-direction: column;
@@ -572,6 +577,7 @@ body {
         width: 100%;
         max-width: 100%;
         box-sizing: border-box;
+        flex: none;
     }
 }
 
