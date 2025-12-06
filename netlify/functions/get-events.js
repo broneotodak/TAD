@@ -5,6 +5,15 @@ export default async (req, context) => {
     try {
         const sql = neon(process.env.NETLIFY_DATABASE_URL);
 
+        // First, try to add the is_visible column if it doesn't exist (migration)
+        try {
+            await sql`ALTER TABLE events ADD COLUMN IF NOT EXISTS is_visible BOOLEAN DEFAULT true`;
+            await sql`UPDATE events SET is_visible = true WHERE is_visible IS NULL`;
+        } catch (migrationError) {
+            // Column might already exist or migration might fail, continue anyway
+            console.log('Migration check:', migrationError.message);
+        }
+
         // Get all events with participant counts
         const events = await sql`
       SELECT 
