@@ -130,6 +130,8 @@
         let statsDisplayInterval = null;
         let nextQuestionCountdown = 0;
         let hasAutoScrolled = false; // Track if auto-scroll has already run
+        let lastQuestionStatsShown = null; // Track which question we're showing stats for
+        let statsShownAt = null; // Track when stats were shown
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -345,21 +347,18 @@
                             
                             if (questionChanged && prevQIdx3 !== undefined && prevQIdx3 >= 0 && prevQIdx3 < questions.length && activeQuestionIndex > prevQIdx3) {
                                 // Question advanced forward - check if we're in wait period
-                                // Wait period = previous question timer ended, but new question timestamp doesn't match yet
+                                // Wait period = we were showing stats for previous question, and it's been less than 5 seconds
                                 previousQuestion = questions[prevQIdx3];
                                 
-                                // Check if new question has started (timestamp matches new question index)
-                                const newQuestionStarted = questionStarted && 
-                                                          currentSession.currentQuestionIndex === activeQuestionIndex;
+                                // Check if we were showing stats for the previous question
+                                const wasShowingStats = lastQuestionStatsShown === prevQIdx3;
+                                const timeSinceStatsShown = statsShownAt ? (Date.now() - statsShownAt) / 1000 : Infinity;
                                 
-                                // If new question hasn't started yet, we're in wait period
-                                if (!newQuestionStarted) {
-                                    // Check if previous question timer ended
-                                    // We need to check if enough time has passed since previous question started
-                                    // Since we don't have previous question's timestamp, we'll show stats if timestamp doesn't match
+                                // If we were showing stats and it's been less than 5 seconds, keep showing them
+                                if (wasShowingStats && timeSinceStatsShown < 5) {
                                     isInWaitPeriod = true;
-                                    console.log('Wait period detected: Question advanced from', prevQIdx3, 'to', activeQuestionIndex, 'but new question not started yet');
-                                    // Show stats for PREVIOUS question during wait period
+                                    console.log('Wait period detected: Showing stats for question', prevQIdx3, 'during wait period (', timeSinceStatsShown.toFixed(1), 's ago)');
+                                    // Keep showing stats for PREVIOUS question during wait period
                                     displayQuestion(previousQuestion, prevQIdx3);
                                     showCorrectAnswerAfterTimer(previousQuestion);
                                     showStatsBetweenQuestions(previousQuestion, prevQIdx3);
@@ -376,6 +375,8 @@
                                     userAnswers = {}; // Reset answers for new question
                                     clearTimer(); // CRITICAL: Clear any existing timer when question changes
                                     hideStatsDisplay(); // Hide stats when new question starts
+                                    lastQuestionStatsShown = null; // Clear stats tracking
+                                    statsShownAt = null;
                                     
                                     // New question started - verify timestamp is fresh
                                     if (!currentSession.questionStartedAt) {
@@ -743,6 +744,10 @@
             const optionsContainer = document.getElementById('optionsContainer');
             
             if (!statsDisplay || !statsContent || !countdownEl) return;
+            
+            // Track that we're showing stats for this question
+            lastQuestionStatsShown = currentIndex;
+            statsShownAt = Date.now();
             
             // Hide options container and show stats
             if (optionsContainer) optionsContainer.style.display = 'none';
