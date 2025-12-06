@@ -946,7 +946,7 @@
                     // CRITICAL: Only show correct answer after timer FULLY ends (timeRemaining <= 0)
                     // Show correct answer and stats immediately
                     showCorrectAnswerAfterTimer(currentQuestion);
-                    showStatsBetweenQuestions(currentQuestion);
+                    showStatsBetweenQuestions(currentQuestion, currentQuestionIndex);
                 } else {
                     updateTimerDisplay();
                 }
