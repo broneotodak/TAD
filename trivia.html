@@ -813,11 +813,10 @@
         async function showStatsBetweenQuestions(question, currentIndex) {
             const statsDisplay = document.getElementById('statsDisplay');
             const statsContent = document.getElementById('statsContent');
-            const countdownEl = document.getElementById('nextQuestionCountdown');
             const optionsContainer = document.getElementById('optionsContainer');
             
-            if (!statsDisplay || !statsContent || !countdownEl) {
-                console.error('Stats display elements not found!', { statsDisplay, statsContent, countdownEl });
+            if (!statsDisplay || !statsContent) {
+                console.error('Stats display elements not found!', { statsDisplay, statsContent });
                 return;
             }
             
