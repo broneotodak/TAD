@@ -599,7 +599,7 @@
             }
             
             // If we're in wait period for THIS question, show stats
-            if (isInWaitPeriod) {
+            if (isInWaitPeriodFromTimer) {
                 // Hide options container during wait period
                 const container = document.getElementById('optionsContainer');
                 if (container) container.style.display = 'none';
@@ -693,7 +693,7 @@
                     } else {
                         // Timer still running - keep buttons disabled but don't show answer yet
                         // Re-render buttons as disabled
-                        if (!isInWaitPeriod) {
+                        if (!isInWaitPeriodFromTimer) {
                             hideStatsDisplay();
                         }
                         const container = document.getElementById('optionsContainer');
@@ -783,15 +783,23 @@
             const countdownEl = document.getElementById('nextQuestionCountdown');
             const optionsContainer = document.getElementById('optionsContainer');
             
-            if (!statsDisplay || !statsContent || !countdownEl) return;
+            if (!statsDisplay || !statsContent || !countdownEl) {
+                console.error('Stats display elements not found!', { statsDisplay, statsContent, countdownEl });
+                return;
+            }
             
             // Track that we're showing stats for this question
             lastQuestionStatsShown = currentIndex;
             statsShownAt = Date.now();
             
-            // Hide options container and show stats
+            console.log('Showing stats for question', currentIndex, 'at', new Date().toISOString());
+            
+            // Hide options container and show stats IMMEDIATELY (before async fetch)
             if (optionsContainer) optionsContainer.style.display = 'none';
             statsDisplay.style.display = 'block';
+            
+            // Show loading state while fetching
+            statsContent.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">Loading results...</div>';
             
             try {
                 // Fetch answer breakdown
