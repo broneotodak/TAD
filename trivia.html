@@ -568,15 +568,8 @@
             const existingAnswer = userAnswers[question.id];
             
             // CRITICAL: Check if we're in wait period (timer ended but next question not started)
-            // First, check if stats display is currently visible (meaning we're in wait period)
             const statsDisplay = document.getElementById('statsDisplay');
             const statsDisplayVisible = statsDisplay && statsDisplay.style.display === 'block';
-            
-            // Check if we're in wait period (stats were shown recently)
-            const timeSinceStatsShown = statsShownAt ? (Date.now() - statsShownAt) / 1000 : Infinity;
-            const isInWaitPeriodFromStats = statsDisplayVisible && 
-                                           lastQuestionStatsShown !== null && 
-                                           timeSinceStatsShown < 5;
             
             const questionStarted = currentSession.questionStartedAt && 
                                    currentSession.currentQuestionIndex === index &&
@@ -589,13 +582,27 @@
                 isInWaitPeriodFromTimer = elapsed >= question.timeLimitSeconds;
             }
             
-            // If stats are currently visible and we're in wait period, preserve that display
-            // This handles both cases: showing stats for same question or different question
-            if (isInWaitPeriodFromStats) {
-                // Don't change anything - stats are already showing
-                // Just update the question text to match what we're showing stats for
+            // Check if we're showing stats for a DIFFERENT question (wait period between questions)
+            // Only preserve stats if we're showing stats for a PREVIOUS question, not the current one
+            const timeSinceStatsShown = statsShownAt ? (Date.now() - statsShownAt) / 1000 : Infinity;
+            const isShowingStatsForPreviousQuestion = statsDisplayVisible && 
+                                                      lastQuestionStatsShown !== null && 
+                                                      lastQuestionStatsShown !== index &&
+                                                      timeSinceStatsShown < 5;
+            
+            // If we're showing stats for a PREVIOUS question and new question hasn't started yet, preserve stats
+            if (isShowingStatsForPreviousQuestion && !questionStarted) {
                 console.log('Preserving stats display for question', lastQuestionStatsShown, 'while question index is', index, 'time since stats:', timeSinceStatsShown.toFixed(1), 's');
                 return; // Exit early - don't process further during wait period
+            }
+            
+            // If new question has started (questionStarted is true), we should show it, not preserve stats
+            // Clear stats tracking if we're moving to a new question
+            if (questionStarted && lastQuestionStatsShown !== null && lastQuestionStatsShown !== index) {
+                console.log('New question started (index', index, '), clearing stats for previous question', lastQuestionStatsShown);
+                lastQuestionStatsShown = null;
+                statsShownAt = null;
+                hideStatsDisplay();
             }
             
             // If we're in wait period for THIS question, show stats
