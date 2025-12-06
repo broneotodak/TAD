@@ -344,26 +344,27 @@
                             let previousQuestion = null;
                             
                             if (questionChanged && prevQIdx3 !== undefined && prevQIdx3 >= 0 && prevQIdx3 < questions.length && activeQuestionIndex > prevQIdx3) {
-                                // Question advanced forward - check if previous question timer ended
+                                // Question advanced forward - check if we're in wait period
+                                // Wait period = previous question timer ended, but new question timestamp doesn't match yet
                                 previousQuestion = questions[prevQIdx3];
-                                const previousQuestionStarted = result.session.questionStartedAt; // Use the timestamp from API response
                                 
-                                if (previousQuestionStarted) {
-                                    const startedAt = new Date(previousQuestionStarted);
-                                    const elapsed = Math.floor((Date.now() - startedAt.getTime()) / 1000);
-                                    const previousTimerEnded = elapsed >= previousQuestion.timeLimitSeconds;
-                                    
-                                    // If previous question timer ended and new question hasn't started (no matching timestamp), we're in wait period
-                                    if (previousTimerEnded && !questionStartedMatches) {
-                                        isInWaitPeriod = true;
-                                        console.log('Wait period detected: Previous question', prevQIdx3, 'timer ended, showing stats');
-                                        // Show stats for PREVIOUS question during wait period
-                                        displayQuestion(previousQuestion, prevQIdx3);
-                                        showCorrectAnswerAfterTimer(previousQuestion);
-                                        showStatsBetweenQuestions(previousQuestion, prevQIdx3);
-                                        // Don't process new question yet - we're still showing previous question's results
-                                        return;
-                                    }
+                                // Check if new question has started (timestamp matches new question index)
+                                const newQuestionStarted = questionStarted && 
+                                                          currentSession.currentQuestionIndex === activeQuestionIndex;
+                                
+                                // If new question hasn't started yet, we're in wait period
+                                if (!newQuestionStarted) {
+                                    // Check if previous question timer ended
+                                    // We need to check if enough time has passed since previous question started
+                                    // Since we don't have previous question's timestamp, we'll show stats if timestamp doesn't match
+                                    isInWaitPeriod = true;
+                                    console.log('Wait period detected: Question advanced from', prevQIdx3, 'to', activeQuestionIndex, 'but new question not started yet');
+                                    // Show stats for PREVIOUS question during wait period
+                                    displayQuestion(previousQuestion, prevQIdx3);
+                                    showCorrectAnswerAfterTimer(previousQuestion);
+                                    showStatsBetweenQuestions(previousQuestion, prevQIdx3);
+                                    // Don't process new question yet - we're still showing previous question's results
+                                    return;
                                 }
                             }
                             
