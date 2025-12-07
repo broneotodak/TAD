@@ -106,7 +106,6 @@
         let participants = [];
         let sessionCheckInterval = null;
         let participantsUpdateInterval = null;
-        let connectionStatus = 'connected'; // 'connected', 'disconnected', 'reconnecting'
         let retryCount = 0;
         const MAX_RETRIES = 5;
         const MAX_VISIBLE_PARTICIPANTS = 50; // Limit visible participants for performance
@@ -132,7 +131,6 @@
             }
 
             loadTheme();
-            updateConnectionStatus('connected');
             checkSession();
             loadParticipants();
             
@@ -228,7 +226,6 @@
                 } else {
                     // No session
                     showWaitingState();
-                    updateConnectionStatus('connected');
                     retryCount = 0;
                 }
             }, 'checkSession');
@@ -435,10 +432,8 @@
                 if (result.success && result.participants) {
                     participants = result.participants || [];
                     displayParticipants();
-                    updateConnectionStatus('connected');
                     retryCount = 0;
                 } else {
-                    updateConnectionStatus('connected');
                     retryCount = 0;
                 }
             }, 'loadParticipants');
@@ -520,7 +515,6 @@
                 if (result.success) {
                     // Reload session to update display
                     await checkSession();
-                    updateConnectionStatus('connected');
                     
                     // Auto-scroll to question control when starting first question
                     setTimeout(() => {
@@ -553,7 +547,6 @@
                     if (attempt < MAX_RETRIES) {
                         const delay = Math.min(1000 * Math.pow(2, attempt), 10000); // Exponential backoff, max 10s
                         console.warn(`${functionName} failed (attempt ${attempt + 1}/${MAX_RETRIES + 1}), retrying in ${delay}ms...`, error);
-                        updateConnectionStatus('reconnecting');
                         await new Promise(resolve => setTimeout(resolve, delay));
                     } else {
                         console.error(`${functionName} failed after ${MAX_RETRIES + 1} attempts:`, error);
@@ -567,57 +560,14 @@
         }
 
         function handleConnectionError() {
-            updateConnectionStatus('disconnected');
             retryCount++;
             
             // Auto-retry after a delay
             setTimeout(() => {
-                if (connectionStatus === 'disconnected') {
-                    console.log('Attempting to reconnect...');
-                    checkSession();
-                    loadParticipants();
-                }
+                console.log('Attempting to reconnect...');
+                checkSession();
+                loadParticipants();
             }, 5000);
-        }
-
-        function updateConnectionStatus(status) {
-            connectionStatus = status;
-            const statusEl = document.getElementById('connectionStatus');
-            
-            if (!statusEl) {
-                // Create status indicator if it doesn't exist
-                const container = document.querySelector('.trivia-lobby-container');
-                if (container) {
-                    const statusDiv = document.createElement('div');
-                    statusDiv.id = 'connectionStatus';
-                    statusDiv.className = 'connection-status';
-                    container.insertBefore(statusDiv, container.firstChild);
-                }
-            }
-            
-            const statusIndicator = document.getElementById('connectionStatus');
-            if (statusIndicator) {
-                let statusText = '';
-                let statusClass = '';
-                
-                switch(status) {
-                    case 'connected':
-                        statusText = '🟢 Connected';
-                        statusClass = 'status-connected';
-                        break;
-                    case 'reconnecting':
-                        statusText = '🟡 Reconnecting...';
-                        statusClass = 'status-reconnecting';
-                        break;
-                    case 'disconnected':
-                        statusText = '🔴 Disconnected';
-                        statusClass = 'status-disconnected';
-                        break;
-                }
-                
-                statusIndicator.textContent = statusText;
-                statusIndicator.className = `connection-status ${statusClass}`;
-            }
         }
 
         // Question Control Functions
@@ -971,7 +921,6 @@
                             }
                         }, 100);
                     }, 500);
-                    updateConnectionStatus('connected');
                 } else {
                     alert('Failed to advance question: ' + (result.error || 'Unknown error'));
                 }
@@ -1012,7 +961,6 @@
                     
                     // Reload session once to get final state, then stop checking
                     await checkSession();
-                    updateConnectionStatus('connected');
                     
                     // Stop session check interval since we're showing leaderboard
                     if (sessionCheckInterval) {
@@ -1053,7 +1001,6 @@
                 const result = await response.json();
                 if (result.success) {
                     await checkSession();
-                    updateConnectionStatus('connected');
                 } else {
                     alert('Failed to end session: ' + (result.error || 'Unknown error'));
                 }
@@ -1083,7 +1030,6 @@
                 const result = await response.json();
                 if (result.success) {
                     await checkSession();
-                    updateConnectionStatus('connected');
                 } else {
                     alert('Failed to reset leaderboard: ' + (result.error || 'Unknown error'));
                 }
@@ -1823,37 +1769,6 @@
             border: 2px solid #667eea;
         }
 
-        /* Connection Status */
-        .connection-status {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 10px 20px;
-            border-radius: 25px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            z-index: 1000;
-            transition: all 0.3s ease;
-        }
-
-        .status-connected {
-            background: rgba(76, 175, 80, 0.2);
-            color: #4CAF50;
-            border: 2px solid #4CAF50;
-        }
-
-        .status-reconnecting {
-            background: rgba(255, 193, 7, 0.2);
-            color: #FFC107;
-            border: 2px solid #FFC107;
-            animation: pulse 1.5s ease-in-out infinite;
-        }
-
-        .status-disconnected {
-            background: rgba(244, 67, 54, 0.2);
-            color: #f44336;
-            border: 2px solid #f44336;
-        }
 
         /* Responsive */
         @media (max-width: 768px) {
