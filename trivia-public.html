@@ -11,9 +11,8 @@
     <div class="container-full">
         <!-- Trivia Lobby Display (Kahoot-style) -->
         <div class="trivia-lobby-container">
-            <!-- Session Info -->
+            <!-- Session Info (hidden - removed Trivia text) -->
             <div id="sessionInfo" class="session-info-section" style="display: none;">
-                <h1 id="sessionTitle" class="session-title">Trivia Session</h1>
                 <div id="sessionStatus" class="session-status-message"></div>
             </div>
 
@@ -589,11 +588,6 @@
                     if (currentQuestionTextEl) {
                         currentQuestionTextEl.innerHTML = `
                             <div class="question-text-large">${question.questionText}</div>
-                            <div class="question-meta">
-                                <span>Time limit: ${question.timeLimitSeconds}s</span>
-                                <span>•</span>
-                                <span>Points: ${question.points} (+ bonus)</span>
-                            </div>
                         `;
                     }
                     
@@ -638,7 +632,8 @@
                         
                         const questionControlHeader = document.getElementById('questionControlHeader');
                         if (questionControlHeader) {
-                            questionControlHeader.textContent = timerEnded ? 'RESULT' : 'Current Question';
+                            questionControlHeader.textContent = timerEnded ? 'Result' : '';
+                            questionControlHeader.style.display = timerEnded ? 'block' : 'none';
                         }
                         
                         if (questionTimerStatusEl) {
@@ -788,7 +783,8 @@
                         // Timer not started for this question yet
                         const questionControlHeader = document.getElementById('questionControlHeader');
                         if (questionControlHeader) {
-                            questionControlHeader.textContent = 'Current Question';
+                            questionControlHeader.textContent = '';
+                            questionControlHeader.style.display = 'none';
                         }
                         if (questionTimerStatusEl) {
                             questionTimerStatusEl.innerHTML = '<div class="timer-not-started">Timer not started. Click "Start Question Timer" to begin.</div>';
@@ -1237,11 +1233,11 @@
         }
 
         .question-control-header {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: var(--primary-color);
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-secondary);
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 15px;
         }
 
         .current-question-display {
@@ -1251,12 +1247,10 @@
 
         .question-info-bar {
             text-align: center;
-            font-size: 1.1rem;
+            font-size: 0.9rem;
             color: var(--text-secondary);
-            margin-bottom: 15px;
-            padding: 10px;
-            background: var(--dark-bg);
-            border-radius: 8px;
+            margin-bottom: 20px;
+            padding: 8px;
         }
 
         .question-text-display {
@@ -1264,24 +1258,17 @@
         }
 
         .question-text-large {
-            font-size: 1.6rem;
-            font-weight: 600;
+            font-size: 3.5rem;
+            font-weight: 700;
             color: var(--text-primary);
             text-align: center;
-            line-height: 1.3;
-            margin-bottom: 10px;
-            padding: 15px;
+            line-height: 1.2;
+            margin-bottom: 30px;
+            padding: 40px 30px;
             background: var(--dark-bg);
-            border-radius: 10px;
+            border-radius: 15px;
         }
 
-        .question-meta {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            font-size: 1.1rem;
-            color: var(--text-secondary);
-        }
 
         .question-timer-status {
             margin-top: 15px;
@@ -1292,12 +1279,12 @@
 
         .timer-running {
             text-align: center;
-            font-size: 1.6rem;
-            font-weight: 700;
+            font-size: 1.2rem;
+            font-weight: 600;
             color: var(--primary-color);
-            padding: 15px;
+            padding: 12px;
             background: var(--dark-bg);
-            border-radius: 12px;
+            border-radius: 10px;
             margin-bottom: 15px;
         }
 
@@ -1336,7 +1323,7 @@
         }
 
         .live-stats-value {
-            font-size: 3rem;
+            font-size: 2rem;
             font-weight: 700;
             color: var(--primary-color);
         }
@@ -1676,7 +1663,7 @@
             }
 
             .question-text-large {
-                font-size: 1.5rem;
+                font-size: 2rem;
             }
 
             .question-control-header {
