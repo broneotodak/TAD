@@ -39,10 +39,6 @@
                 <div id="questionDisplay" class="kahoot-question-display">
                     <!-- Question Header -->
                     <div class="question-header-kahoot">
-                        <div class="question-info">
-                            <span class="question-number-badge">Q<span id="currentQuestionNum">1</span></span>
-                            <span class="question-count">of <span id="totalQuestions">0</span></span>
-                        </div>
                         <div id="timerDisplay" class="timer-kahoot" style="display: none;">
                             <span id="timerValue">--</span>
                         </div>
@@ -497,9 +493,7 @@
                                     showStatsBetweenQuestions(currentQuestion, activeQuestionIndex);
                                     // Update question text without calling displayQuestion (which would hide stats)
                                     const questionTextEl = document.getElementById('questionText');
-                                    const currentQuestionNumEl = document.getElementById('currentQuestionNum');
                                     if (questionTextEl) questionTextEl.textContent = currentQuestion.questionText;
-                                    if (currentQuestionNumEl) currentQuestionNumEl.textContent = activeQuestionIndex + 1;
                                 } else {
                                     // Timer still running - show question normally
                                     // Clear stats if we're showing a new question
@@ -659,21 +653,13 @@
             document.getElementById('activeSession').style.display = 'block';
             document.getElementById('completedState').style.display = 'none';
             
-            // Update total questions count (sessionTitle element removed in Kahoot redesign)
-            const totalQuestionsEl = document.getElementById('totalQuestions');
-            if (totalQuestionsEl) {
-                totalQuestionsEl.textContent = questions.length;
-            }
             updateProgress();
         }
 
         function displayQuestion(question, index) {
             currentQuestionIndex = index;
             
-            const currentQuestionNumEl = document.getElementById('currentQuestionNum');
             const questionTextEl = document.getElementById('questionText');
-            
-            if (currentQuestionNumEl) currentQuestionNumEl.textContent = index + 1;
             if (questionTextEl) questionTextEl.textContent = question.questionText;
             
             // Check if user already answered this question
@@ -1630,7 +1616,7 @@
 
         .question-header-kahoot {
             display: flex;
-            justify-content: space-between;
+            justify-content: flex-end;
             align-items: center;
             padding: 8px 15px; /* Reduced padding */
             margin-bottom: 8px; /* Reduced spacing */
