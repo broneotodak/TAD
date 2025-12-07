@@ -152,7 +152,33 @@
             checkSession();
             
             // Check for session updates every 2 seconds (faster for question updates)
-            sessionCheckInterval = setInterval(checkSession, 2000);
+            // But stop checking if last question timer ended (wait for admin to show leaderboard)
+            sessionCheckInterval = setInterval(() => {
+                // Don't check if we're on last question and timer has ended
+                if (currentSession && currentSession.isActive) {
+                    const currentIndex = currentSession.currentQuestionIndex ?? -1;
+                    const totalQuestions = questions.length;
+                    const isLastQuestion = currentIndex >= totalQuestions - 1;
+                    
+                    if (isLastQuestion && currentSession.questionStartedAt) {
+                        const startedAt = new Date(currentSession.questionStartedAt);
+                        const elapsed = Math.floor((Date.now() - startedAt.getTime()) / 1000);
+                        const currentQuestion = questions[currentIndex];
+                        const timerEnded = currentQuestion && elapsed >= currentQuestion.timeLimitSeconds;
+                        
+                        if (timerEnded) {
+                            // Last question timer ended - stop checking, wait for admin
+                            console.log('Last question timer ended - stopping session checks, waiting for admin to show leaderboard');
+                            if (sessionCheckInterval) {
+                                clearInterval(sessionCheckInterval);
+                                sessionCheckInterval = null;
+                            }
+                            return;
+                        }
+                    }
+                }
+                checkSession();
+            }, 2000);
             
             // Auto-scroll to trivia content on mobile devices ONCE after page loads
             // Only run once when user first enters or refreshes the page

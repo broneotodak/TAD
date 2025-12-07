@@ -781,11 +781,29 @@
                         if (questionTimerStatusEl) {
                             if (timerEnded) {
                                 // Load answer breakdown when timer ends
+                                // CRITICAL: Ensure question data is available before showing breakdown
+                                if (!question || !question.correctAnswer) {
+                                    // Question data not ready yet - show loading state
+                                    questionTimerStatusEl.innerHTML = `
+                                        <div class="timer-ended-banner">⏱️ Timer Ended</div>
+                                        <div class="answer-breakdown">
+                                            <div style="text-align: center; padding: 20px; color: var(--text-secondary);">
+                                                Loading results...
+                                            </div>
+                                        </div>
+                                    `;
+                                    // Retry after a short delay
+                                    setTimeout(async () => {
+                                        await updateQuestionControl();
+                                    }, 500);
+                                    return;
+                                }
+                                
                                 try {
                                     const breakdownResponse = await fetch(`/api/get-trivia-answer-breakdown?questionId=${question.id}`);
                                     const breakdownResult = await breakdownResponse.json();
                                     
-                                    if (breakdownResult.success) {
+                                    if (breakdownResult.success && question.correctAnswer) {
                                         const breakdown = breakdownResult.breakdown;
                                         const totalAnswers = breakdownResult.totalAnswers;
                                         const correctAnswers = breakdownResult.correctAnswers;
@@ -970,11 +988,15 @@
                 return;
             }
             
+            // CRITICAL: Wait longer to ensure stats are fully loaded before advancing
+            // Add extra delay to ensure answer breakdown is displayed
+            const delay = AUTO_ADVANCE_DELAY + 2000; // 5 seconds + 2 seconds buffer
+            
             // Schedule auto-advance after delay
             autoAdvanceTimeout = setTimeout(async () => {
                 console.log(`Auto-advancing from question ${currentIndex + 1} to ${currentIndex + 2}`);
                 await advanceToNextQuestion();
-            }, AUTO_ADVANCE_DELAY);
+            }, delay);
         }
 
         async function advanceToQuestion(questionIndex) {
