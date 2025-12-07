@@ -69,6 +69,10 @@
         let participants = [];
         let sessionCheckInterval = null;
         let participantsUpdateInterval = null;
+        let connectionStatus = 'connected'; // 'connected', 'disconnected', 'reconnecting'
+        let retryCount = 0;
+        const MAX_RETRIES = 5;
+        const MAX_VISIBLE_PARTICIPANTS = 50; // Limit visible participants for performance
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -81,13 +85,25 @@
             }
 
             loadTheme();
+            updateConnectionStatus('connected');
             checkSession();
             loadParticipants();
             
-            // Check for session updates every 2 seconds
-            sessionCheckInterval = setInterval(checkSession, 2000);
-            // Update participants every 3 seconds
-            participantsUpdateInterval = setInterval(loadParticipants, 3000);
+            // Check for session updates every 2 seconds (with retry)
+            sessionCheckInterval = setInterval(() => {
+                checkSession().catch(err => {
+                    console.error('Session check failed:', err);
+                    handleConnectionError();
+                });
+            }, 2000);
+            
+            // Update participants every 3 seconds (with retry)
+            participantsUpdateInterval = setInterval(() => {
+                loadParticipants().catch(err => {
+                    console.error('Participants load failed:', err);
+                    handleConnectionError();
+                });
+            }, 3000);
         });
 
         function loadTheme() {
@@ -96,8 +112,13 @@
         }
 
         async function checkSession() {
-            try {
+            return await retryApiCall(async () => {
                 const response = await fetch(`/api/get-trivia-session?eventId=${currentEventId}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 const result = await response.json();
 
                 if (result.success && result.session) {
@@ -105,13 +126,15 @@
                     questions = result.questions || [];
                     
                     updateDisplay();
+                    updateConnectionStatus('connected');
+                    retryCount = 0;
                 } else {
                     // No session
                     showWaitingState();
+                    updateConnectionStatus('connected');
+                    retryCount = 0;
                 }
-            } catch (error) {
-                console.error('Error checking session:', error);
-            }
+            }, 'checkSession');
         }
 
         function updateDisplay() {
@@ -180,18 +203,26 @@
         async function loadParticipants() {
             if (!currentEventId) return;
             
-            try {
+            return await retryApiCall(async () => {
                 const eventIdInt = parseInt(currentEventId, 10);
                 const response = await fetch(`/api/get-trivia-waiting-users?eventId=${eventIdInt}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 const result = await response.json();
                 
                 if (result.success && result.participants) {
                     participants = result.participants || [];
                     displayParticipants();
+                    updateConnectionStatus('connected');
+                    retryCount = 0;
+                } else {
+                    updateConnectionStatus('connected');
+                    retryCount = 0;
                 }
-            } catch (error) {
-                console.error('Error loading participants:', error);
-            }
+            }, 'loadParticipants');
         }
 
         function displayParticipants() {
@@ -206,14 +237,43 @@
                 if (participants.length === 0) {
                     participantsGridEl.innerHTML = '<div class="no-participants-message">No participants yet. Waiting for players to join...</div>';
                 } else {
-                    participantsGridEl.innerHTML = participants.map(p => `
-                        <div class="participant-card">
-                            <div class="participant-name">${p.name}</div>
-                            ${p.company ? `<div class="participant-company">${p.company}</div>` : ''}
-                        </div>
-                    `).join('');
+                    // For performance: only show first N participants, but show total count
+                    const visibleParticipants = participants.slice(0, MAX_VISIBLE_PARTICIPANTS);
+                    const hasMore = participants.length > MAX_VISIBLE_PARTICIPANTS;
+                    
+                    let html = visibleParticipants.map(p => {
+                        // Truncate long names
+                        const displayName = truncateText(p.name, 25);
+                        const displayCompany = p.company ? truncateText(p.company, 20) : '';
+                        
+                        return `
+                            <div class="participant-card" title="${p.name}${p.company ? ' - ' + p.company : ''}">
+                                <div class="participant-name">${escapeHtml(displayName)}</div>
+                                ${displayCompany ? `<div class="participant-company">${escapeHtml(displayCompany)}</div>` : ''}
+                            </div>
+                        `;
+                    }).join('');
+                    
+                    if (hasMore) {
+                        const remaining = participants.length - MAX_VISIBLE_PARTICIPANTS;
+                        html += `<div class="more-participants-message">+ ${remaining} more participant${remaining > 1 ? 's' : ''}</div>`;
+                    }
+                    
+                    participantsGridEl.innerHTML = html;
                 }
             }
+        }
+
+        function truncateText(text, maxLength) {
+            if (!text) return '';
+            if (text.length <= maxLength) return text;
+            return text.substring(0, maxLength - 3) + '...';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         async function startFirstQuestion() {
@@ -232,16 +292,103 @@
                     })
                 });
 
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
                 const result = await response.json();
                 if (result.success) {
                     // Reload session to update display
                     await checkSession();
+                    updateConnectionStatus('connected');
                 } else {
                     alert('Failed to start question: ' + (result.error || 'Unknown error'));
                 }
             } catch (error) {
                 console.error('Error starting question:', error);
-                alert('Failed to start question');
+                handleConnectionError();
+                alert('Failed to start question. Please check your connection and try again.');
+            }
+        }
+
+        // Retry logic with exponential backoff
+        async function retryApiCall(apiCall, functionName) {
+            let lastError = null;
+            
+            for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+                try {
+                    return await apiCall();
+                } catch (error) {
+                    lastError = error;
+                    retryCount = attempt + 1;
+                    
+                    if (attempt < MAX_RETRIES) {
+                        const delay = Math.min(1000 * Math.pow(2, attempt), 10000); // Exponential backoff, max 10s
+                        console.warn(`${functionName} failed (attempt ${attempt + 1}/${MAX_RETRIES + 1}), retrying in ${delay}ms...`, error);
+                        updateConnectionStatus('reconnecting');
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    } else {
+                        console.error(`${functionName} failed after ${MAX_RETRIES + 1} attempts:`, error);
+                        handleConnectionError();
+                        throw error;
+                    }
+                }
+            }
+            
+            throw lastError;
+        }
+
+        function handleConnectionError() {
+            updateConnectionStatus('disconnected');
+            retryCount++;
+            
+            // Auto-retry after a delay
+            setTimeout(() => {
+                if (connectionStatus === 'disconnected') {
+                    console.log('Attempting to reconnect...');
+                    checkSession();
+                    loadParticipants();
+                }
+            }, 5000);
+        }
+
+        function updateConnectionStatus(status) {
+            connectionStatus = status;
+            const statusEl = document.getElementById('connectionStatus');
+            
+            if (!statusEl) {
+                // Create status indicator if it doesn't exist
+                const container = document.querySelector('.trivia-lobby-container');
+                if (container) {
+                    const statusDiv = document.createElement('div');
+                    statusDiv.id = 'connectionStatus';
+                    statusDiv.className = 'connection-status';
+                    container.insertBefore(statusDiv, container.firstChild);
+                }
+            }
+            
+            const statusIndicator = document.getElementById('connectionStatus');
+            if (statusIndicator) {
+                let statusText = '';
+                let statusClass = '';
+                
+                switch(status) {
+                    case 'connected':
+                        statusText = '🟢 Connected';
+                        statusClass = 'status-connected';
+                        break;
+                    case 'reconnecting':
+                        statusText = '🟡 Reconnecting...';
+                        statusClass = 'status-reconnecting';
+                        break;
+                    case 'disconnected':
+                        statusText = '🔴 Disconnected';
+                        statusClass = 'status-disconnected';
+                        break;
+                }
+                
+                statusIndicator.textContent = statusText;
+                statusIndicator.className = `connection-status ${statusClass}`;
             }
         }
 
@@ -366,24 +513,48 @@
 
         .participants-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
             max-height: 60vh;
             overflow-y: auto;
             padding: 20px;
             background: var(--dark-bg);
             border-radius: 20px;
             border: 2px solid var(--border-color);
+            /* Optimize for many items */
+            contain: layout style paint;
+        }
+
+        /* Scrollbar styling */
+        .participants-grid::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        .participants-grid::-webkit-scrollbar-track {
+            background: var(--dark-bg);
+            border-radius: 10px;
+        }
+
+        .participants-grid::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 10px;
+        }
+
+        .participants-grid::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-color);
         }
 
         .participant-card {
             background: var(--card-bg);
             border: 2px solid var(--border-color);
-            border-radius: 15px;
-            padding: 20px;
+            border-radius: 12px;
+            padding: 12px 15px;
             text-align: center;
             animation: slideIn 0.3s ease;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
+            /* Optimize rendering */
+            will-change: transform;
+            contain: layout style paint;
         }
 
         .participant-card:hover {
@@ -404,15 +575,35 @@
         }
 
         .participant-name {
-            font-size: 1.3rem;
+            font-size: 1.1rem;
             font-weight: 600;
             color: var(--text-primary);
-            margin-bottom: 8px;
+            margin-bottom: 6px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            line-height: 1.3;
         }
 
         .participant-company {
-            font-size: 1rem;
+            font-size: 0.9rem;
             color: var(--text-secondary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            line-height: 1.2;
+        }
+
+        .more-participants-message {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 20px;
+            background: var(--card-bg);
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            font-weight: 600;
         }
 
         .no-participants-message {
@@ -465,6 +656,38 @@
             color: var(--text-secondary);
         }
 
+        /* Connection Status */
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .status-connected {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4CAF50;
+            border: 2px solid #4CAF50;
+        }
+
+        .status-reconnecting {
+            background: rgba(255, 193, 7, 0.2);
+            color: #FFC107;
+            border: 2px solid #FFC107;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .status-disconnected {
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+            border: 2px solid #f44336;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .session-title {
@@ -480,13 +703,33 @@
             }
 
             .participants-grid {
-                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-                gap: 15px;
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 12px;
+                padding: 15px;
+            }
+
+            .participant-card {
+                padding: 10px 12px;
+            }
+
+            .participant-name {
+                font-size: 1rem;
+            }
+
+            .participant-company {
+                font-size: 0.85rem;
             }
 
             .start-button-large {
                 font-size: 1.4rem;
                 padding: 15px 40px;
+            }
+
+            .connection-status {
+                top: 10px;
+                right: 10px;
+                font-size: 0.8rem;
+                padding: 8px 15px;
             }
         }
     </style>

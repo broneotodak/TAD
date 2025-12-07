@@ -181,6 +181,9 @@
         let isManagingQuestions = false; // Track if admin clicked "Manage" button
         let hasScrolledToResult = false; // Track if we've already scrolled to result
         let autoAdvanceCountdownInterval = null; // Track countdown interval for auto-advance
+        let retryCount = 0;
+        const MAX_RETRIES = 5;
+        const MAX_VISIBLE_PARTICIPANTS_ADMIN = 100; // Limit visible participants on admin page
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -1166,10 +1169,15 @@
                 return;
             }
             
-            try {
+            return await retryApiCall(async () => {
                 // Convert eventId to integer to ensure proper matching
                 const eventIdInt = parseInt(currentEventId, 10);
                 const response = await fetch(`/api/get-trivia-waiting-users?eventId=${eventIdInt}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 const result = await response.json();
                 
                 if (result.success) {
@@ -1178,58 +1186,112 @@
                         waitingUsersCountEl.textContent = result.count || 0;
                     }
                     
-                    // Display participant names list
+                    // Display participant names list (optimized for many participants)
                     const participantsListEl = document.getElementById('waitingParticipantsList');
                     if (participantsListEl && result.participants) {
                         if (result.participants.length === 0) {
                             participantsListEl.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 10px;">No participants waiting yet.</p>';
                         } else {
-                            participantsListEl.innerHTML = `
-                                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 10px;">
-                                    ${result.participants.map(p => `
-                                        <div class="participant-name-badge" style="
-                                            background: var(--card-bg);
-                                            border: 2px solid var(--border-color);
-                                            border-radius: 8px;
-                                            padding: 10px 15px;
-                                            display: flex;
-                                            align-items: center;
-                                            gap: 8px;
-                                        ">
-                                            <span style="
-                                                width: 8px;
-                                                height: 8px;
-                                                background: #4CAF50;
-                                                border-radius: 50%;
-                                                display: inline-block;
-                                            "></span>
-                                            <div style="flex: 1; min-width: 0;">
-                                                <div style="font-weight: 600; color: var(--text-primary); font-size: 0.95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                                    ${p.name}
+                            // Limit visible participants for performance
+                            const visibleParticipants = result.participants.slice(0, MAX_VISIBLE_PARTICIPANTS_ADMIN);
+                            const hasMore = result.participants.length > MAX_VISIBLE_PARTICIPANTS_ADMIN;
+                            
+                            let html = `
+                                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin-top: 10px; max-height: 400px; overflow-y: auto;">
+                                    ${visibleParticipants.map(p => {
+                                        // Truncate long names
+                                        const displayName = truncateText(p.name, 20);
+                                        const displayCompany = p.company ? truncateText(p.company, 18) : '';
+                                        
+                                        return `
+                                            <div class="participant-name-badge" style="
+                                                background: var(--card-bg);
+                                                border: 2px solid var(--border-color);
+                                                border-radius: 8px;
+                                                padding: 8px 12px;
+                                                display: flex;
+                                                align-items: center;
+                                                gap: 8px;
+                                            " title="${escapeHtml(p.name)}${p.company ? ' - ' + escapeHtml(p.company) : ''}">
+                                                <span style="
+                                                    width: 8px;
+                                                    height: 8px;
+                                                    background: #4CAF50;
+                                                    border-radius: 50%;
+                                                    display: inline-block;
+                                                    flex-shrink: 0;
+                                                "></span>
+                                                <div style="flex: 1; min-width: 0;">
+                                                    <div style="font-weight: 600; color: var(--text-primary); font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                                        ${escapeHtml(displayName)}
+                                                    </div>
+                                                    ${displayCompany ? `<div style="font-size: 0.75rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(displayCompany)}</div>` : ''}
                                                 </div>
-                                                ${p.company ? `<div style="font-size: 0.8rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${p.company}</div>` : ''}
                                             </div>
-                                        </div>
-                                    `).join('')}
+                                        `;
+                                    }).join('')}
+                                    ${hasMore ? `<div style="grid-column: 1 / -1; text-align: center; padding: 15px; background: var(--dark-bg); border-radius: 8px; color: var(--text-secondary); font-size: 0.9rem; font-weight: 600;">
+                                        + ${result.participants.length - MAX_VISIBLE_PARTICIPANTS_ADMIN} more participant${result.participants.length - MAX_VISIBLE_PARTICIPANTS_ADMIN > 1 ? 's' : ''}
+                                    </div>` : ''}
                                 </div>
                             `;
+                            
+                            participantsListEl.innerHTML = html;
                         }
                     }
+                    retryCount = 0;
                 } else {
                     console.error('Failed to load waiting users count:', result.error);
+                    throw new Error(result.error || 'Failed to load participants');
                 }
-            } catch (error) {
-                console.error('Error loading waiting users count:', error);
-                // Fallback: show 0 if API fails
+            }, 'loadWaitingUsersCount').catch(error => {
+                // Fallback: show error message
                 const waitingUsersCountEl = document.getElementById('waitingUsersCount');
                 if (waitingUsersCountEl) {
-                    waitingUsersCountEl.textContent = '0';
+                    waitingUsersCountEl.textContent = '?';
                 }
                 const participantsListEl = document.getElementById('waitingParticipantsList');
                 if (participantsListEl) {
-                    participantsListEl.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 10px;">Unable to load participants.</p>';
+                    participantsListEl.innerHTML = '<p style="color: var(--danger-color); font-size: 0.9rem; margin-top: 10px;">⚠️ Unable to load participants. Retrying...</p>';
+                }
+            });
+        }
+
+        function truncateText(text, maxLength) {
+            if (!text) return '';
+            if (text.length <= maxLength) return text;
+            return text.substring(0, maxLength - 3) + '...';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Retry logic with exponential backoff
+        async function retryApiCall(apiCall, functionName) {
+            let lastError = null;
+            
+            for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+                try {
+                    return await apiCall();
+                } catch (error) {
+                    lastError = error;
+                    retryCount = attempt + 1;
+                    
+                    if (attempt < MAX_RETRIES) {
+                        const delay = Math.min(1000 * Math.pow(2, attempt), 10000); // Exponential backoff, max 10s
+                        console.warn(`${functionName} failed (attempt ${attempt + 1}/${MAX_RETRIES + 1}), retrying in ${delay}ms...`, error);
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    } else {
+                        console.error(`${functionName} failed after ${MAX_RETRIES + 1} attempts:`, error);
+                        throw error;
+                    }
                 }
             }
+            
+            throw lastError;
         }
 
         function startWaitingUsersUpdates() {
