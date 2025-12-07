@@ -224,7 +224,11 @@
                 sessionTitleEl.textContent = currentSession.title || 'Trivia Session';
             }
 
-            if (currentSession.isActive) {
+            // Check if session has ended (has endedAt timestamp)
+            if (currentSession.endedAt || (!currentSession.isActive && currentSession.currentQuestionIndex >= (questions.length - 1))) {
+                // Session ended - show leaderboard
+                showLeaderboardState();
+            } else if (currentSession.isActive) {
                 const currentIndex = currentSession.currentQuestionIndex ?? -1;
                 
                 if (currentIndex === -1) {
@@ -237,6 +241,93 @@
             } else {
                 // Session not activated yet
                 showWaitingState();
+            }
+        }
+
+        function showLeaderboardState() {
+            document.getElementById('waitingState').style.display = 'none';
+            document.getElementById('lobbyState').style.display = 'none';
+            document.getElementById('activeSessionState').style.display = 'none';
+            
+            // Create or show leaderboard section
+            let leaderboardSection = document.getElementById('leaderboardSection');
+            if (!leaderboardSection) {
+                leaderboardSection = document.createElement('div');
+                leaderboardSection.id = 'leaderboardSection';
+                leaderboardSection.className = 'leaderboard-section';
+                document.querySelector('.trivia-lobby-container').appendChild(leaderboardSection);
+            }
+            
+            leaderboardSection.style.display = 'block';
+            leaderboardSection.innerHTML = `
+                <h2 class="leaderboard-title">🏆 Final Leaderboard</h2>
+                <div id="leaderboardContent" class="leaderboard-content">
+                    <div class="loading">Loading leaderboard...</div>
+                </div>
+            `;
+            
+            loadLeaderboard();
+        }
+
+        async function loadLeaderboard() {
+            if (!currentSession || !currentSession.id) return;
+            
+            try {
+                const response = await fetch(`/api/get-trivia-leaderboard?sessionId=${currentSession.id}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    const leaderboardContent = document.getElementById('leaderboardContent');
+                    if (leaderboardContent) {
+                        if (result.leaderboard.length === 0) {
+                            leaderboardContent.innerHTML = '<p>No participants have answered yet.</p>';
+                        } else {
+                            const top10 = result.leaderboard.slice(0, 10);
+                            const winner = top10[0];
+                            
+                            leaderboardContent.innerHTML = `
+                                ${winner ? `
+                                <div class="winner-announcement">
+                                    <div class="winner-icon">🏆</div>
+                                    <h3>Winner!</h3>
+                                    <div class="winner-name">${winner.name}</div>
+                                    ${winner.company ? `<div class="winner-company">${winner.company}</div>` : ''}
+                                </div>
+                                ` : ''}
+                                <div class="leaderboard-table-container">
+                                    <table class="leaderboard-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Rank</th>
+                                                <th>Name</th>
+                                                <th>Company</th>
+                                                <th>Correct</th>
+                                                <th>Score</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${top10.map(entry => `
+                                                <tr ${entry.rank === 1 ? 'class="winner-row"' : ''}>
+                                                    <td>${entry.rank === 1 ? '👑' : entry.rank}</td>
+                                                    <td><strong>${entry.name}</strong></td>
+                                                    <td>${entry.company || '-'}</td>
+                                                    <td>${entry.correctAnswers}/${result.totalQuestions || questions.length}</td>
+                                                    <td>${entry.totalPoints || 0}</td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            `;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading leaderboard:', error);
+                const leaderboardContent = document.getElementById('leaderboardContent');
+                if (leaderboardContent) {
+                    leaderboardContent.innerHTML = '<p>Error loading leaderboard. Please try again.</p>';
+                }
             }
         }
 
@@ -703,15 +794,19 @@
                     }
                     if (startQuestionBtn) startQuestionBtn.style.display = 'none';
                     
-                    // Show "Next Question" button only after timer ends
+                    // Show "Next Question" or "Show Leaderboard" button only after timer ends
                     if (nextQuestionBtn) {
                         if (timerEnded) {
-                            nextQuestionBtn.style.display = 'block';
                             if (currentIndex >= totalQuestions - 1) {
-                                nextQuestionBtn.textContent = '✅ Complete Session';
-                                nextQuestionBtn.onclick = () => completeSession();
+                                // Last question - show prominent "Show Leaderboard" button
+                                nextQuestionBtn.style.display = 'block';
+                                nextQuestionBtn.textContent = '🏆 Show Leaderboard';
+                                nextQuestionBtn.className = 'control-btn btn-show-leaderboard';
+                                nextQuestionBtn.onclick = () => showLeaderboard();
                             } else {
+                                nextQuestionBtn.style.display = 'block';
                                 nextQuestionBtn.textContent = '➡️ Next Question';
+                                nextQuestionBtn.className = 'control-btn btn-next';
                                 nextQuestionBtn.onclick = () => advanceToNextQuestion();
                             }
                         } else {
@@ -767,7 +862,16 @@
             }
             
             // Don't auto-advance if this is the last question
+            // Instead, show prominent "Show Leaderboard" button
             if (currentIndex >= totalQuestions - 1) {
+                // Make sure the button is visible
+                const nextQuestionBtn = document.getElementById('nextQuestionBtn');
+                if (nextQuestionBtn && timerWasEnded) {
+                    nextQuestionBtn.style.display = 'block';
+                    nextQuestionBtn.textContent = '🏆 Show Leaderboard';
+                    nextQuestionBtn.className = 'control-btn btn-show-leaderboard';
+                    nextQuestionBtn.onclick = () => showLeaderboard();
+                }
                 return;
             }
             
@@ -820,11 +924,8 @@
             }
         }
 
-        async function completeSession() {
-            if (!confirm('Complete this trivia session? This will end the session and show the final leaderboard to all participants.')) {
-                return;
-            }
-
+        async function showLeaderboard() {
+            // End session and show leaderboard
             try {
                 const response = await fetch('/api/end-trivia-session', {
                     method: 'POST',
@@ -838,16 +939,22 @@
 
                 const result = await response.json();
                 if (result.success) {
+                    // Reload session to get updated state (session ended)
                     await checkSession();
                     updateConnectionStatus('connected');
                 } else {
-                    alert('Failed to complete session: ' + (result.error || 'Unknown error'));
+                    alert('Failed to show leaderboard: ' + (result.error || 'Unknown error'));
                 }
             } catch (error) {
-                console.error('Error completing session:', error);
+                console.error('Error showing leaderboard:', error);
                 handleConnectionError();
-                alert('Failed to complete session. Please check your connection and try again.');
+                alert('Failed to show leaderboard. Please check your connection and try again.');
             }
+        }
+
+        async function completeSession() {
+            // Alias for showLeaderboard for consistency
+            await showLeaderboard();
         }
 
         async function endSession() {
@@ -1539,8 +1646,114 @@
             box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4);
         }
 
+        .btn-show-leaderboard {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: #000;
+            font-size: 1.5rem;
+            padding: 25px 50px;
+            min-width: 300px;
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+
+        .btn-show-leaderboard:hover {
+            transform: scale(1.08);
+            box-shadow: 0 8px 30px rgba(255, 215, 0, 0.6);
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+            }
+            50% {
+                box-shadow: 0 0 40px rgba(255, 215, 0, 0.8);
+            }
+        }
+
         .control-btn:active {
             transform: scale(0.98);
+        }
+
+        .leaderboard-section {
+            width: 100%;
+            max-width: 1200px;
+            padding: 40px 20px;
+        }
+
+        .leaderboard-title {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .leaderboard-content {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 30px;
+        }
+
+        .winner-announcement {
+            text-align: center;
+            padding: 30px;
+            margin-bottom: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            color: white;
+        }
+
+        .winner-icon {
+            font-size: 4rem;
+            margin-bottom: 15px;
+        }
+
+        .winner-announcement h3 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .winner-name {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .winner-company {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .leaderboard-table-container {
+            overflow-x: auto;
+        }
+
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .leaderboard-table th,
+        .leaderboard-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .leaderboard-table th {
+            background: var(--dark-bg);
+            font-weight: 600;
+            color: var(--primary-color);
+            font-size: 1.1rem;
+        }
+
+        .leaderboard-table tr:hover {
+            background: var(--dark-bg);
+        }
+
+        .winner-row {
+            background: rgba(102, 126, 234, 0.1);
+            border: 2px solid #667eea;
         }
 
         /* Connection Status */
