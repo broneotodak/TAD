@@ -123,6 +123,7 @@
         let timerWasEnded = false; // Track if timer has ended to prevent duplicate auto-advance
         let previousQuestionIndex = -1; // Track previous question index to detect changes
         let timerEndedForQuestion = -1; // Track which question the timer ended for
+        let showingLeaderboard = false; // Track if we're showing leaderboard to prevent state switching
         const AUTO_ADVANCE_DELAY = 5000; // Auto-advance after 5 seconds of showing results
 
         // Initialize
@@ -214,6 +215,14 @@
                 return;
             }
 
+            // CRITICAL: If we're already showing leaderboard, don't switch states
+            // This prevents blinking/flickering when session check runs
+            if (showingLeaderboard) {
+                // Just update leaderboard data, don't change view
+                loadLeaderboard();
+                return;
+            }
+
             const sessionInfoEl = document.getElementById('sessionInfo');
             const sessionTitleEl = document.getElementById('sessionTitle');
             const waitingStateEl = document.getElementById('waitingState');
@@ -247,6 +256,9 @@
         }
 
         function showLeaderboardState() {
+            // Mark that we're showing leaderboard to prevent state switching
+            showingLeaderboard = true;
+            
             document.getElementById('waitingState').style.display = 'none';
             document.getElementById('lobbyState').style.display = 'none';
             document.getElementById('activeSessionState').style.display = 'none';
@@ -261,12 +273,17 @@
             }
             
             leaderboardSection.style.display = 'block';
-            leaderboardSection.innerHTML = `
-                <h2 class="leaderboard-title">🏆 Final Leaderboard</h2>
-                <div id="leaderboardContent" class="leaderboard-content">
-                    <div class="loading">Loading leaderboard...</div>
-                </div>
-            `;
+            
+            // Only update HTML if it's not already showing leaderboard (prevent flickering)
+            const leaderboardContent = document.getElementById('leaderboardContent');
+            if (!leaderboardContent) {
+                leaderboardSection.innerHTML = `
+                    <h2 class="leaderboard-title">🏆 Final Leaderboard</h2>
+                    <div id="leaderboardContent" class="leaderboard-content">
+                        <div class="loading">Loading leaderboard...</div>
+                    </div>
+                `;
+            }
             
             loadLeaderboard();
         }
@@ -340,18 +357,33 @@
         }
 
         function showLobbyState() {
+            showingLeaderboard = false; // Reset flag
             document.getElementById('waitingState').style.display = 'none';
             document.getElementById('lobbyState').style.display = 'block';
             document.getElementById('activeSessionState').style.display = 'none';
+            const leaderboardSection = document.getElementById('leaderboardSection');
+            if (leaderboardSection) leaderboardSection.style.display = 'none';
         }
 
         function showActiveSessionState() {
+            showingLeaderboard = false; // Reset flag
             document.getElementById('waitingState').style.display = 'none';
             document.getElementById('lobbyState').style.display = 'none';
             document.getElementById('activeSessionState').style.display = 'block';
+            const leaderboardSection = document.getElementById('leaderboardSection');
+            if (leaderboardSection) leaderboardSection.style.display = 'none';
             
             // Update question control immediately
             updateQuestionControl();
+        }
+
+        function showWaitingState() {
+            showingLeaderboard = false; // Reset flag
+            document.getElementById('waitingState').style.display = 'block';
+            document.getElementById('lobbyState').style.display = 'none';
+            document.getElementById('activeSessionState').style.display = 'none';
+            const leaderboardSection = document.getElementById('leaderboardSection');
+            if (leaderboardSection) leaderboardSection.style.display = 'none';
         }
 
         async function loadParticipants() {
@@ -903,7 +935,10 @@
                     clearTimeout(autoAdvanceTimeout);
                     autoAdvanceTimeout = null;
                 }
-                timerWasEnded = false; // Reset timer state
+                // Reset timer state for new question
+                timerWasEnded = false;
+                timerEndedForQuestion = -1;
+                previousQuestionIndex = -1; // Force reset on question change
                 
                 const response = await fetch('/api/advance-trivia-question', {
                     method: 'POST',
@@ -941,6 +976,12 @@
         async function showLeaderboard() {
             // End session and show leaderboard
             try {
+                // Stop question check interval to prevent state switching
+                if (questionCheckInterval) {
+                    clearInterval(questionCheckInterval);
+                    questionCheckInterval = null;
+                }
+                
                 const response = await fetch('/api/end-trivia-session', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -953,9 +994,22 @@
 
                 const result = await response.json();
                 if (result.success) {
-                    // Reload session to get updated state (session ended)
+                    // Mark session as ended locally
+                    currentSession.isActive = false;
+                    currentSession.endedAt = new Date().toISOString();
+                    
+                    // Show leaderboard immediately
+                    showLeaderboardState();
+                    
+                    // Reload session once to get final state, then stop checking
                     await checkSession();
                     updateConnectionStatus('connected');
+                    
+                    // Stop session check interval since we're showing leaderboard
+                    if (sessionCheckInterval) {
+                        clearInterval(sessionCheckInterval);
+                        sessionCheckInterval = null;
+                    }
                 } else {
                     alert('Failed to show leaderboard: ' + (result.error || 'Unknown error'));
                 }
