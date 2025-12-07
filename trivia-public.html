@@ -124,6 +124,9 @@
         let previousQuestionIndex = -1; // Track previous question index to detect changes
         let timerEndedForQuestion = -1; // Track which question the timer ended for
         let showingLeaderboard = false; // Track if we're showing leaderboard to prevent state switching
+        let cachedQuestionStartedAt = null; // Cache questionStartedAt to prevent timer jumps
+        let cachedQuestionIndex = -1; // Cache question index
+        let isUpdatingQuestionControl = false; // Prevent concurrent updates
         const AUTO_ADVANCE_DELAY = 5000; // Auto-advance after 5 seconds of showing results
 
         // Initialize
@@ -158,8 +161,9 @@
             }, 3000);
             
             // Check question updates every 1 second when session is active
+            // But only if not showing leaderboard and not already updating
             questionCheckInterval = setInterval(() => {
-                if (currentSession && currentSession.isActive) {
+                if (currentSession && currentSession.isActive && !showingLeaderboard && !isUpdatingQuestionControl) {
                     updateQuestionControl();
                 }
             }, 1000);
@@ -181,21 +185,50 @@
                 const result = await response.json();
 
                 if (result.success && result.session) {
-                    // CRITICAL: Always update session data to get fresh questionStartedAt
                     const previousIndex = currentSession?.currentQuestionIndex ?? -1;
+                    const previousIsActive = currentSession?.isActive;
+                    const previousEndedAt = currentSession?.endedAt;
+                    
                     currentSession = result.session;
                     questions = result.questions || [];
                     
-                    // If question index changed, force update question control immediately
                     const newIndex = currentSession.currentQuestionIndex ?? -1;
-                    if (previousIndex !== newIndex && newIndex >= 0) {
-                        // Question changed - update display and question control
+                    const newIsActive = currentSession.isActive;
+                    const newEndedAt = currentSession.endedAt;
+                    
+                    // CRITICAL: Only update cached timestamp when question index actually changes
+                    // This prevents timer from jumping when session reloads
+                    if (newIndex !== cachedQuestionIndex && newIndex >= 0) {
+                        cachedQuestionIndex = newIndex;
+                        cachedQuestionStartedAt = currentSession.questionStartedAt;
+                        // Reset timer state for new question
+                        timerEndedForQuestion = -1;
+                        timerWasEnded = false;
+                        previousQuestionIndex = -1;
+                    } else if (newIndex === cachedQuestionIndex && currentSession.questionStartedAt) {
+                        // Keep cached timestamp - don't update it on every reload
+                        // Only update if it's significantly different (more than 1 second)
+                        const cachedTime = cachedQuestionStartedAt ? new Date(cachedQuestionStartedAt).getTime() : 0;
+                        const newTime = new Date(currentSession.questionStartedAt).getTime();
+                        if (Math.abs(newTime - cachedTime) > 1000) {
+                            // Timestamp changed significantly - update cache
+                            cachedQuestionStartedAt = currentSession.questionStartedAt;
+                        }
+                    }
+                    
+                    // Only update display if state actually changed
+                    const stateChanged = previousIndex !== newIndex || 
+                                       previousIsActive !== newIsActive ||
+                                       previousEndedAt !== newEndedAt;
+                    
+                    if (stateChanged) {
                         updateDisplay();
-                        setTimeout(() => {
-                            updateQuestionControl();
-                        }, 100);
-                    } else {
-                        updateDisplay();
+                        if (newIndex >= 0 && newIsActive && !showingLeaderboard) {
+                            // Question changed - update question control
+                            setTimeout(() => {
+                                updateQuestionControl();
+                            }, 100);
+                        }
                     }
                     
                     updateConnectionStatus('connected');
@@ -661,10 +694,20 @@
 
         // Question Control Functions
         async function updateQuestionControl() {
-            if (!currentSession || !currentSession.isActive || questions.length === 0) return;
+            // Prevent concurrent updates
+            if (isUpdatingQuestionControl) {
+                return;
+            }
             
-            const currentIndex = currentSession.currentQuestionIndex ?? -1;
-            const totalQuestions = questions.length;
+            if (!currentSession || !currentSession.isActive || questions.length === 0 || showingLeaderboard) {
+                return;
+            }
+            
+            isUpdatingQuestionControl = true;
+            
+            try {
+                const currentIndex = currentSession.currentQuestionIndex ?? -1;
+                const totalQuestions = questions.length;
             
             const totalQuestionsDisplayEl = document.getElementById('totalQuestionsDisplay');
             const currentQuestionNumEl = document.getElementById('currentQuestionNum');
@@ -691,7 +734,8 @@
                     `;
                 }
                 
-                const sessionQuestionStartedAt = currentSession.questionStartedAt;
+                // Use cached timestamp to prevent timer jumps
+                const sessionQuestionStartedAt = cachedQuestionStartedAt || currentSession.questionStartedAt;
                 const sessionCurrentIndex = currentSession.currentQuestionIndex ?? -1;
                 
                 // Check if timer is active for this question
@@ -879,6 +923,8 @@
                 if (previousQuestionBtn) {
                     previousQuestionBtn.disabled = currentIndex <= 0;
                 }
+            } finally {
+                isUpdatingQuestionControl = false;
             }
         }
 
@@ -939,6 +985,8 @@
                 timerWasEnded = false;
                 timerEndedForQuestion = -1;
                 previousQuestionIndex = -1; // Force reset on question change
+                cachedQuestionIndex = -1; // Reset cache
+                cachedQuestionStartedAt = null; // Reset cache
                 
                 const response = await fetch('/api/advance-trivia-question', {
                     method: 'POST',
