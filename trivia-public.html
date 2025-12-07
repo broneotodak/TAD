@@ -166,7 +166,7 @@
 
         async function checkSession() {
             return await retryApiCall(async () => {
-                const response = await fetch(`/api/get-trivia-session?eventId=${currentEventId}`);
+                const response = await fetch(`/api/get-trivia-session?eventId=${currentEventId}&_t=${Date.now()}`);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -175,10 +175,23 @@
                 const result = await response.json();
 
                 if (result.success && result.session) {
+                    // CRITICAL: Always update session data to get fresh questionStartedAt
+                    const previousIndex = currentSession?.currentQuestionIndex ?? -1;
                     currentSession = result.session;
                     questions = result.questions || [];
                     
-                    updateDisplay();
+                    // If question index changed, force update question control immediately
+                    const newIndex = currentSession.currentQuestionIndex ?? -1;
+                    if (previousIndex !== newIndex && newIndex >= 0) {
+                        // Question changed - update display and question control
+                        updateDisplay();
+                        setTimeout(() => {
+                            updateQuestionControl();
+                        }, 100);
+                    } else {
+                        updateDisplay();
+                    }
+                    
                     updateConnectionStatus('connected');
                     retryCount = 0;
                 } else {
