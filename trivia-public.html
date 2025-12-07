@@ -708,221 +708,224 @@
             try {
                 const currentIndex = currentSession.currentQuestionIndex ?? -1;
                 const totalQuestions = questions.length;
-            
-            const totalQuestionsDisplayEl = document.getElementById('totalQuestionsDisplay');
-            const currentQuestionNumEl = document.getElementById('currentQuestionNum');
-            
-            if (totalQuestionsDisplayEl) totalQuestionsDisplayEl.textContent = totalQuestions;
-            if (currentQuestionNumEl) currentQuestionNumEl.textContent = currentIndex >= 0 ? currentIndex + 1 : '-';
-            
-            if (currentIndex >= 0 && currentIndex < questions.length) {
-                const question = questions[currentIndex];
-                const currentQuestionTextEl = document.getElementById('currentQuestionText');
-                const questionTimerStatusEl = document.getElementById('questionTimerStatus');
-                const startQuestionBtn = document.getElementById('startQuestionBtn');
-                const nextQuestionBtn = document.getElementById('nextQuestionBtn');
-                const previousQuestionBtn = document.getElementById('previousQuestionBtn');
                 
-                if (currentQuestionTextEl) {
-                    currentQuestionTextEl.innerHTML = `
-                        <div class="question-text-large">${question.questionText}</div>
-                        <div class="question-meta">
-                            <span>Time limit: ${question.timeLimitSeconds}s</span>
-                            <span>•</span>
-                            <span>Points: ${question.points} (+ bonus)</span>
-                        </div>
-                    `;
-                }
+                const totalQuestionsDisplayEl = document.getElementById('totalQuestionsDisplay');
+                const currentQuestionNumEl = document.getElementById('currentQuestionNum');
                 
-                // Use cached timestamp to prevent timer jumps
-                const sessionQuestionStartedAt = cachedQuestionStartedAt || currentSession.questionStartedAt;
-                const sessionCurrentIndex = currentSession.currentQuestionIndex ?? -1;
+                if (totalQuestionsDisplayEl) totalQuestionsDisplayEl.textContent = totalQuestions;
+                if (currentQuestionNumEl) currentQuestionNumEl.textContent = currentIndex >= 0 ? currentIndex + 1 : '-';
                 
-                // Check if timer is active for this question
-                // Only show timer if questionStartedAt exists AND matches current question index
-                if (sessionQuestionStartedAt && sessionCurrentIndex === currentIndex && currentSession.isActive) {
-                    const startedAt = new Date(sessionQuestionStartedAt);
-                    const now = Date.now();
-                    const elapsed = Math.floor((now - startedAt.getTime()) / 1000);
-                    const remaining = Math.max(0, question.timeLimitSeconds - elapsed);
+                if (currentIndex >= 0 && currentIndex < questions.length) {
+                    const question = questions[currentIndex];
+                    const currentQuestionTextEl = document.getElementById('currentQuestionText');
+                    const questionTimerStatusEl = document.getElementById('questionTimerStatus');
+                    const startQuestionBtn = document.getElementById('startQuestionBtn');
+                    const nextQuestionBtn = document.getElementById('nextQuestionBtn');
+                    const previousQuestionBtn = document.getElementById('previousQuestionBtn');
                     
-                    // CRITICAL: Once timer ends for a question, keep it ended (prevent flickering)
-                    // Only reset if we're on a different question
-                    if (previousQuestionIndex !== currentIndex) {
-                        timerEndedForQuestion = -1;
-                        timerWasEnded = false;
-                        previousQuestionIndex = currentIndex;
+                    if (currentQuestionTextEl) {
+                        currentQuestionTextEl.innerHTML = `
+                            <div class="question-text-large">${question.questionText}</div>
+                            <div class="question-meta">
+                                <span>Time limit: ${question.timeLimitSeconds}s</span>
+                                <span>•</span>
+                                <span>Points: ${question.points} (+ bonus)</span>
+                            </div>
+                        `;
                     }
                     
-                    // Check if timer has ended (with small buffer to prevent flickering at boundary)
-                    const timerEnded = remaining <= 0 || timerEndedForQuestion === currentIndex;
+                    // Use cached timestamp to prevent timer jumps
+                    const sessionQuestionStartedAt = cachedQuestionStartedAt || currentSession.questionStartedAt;
+                    const sessionCurrentIndex = currentSession.currentQuestionIndex ?? -1;
                     
-                    // Once timer ends, mark it as ended for this question
-                    if (remaining <= 0 && timerEndedForQuestion !== currentIndex) {
-                        timerEndedForQuestion = currentIndex;
-                        timerWasEnded = true;
-                        // Schedule auto-advance after showing results
-                        scheduleAutoAdvance(currentIndex, totalQuestions);
-                    } else if (remaining > 0 && timerEndedForQuestion === currentIndex) {
-                        // Timer restarted for same question (shouldn't happen, but handle it)
-                        timerEndedForQuestion = -1;
-                        timerWasEnded = false;
-                        if (autoAdvanceTimeout) {
-                            clearTimeout(autoAdvanceTimeout);
-                            autoAdvanceTimeout = null;
+                    // Check if timer is active for this question
+                    // Only show timer if questionStartedAt exists AND matches current question index
+                    if (sessionQuestionStartedAt && sessionCurrentIndex === currentIndex && currentSession.isActive) {
+                        const startedAt = new Date(sessionQuestionStartedAt);
+                        const now = Date.now();
+                        const elapsed = Math.floor((now - startedAt.getTime()) / 1000);
+                        const remaining = Math.max(0, question.timeLimitSeconds - elapsed);
+                        
+                        // CRITICAL: Once timer ends for a question, keep it ended (prevent flickering)
+                        // Only reset if we're on a different question
+                        if (previousQuestionIndex !== currentIndex) {
+                            timerEndedForQuestion = -1;
+                            timerWasEnded = false;
+                            previousQuestionIndex = currentIndex;
                         }
-                    }
-                    
-                    const questionControlHeader = document.getElementById('questionControlHeader');
-                    if (questionControlHeader) {
-                        questionControlHeader.textContent = timerEnded ? 'RESULT' : 'Current Question';
-                    }
-                    
-                    if (questionTimerStatusEl) {
-                        if (timerEnded) {
-                            // Load answer breakdown when timer ends
-                            try {
-                                const breakdownResponse = await fetch(`/api/get-trivia-answer-breakdown?questionId=${question.id}`);
-                                const breakdownResult = await breakdownResponse.json();
-                                
-                                if (breakdownResult.success) {
-                                    const breakdown = breakdownResult.breakdown;
-                                    const totalAnswers = breakdownResult.totalAnswers;
-                                    const correctAnswers = breakdownResult.correctAnswers;
-                                    const incorrectAnswers = breakdownResult.incorrectAnswers;
+                        
+                        // Check if timer has ended (with small buffer to prevent flickering at boundary)
+                        const timerEnded = remaining <= 0 || timerEndedForQuestion === currentIndex;
+                        
+                        // Once timer ends, mark it as ended for this question
+                        if (remaining <= 0 && timerEndedForQuestion !== currentIndex) {
+                            timerEndedForQuestion = currentIndex;
+                            timerWasEnded = true;
+                            // Schedule auto-advance after showing results
+                            scheduleAutoAdvance(currentIndex, totalQuestions);
+                        } else if (remaining > 0 && timerEndedForQuestion === currentIndex) {
+                            // Timer restarted for same question (shouldn't happen, but handle it)
+                            timerEndedForQuestion = -1;
+                            timerWasEnded = false;
+                            if (autoAdvanceTimeout) {
+                                clearTimeout(autoAdvanceTimeout);
+                                autoAdvanceTimeout = null;
+                            }
+                        }
+                        
+                        const questionControlHeader = document.getElementById('questionControlHeader');
+                        if (questionControlHeader) {
+                            questionControlHeader.textContent = timerEnded ? 'RESULT' : 'Current Question';
+                        }
+                        
+                        if (questionTimerStatusEl) {
+                            if (timerEnded) {
+                                // Load answer breakdown when timer ends
+                                try {
+                                    const breakdownResponse = await fetch(`/api/get-trivia-answer-breakdown?questionId=${question.id}`);
+                                    const breakdownResult = await breakdownResponse.json();
                                     
+                                    if (breakdownResult.success) {
+                                        const breakdown = breakdownResult.breakdown;
+                                        const totalAnswers = breakdownResult.totalAnswers;
+                                        const correctAnswers = breakdownResult.correctAnswers;
+                                        const incorrectAnswers = breakdownResult.incorrectAnswers;
+                                        
+                                        questionTimerStatusEl.innerHTML = `
+                                            <div class="timer-ended-banner">⏱️ Timer Ended</div>
+                                            <div class="answer-breakdown">
+                                                <div class="correct-answer-display">
+                                                    <strong>Correct Answer: <span class="correct-answer">${question.correctAnswer}</span></strong>
+                                                </div>
+                                                
+                                                <div class="answer-stats-grid">
+                                                    <div class="stat-box stat-correct">
+                                                        <div class="stat-label">Correct</div>
+                                                        <div class="stat-value">${correctAnswers}</div>
+                                                    </div>
+                                                    <div class="stat-box stat-incorrect">
+                                                        <div class="stat-label">Incorrect</div>
+                                                        <div class="stat-value">${incorrectAnswers}</div>
+                                                    </div>
+                                                </div>
+                                                <div class="total-answers">Total Answers: <strong>${totalAnswers}</strong></div>
+                                                
+                                                <div class="answer-distribution">
+                                                    <strong>Answer Distribution:</strong>
+                                                    <div class="distribution-grid">
+                                                        ${['A', 'B', 'C', 'D'].map(option => {
+                                                            const optionData = breakdown[option];
+                                                            const optionText = question[`option${option}`];
+                                                            const isCorrect = question.correctAnswer === option;
+                                                            const barWidth = totalAnswers > 0 ? optionData.percentage : 0;
+                                                            const barColor = isCorrect ? '#4CAF50' : (optionData.count > 0 ? '#FF9800' : '#666');
+                                                            
+                                                            return `
+                                                                <div class="distribution-item">
+                                                                    <div class="option-header-compact">
+                                                                        <span class="option-label ${isCorrect ? 'correct' : ''}">${option}${isCorrect ? ' ✓' : ''}</span>
+                                                                        <span class="option-count-compact">${optionData.count} (${optionData.percentage}%)</span>
+                                                                    </div>
+                                                                    <div class="option-bar-container-compact">
+                                                                        <div class="option-bar" style="width: ${barWidth}%; background: ${barColor};">
+                                                                            ${barWidth > 15 ? `<span class="bar-percentage">${barWidth}%</span>` : ''}
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="option-text-compact">${optionText}</div>
+                                                                </div>
+                                                            `;
+                                                        }).join('')}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }
+                                } catch (error) {
+                                    console.error('Error loading answer breakdown:', error);
                                     questionTimerStatusEl.innerHTML = `
                                         <div class="timer-ended-banner">⏱️ Timer Ended</div>
                                         <div class="answer-breakdown">
-                                            <div class="correct-answer-display">
-                                                <strong>Correct Answer: <span class="correct-answer">${question.correctAnswer}</span></strong>
-                                            </div>
-                                            
-                                            <div class="answer-stats-grid">
-                                                <div class="stat-box stat-correct">
-                                                    <div class="stat-label">Correct</div>
-                                                    <div class="stat-value">${correctAnswers}</div>
-                                                </div>
-                                                <div class="stat-box stat-incorrect">
-                                                    <div class="stat-label">Incorrect</div>
-                                                    <div class="stat-value">${incorrectAnswers}</div>
-                                                </div>
-                                            </div>
-                                            <div class="total-answers">Total Answers: <strong>${totalAnswers}</strong></div>
-                                            
-                                            <div class="answer-distribution">
-                                                <strong>Answer Distribution:</strong>
-                                                <div class="distribution-grid">
-                                                    ${['A', 'B', 'C', 'D'].map(option => {
-                                                        const optionData = breakdown[option];
-                                                        const optionText = question[`option${option}`];
-                                                        const isCorrect = question.correctAnswer === option;
-                                                        const barWidth = totalAnswers > 0 ? optionData.percentage : 0;
-                                                        const barColor = isCorrect ? '#4CAF50' : (optionData.count > 0 ? '#FF9800' : '#666');
-                                                        
-                                                        return `
-                                                            <div class="distribution-item">
-                                                                <div class="option-header-compact">
-                                                                    <span class="option-label ${isCorrect ? 'correct' : ''}">${option}${isCorrect ? ' ✓' : ''}</span>
-                                                                    <span class="option-count-compact">${optionData.count} (${optionData.percentage}%)</span>
-                                                                </div>
-                                                                <div class="option-bar-container-compact">
-                                                                    <div class="option-bar" style="width: ${barWidth}%; background: ${barColor};">
-                                                                        ${barWidth > 15 ? `<span class="bar-percentage">${barWidth}%</span>` : ''}
-                                                                    </div>
-                                                                </div>
-                                                                <div class="option-text-compact">${optionText}</div>
-                                                            </div>
-                                                        `;
-                                                    }).join('')}
-                                                </div>
-                                            </div>
+                                            <strong>Correct Answer: <span class="correct-answer">${question.correctAnswer}</span></strong>
                                         </div>
                                     `;
                                 }
-                            } catch (error) {
-                                console.error('Error loading answer breakdown:', error);
-                                questionTimerStatusEl.innerHTML = `
-                                    <div class="timer-ended-banner">⏱️ Timer Ended</div>
-                                    <div class="answer-breakdown">
-                                        <strong>Correct Answer: <span class="correct-answer">${question.correctAnswer}</span></strong>
-                                    </div>
-                                `;
-                            }
-                        } else {
-                            // Timer is running - show timer AND live answer stats
-                            try {
-                                const statsResponse = await fetch(`/api/get-trivia-question-stats?questionId=${question.id}`);
-                                const statsResult = await statsResponse.json();
-                                
-                                let statsHTML = '';
-                                if (statsResult.success) {
-                                    const answerCount = statsResult.answerCount || 0;
-                                    statsHTML = `
-                                        <div class="live-stats">
-                                            <div class="live-stats-label">Live Answer Count</div>
-                                            <div class="live-stats-value">${answerCount}</div>
-                                        </div>
-                                    `;
-                                }
-                                
-                                questionTimerStatusEl.innerHTML = `
-                                    <div class="timer-running">
-                                        ⏱️ Timer: <strong>${remaining}s</strong> remaining
-                                    </div>
-                                    ${statsHTML}
-                                `;
-                            } catch (error) {
-                                console.error('Error loading question stats:', error);
-                                questionTimerStatusEl.innerHTML = `
-                                    <div class="timer-running">
-                                        ⏱️ Timer: <strong>${remaining}s</strong> remaining
-                                    </div>
-                                `;
-                            }
-                        }
-                    }
-                    if (startQuestionBtn) startQuestionBtn.style.display = 'none';
-                    
-                    // Show "Next Question" or "Show Leaderboard" button only after timer ends
-                    if (nextQuestionBtn) {
-                        if (timerEnded) {
-                            if (currentIndex >= totalQuestions - 1) {
-                                // Last question - show prominent "Show Leaderboard" button
-                                nextQuestionBtn.style.display = 'block';
-                                nextQuestionBtn.textContent = '🏆 Show Leaderboard';
-                                nextQuestionBtn.className = 'control-btn btn-show-leaderboard';
-                                nextQuestionBtn.onclick = () => showLeaderboard();
                             } else {
-                                nextQuestionBtn.style.display = 'block';
-                                nextQuestionBtn.textContent = '➡️ Next Question';
-                                nextQuestionBtn.className = 'control-btn btn-next';
-                                nextQuestionBtn.onclick = () => advanceToNextQuestion();
+                                // Timer is running - show timer AND live answer stats
+                                try {
+                                    const statsResponse = await fetch(`/api/get-trivia-question-stats?questionId=${question.id}`);
+                                    const statsResult = await statsResponse.json();
+                                    
+                                    let statsHTML = '';
+                                    if (statsResult.success) {
+                                        const answerCount = statsResult.answerCount || 0;
+                                        statsHTML = `
+                                            <div class="live-stats">
+                                                <div class="live-stats-label">Live Answer Count</div>
+                                                <div class="live-stats-value">${answerCount}</div>
+                                            </div>
+                                        `;
+                                    }
+                                    
+                                    questionTimerStatusEl.innerHTML = `
+                                        <div class="timer-running">
+                                            ⏱️ Timer: <strong>${remaining}s</strong> remaining
+                                        </div>
+                                        ${statsHTML}
+                                    `;
+                                } catch (error) {
+                                    console.error('Error loading question stats:', error);
+                                    questionTimerStatusEl.innerHTML = `
+                                        <div class="timer-running">
+                                            ⏱️ Timer: <strong>${remaining}s</strong> remaining
+                                        </div>
+                                    `;
+                                }
                             }
-                        } else {
-                            nextQuestionBtn.style.display = 'none';
                         }
+                        if (startQuestionBtn) startQuestionBtn.style.display = 'none';
+                        
+                        // Show "Next Question" or "Show Leaderboard" button only after timer ends
+                        if (nextQuestionBtn) {
+                            if (timerEnded) {
+                                if (currentIndex >= totalQuestions - 1) {
+                                    // Last question - show prominent "Show Leaderboard" button
+                                    nextQuestionBtn.style.display = 'block';
+                                    nextQuestionBtn.textContent = '🏆 Show Leaderboard';
+                                    nextQuestionBtn.className = 'control-btn btn-show-leaderboard';
+                                    nextQuestionBtn.onclick = () => showLeaderboard();
+                                } else {
+                                    nextQuestionBtn.style.display = 'block';
+                                    nextQuestionBtn.textContent = '➡️ Next Question';
+                                    nextQuestionBtn.className = 'control-btn btn-next';
+                                    nextQuestionBtn.onclick = () => advanceToNextQuestion();
+                                }
+                            } else {
+                                nextQuestionBtn.style.display = 'none';
+                            }
+                        }
+                    } else {
+                        // Timer not started for this question yet
+                        const questionControlHeader = document.getElementById('questionControlHeader');
+                        if (questionControlHeader) {
+                            questionControlHeader.textContent = 'Current Question';
+                        }
+                        if (questionTimerStatusEl) {
+                            questionTimerStatusEl.innerHTML = '<div class="timer-not-started">Timer not started. Click "Start Question Timer" to begin.</div>';
+                        }
+                        if (startQuestionBtn) {
+                            startQuestionBtn.style.display = 'block';
+                            startQuestionBtn.disabled = false;
+                        }
+                        if (nextQuestionBtn) nextQuestionBtn.style.display = 'none';
                     }
-                } else {
-                    // Timer not started for this question yet
-                    const questionControlHeader = document.getElementById('questionControlHeader');
-                    if (questionControlHeader) {
-                        questionControlHeader.textContent = 'Current Question';
+                    
+                    // Update previous button state
+                    if (previousQuestionBtn) {
+                        previousQuestionBtn.disabled = currentIndex <= 0;
                     }
-                    if (questionTimerStatusEl) {
-                        questionTimerStatusEl.innerHTML = '<div class="timer-not-started">Timer not started. Click "Start Question Timer" to begin.</div>';
-                    }
-                    if (startQuestionBtn) {
-                        startQuestionBtn.style.display = 'block';
-                        startQuestionBtn.disabled = false;
-                    }
-                    if (nextQuestionBtn) nextQuestionBtn.style.display = 'none';
                 }
-                
-                // Update previous button state
-                if (previousQuestionBtn) {
-                    previousQuestionBtn.disabled = currentIndex <= 0;
-                }
+            } catch (error) {
+                console.error('Error updating question control:', error);
             } finally {
                 isUpdatingQuestionControl = false;
             }
