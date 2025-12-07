@@ -670,10 +670,6 @@
                                         questionTimerStatusEl.innerHTML = `
                                             <div class="timer-ended-banner">⏱️ Timer Ended</div>
                                             <div class="answer-breakdown">
-                                                <div class="correct-answer-display">
-                                                    <strong>Correct Answer: <span class="correct-answer">${question.correctAnswer}</span></strong>
-                                                </div>
-                                                
                                                 <div class="answer-stats-grid">
                                                     <div class="stat-box stat-correct">
                                                         <div class="stat-label">Correct</div>
@@ -721,7 +717,9 @@
                                     questionTimerStatusEl.innerHTML = `
                                         <div class="timer-ended-banner">⏱️ Timer Ended</div>
                                         <div class="answer-breakdown">
-                                            <strong>Correct Answer: <span class="correct-answer">${question.correctAnswer}</span></strong>
+                                            <div style="text-align: center; padding: 20px; color: var(--text-secondary);">
+                                                Loading results...
+                                            </div>
                                         </div>
                                     `;
                                 }

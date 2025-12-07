@@ -112,6 +112,8 @@
         let currentEventId = null;
         let currentSession = null;
         let questions = [];
+        let questionsCache = null; // Cache for questions to reduce API calls on slow connections
+        let lastQuestionsFetch = 0;
         let currentQuestionIndex = 0;
         let userAnswers = {};
         let userScore = 0;
@@ -282,8 +284,47 @@
         }
 
         async function checkSession() {
+            // If last question timer ended, only check for leaderboard (session ended), don't refresh stats
+            if (currentSession && currentSession.isActive && questions.length > 0) {
+                const currentIndex = currentSession.currentQuestionIndex ?? -1;
+                const isLastQuestion = currentIndex >= questions.length - 1;
+                
+                if (isLastQuestion && currentSession.questionStartedAt) {
+                    const startedAt = new Date(currentSession.questionStartedAt);
+                    const elapsed = Math.floor((Date.now() - startedAt.getTime()) / 1000);
+                    const currentQuestion = questions[currentIndex];
+                    const timerEnded = currentQuestion && elapsed >= currentQuestion.timeLimitSeconds;
+                    
+                    // If last question timer ended, only check if session ended (for leaderboard)
+                    // Don't refresh stats or question display
+                    if (timerEnded) {
+                        // Only check session status to detect when admin shows leaderboard
+                        // Use cache-busting but less frequently
+                        try {
+                            const response = await fetch(`/api/get-trivia-session?eventId=${currentEventId}&_t=${Date.now()}`);
+                            const result = await response.json();
+                            
+                            if (result.success && result.session) {
+                                // Only update if session ended (admin clicked show leaderboard)
+                                if (!result.session.isActive || result.session.endedAt) {
+                                    currentSession = result.session;
+                                    questions = result.questions || [];
+                                    // This will trigger showCompleted() in the normal flow
+                                    await checkSession();
+                                }
+                                // Otherwise, keep showing "waiting for leaderboard" - don't refresh
+                            }
+                        } catch (error) {
+                            console.error('Error checking session (last question):', error);
+                        }
+                        return; // Exit early - don't refresh stats
+                    }
+                }
+            }
+            
             try {
-                const response = await fetch(`/api/get-trivia-session?eventId=${currentEventId}`);
+                // Add cache-busting parameter to prevent stale data
+                const response = await fetch(`/api/get-trivia-session?eventId=${currentEventId}&_t=${Date.now()}`);
                 const result = await response.json();
 
                 console.log('Session check result:', result); // Debug log
@@ -319,7 +360,17 @@
                     }
                     
                     currentSession = result.session;
-                    questions = result.questions || [];
+                    // Cache questions to reduce API calls on slow connections
+                    if (result.questions && result.questions.length > 0) {
+                        questions = result.questions;
+                        questionsCache = result.questions;
+                        lastQuestionsFetch = Date.now();
+                    } else if (questionsCache && questionsCache.length > 0) {
+                        // Use cached questions if API didn't return them (slow connection)
+                        questions = questionsCache;
+                    } else {
+                        questions = result.questions || [];
+                    }
                     
                     // Only show if session is ACTIVE (admin has started it)
                     if (newSessionActive) {
@@ -329,7 +380,17 @@
                         const newStartedAt = result.session.startedAt;
                         
                         currentSession = result.session;
-                        questions = result.questions || [];
+                        // Use cached questions if available, otherwise use API result
+                        if (result.questions && result.questions.length > 0) {
+                            questions = result.questions;
+                            questionsCache = result.questions;
+                            lastQuestionsFetch = Date.now();
+                        } else if (questionsCache && questionsCache.length > 0 && (Date.now() - lastQuestionsFetch) < 30000) {
+                            // Use cached questions if less than 30 seconds old (slow connection optimization)
+                            questions = questionsCache;
+                        } else {
+                            questions = result.questions || [];
+                        }
                         
                         // Check which question admin has activated
                         const activeQuestionIndex = result.session.currentQuestionIndex ?? -1;
@@ -486,14 +547,23 @@
                                 
                                 // CRITICAL: Only show correct answer if timer has FULLY ended (elapsed >= timeLimit)
                                 if (timerEnded) {
-                                    // Timer ended - show correct answer and stats
-                                    // Don't call displayQuestion here - it will hide stats
-                                    // Just show the correct answer and stats directly
-                                    showCorrectAnswerAfterTimer(currentQuestion);
-                                    showStatsBetweenQuestions(currentQuestion, activeQuestionIndex);
-                                    // Update question text without calling displayQuestion (which would hide stats)
-                                    const questionTextEl = document.getElementById('questionText');
-                                    if (questionTextEl) questionTextEl.textContent = currentQuestion.questionText;
+                                    // Check if this is the last question
+                                    const isLastQuestion = activeQuestionIndex >= questions.length - 1;
+                                    
+                                    if (isLastQuestion) {
+                                        // Last question - show waiting for leaderboard instead of stats
+                                        showStatsBetweenQuestions(currentQuestion, activeQuestionIndex);
+                                        // Update question text
+                                        const questionTextEl = document.getElementById('questionText');
+                                        if (questionTextEl) questionTextEl.textContent = currentQuestion.questionText;
+                                    } else {
+                                        // Not last question - show stats normally
+                                        showCorrectAnswerAfterTimer(currentQuestion);
+                                        showStatsBetweenQuestions(currentQuestion, activeQuestionIndex);
+                                        // Update question text without calling displayQuestion (which would hide stats)
+                                        const questionTextEl = document.getElementById('questionText');
+                                        if (questionTextEl) questionTextEl.textContent = currentQuestion.questionText;
+                                    }
                                 } else {
                                     // Timer still running - show question normally
                                     // Clear stats if we're showing a new question
@@ -707,6 +777,9 @@
             // If we're in wait period for THIS question, show stats (but only if countdown hasn't ended)
             // CRITICAL: Only show stats if this is the CURRENT question and timer ended
             if (isInWaitPeriodFromTimer && nextQuestionCountdown >= 0 && questionStarted) {
+                // Check if this is the last question
+                const isLastQuestion = index >= questions.length - 1;
+                
                 // Hide options container during wait period
                 const container = document.getElementById('optionsContainer');
                 if (container) container.style.display = 'none';
@@ -717,8 +790,14 @@
                 if (waitingEl) waitingEl.style.display = 'none';
                 if (timerDisplayEl) timerDisplayEl.style.display = 'none';
                 
-                showCorrectAnswerAfterTimer(question);
-                showStatsBetweenQuestions(question, index);
+                if (isLastQuestion) {
+                    // Last question - show waiting for leaderboard
+                    showStatsBetweenQuestions(question, index);
+                } else {
+                    // Not last question - show stats normally
+                    showCorrectAnswerAfterTimer(question);
+                    showStatsBetweenQuestions(question, index);
+                }
                 return; // Exit early - stats are now showing
             }
             
@@ -782,10 +861,16 @@
                         btn.disabled = true;
                     });
                     clearTimer();
-                    // Show correct answer if timer expired
-                    showCorrectAnswerAfterTimer(question);
-                    // Show stats during wait period
-                    showStatsBetweenQuestions(question, index);
+                    // Check if this is the last question
+                    const isLastQuestion = index >= questions.length - 1;
+                    if (isLastQuestion) {
+                        // Last question - show waiting for leaderboard
+                        showStatsBetweenQuestions(question, index);
+                    } else {
+                        // Not last question - show stats normally
+                        showCorrectAnswerAfterTimer(question);
+                        showStatsBetweenQuestions(question, index);
+                    }
                 }
             } else if (!existingAnswer) {
                 // Waiting for admin to start question
@@ -809,10 +894,16 @@
                     const timerEnded = elapsed >= question.timeLimitSeconds;
                     
                     if (timerEnded) {
-                        // Timer ended - show correct answer and stats
-                        showCorrectAnswerAfterTimer(question);
-                        // Show stats during wait period between questions
-                        showStatsBetweenQuestions(question, index);
+                        // Check if this is the last question
+                        const isLastQuestion = index >= questions.length - 1;
+                        if (isLastQuestion) {
+                            // Last question - show waiting for leaderboard
+                            showStatsBetweenQuestions(question, index);
+                        } else {
+                            // Not last question - show stats normally
+                            showCorrectAnswerAfterTimer(question);
+                            showStatsBetweenQuestions(question, index);
+                        }
                     } else {
                         // Timer still running - keep buttons disabled but don't show answer yet
                         // Re-render buttons as disabled
@@ -908,6 +999,55 @@
             if (!statsDisplay || !statsContent) {
                 console.error('Stats display elements not found!', { statsDisplay, statsContent });
                 return;
+            }
+            
+            // Check if this is the last question
+            const isLastQuestion = currentIndex >= questions.length - 1;
+            
+            // If it's the last question and timer ended, show "waiting for leaderboard" instead of stats
+            if (isLastQuestion) {
+                // Hide options container
+                if (optionsContainer) optionsContainer.style.display = 'none';
+                
+                // Show waiting for leaderboard message
+                statsDisplay.style.display = 'block';
+                statsDisplay.style.visibility = 'visible';
+                statsDisplay.style.opacity = '1';
+                statsDisplay.classList.add('stats-visible');
+                
+                // Hide question display
+                const questionDisplay = document.getElementById('questionDisplay');
+                if (questionDisplay) {
+                    questionDisplay.style.display = 'none';
+                }
+                
+                // Ensure parent containers are visible
+                const activeSession = document.getElementById('activeSession');
+                if (activeSession) {
+                    activeSession.style.display = 'block';
+                }
+                
+                // Show waiting message
+                statsContent.innerHTML = `
+                    <div style="text-align: center; padding: 60px 20px;">
+                        <div style="font-size: 4rem; margin-bottom: 30px;">⏳</div>
+                        <h2 style="font-size: 2rem; margin-bottom: 20px; color: var(--text-primary);">Waiting for Leaderboard</h2>
+                        <p style="font-size: 1.2rem; color: var(--text-secondary);">The admin will show the final results shortly...</p>
+                    </div>
+                `;
+                
+                // Track that we're showing waiting state for last question
+                lastQuestionStatsShown = currentIndex;
+                statsShownAt = Date.now();
+                
+                // Clear any countdown interval
+                if (statsDisplayInterval) {
+                    clearInterval(statsDisplayInterval);
+                    statsDisplayInterval = null;
+                }
+                nextQuestionCountdown = 0;
+                
+                return; // Exit early - don't show stats for last question
             }
             
             // Prevent multiple calls - if stats are already showing for this question, don't reset
