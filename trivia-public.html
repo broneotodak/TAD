@@ -408,6 +408,14 @@
             
             // Update question control immediately
             updateQuestionControl();
+            
+            // Auto-scroll to question control section for better visibility
+            setTimeout(() => {
+                const questionControlSection = document.getElementById('questionControlSection');
+                if (questionControlSection) {
+                    questionControlSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }, 300);
         }
 
         function showWaitingState() {

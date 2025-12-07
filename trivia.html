@@ -152,9 +152,19 @@
             checkSession();
             
             // Check for session updates every 2 seconds (faster for question updates)
-            // But stop checking if last question timer ended (wait for admin to show leaderboard)
+            // But reduce frequency if last question timer ended (wait for admin to show leaderboard)
+            let lastQuestionTimerEnded = false;
             sessionCheckInterval = setInterval(() => {
-                // Don't check if we're on last question and timer has ended
+                // If last question timer ended, check less frequently (every 5 seconds instead of 2)
+                // This prevents excessive refreshing but still detects when admin shows leaderboard
+                if (lastQuestionTimerEnded) {
+                    // Check every 5 seconds when waiting for leaderboard
+                    if (Math.floor(Date.now() / 1000) % 5 !== 0) {
+                        return;
+                    }
+                }
+                
+                // Don't check if we're on last question and timer has ended (but still check occasionally)
                 if (currentSession && currentSession.isActive) {
                     const currentIndex = currentSession.currentQuestionIndex ?? -1;
                     const totalQuestions = questions.length;
@@ -166,17 +176,19 @@
                         const currentQuestion = questions[currentIndex];
                         const timerEnded = currentQuestion && elapsed >= currentQuestion.timeLimitSeconds;
                         
-                        if (timerEnded) {
-                            // Last question timer ended - stop checking, wait for admin
-                            console.log('Last question timer ended - stopping session checks, waiting for admin to show leaderboard');
-                            if (sessionCheckInterval) {
-                                clearInterval(sessionCheckInterval);
-                                sessionCheckInterval = null;
-                            }
-                            return;
+                        if (timerEnded && !lastQuestionTimerEnded) {
+                            // Last question timer ended - reduce check frequency
+                            console.log('Last question timer ended - reducing check frequency, waiting for admin to show leaderboard');
+                            lastQuestionTimerEnded = true;
                         }
+                    } else {
+                        lastQuestionTimerEnded = false;
                     }
+                } else {
+                    // Session ended - resume normal checking
+                    lastQuestionTimerEnded = false;
                 }
+                
                 checkSession();
             }, 2000);
             
