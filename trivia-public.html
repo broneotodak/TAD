@@ -118,7 +118,7 @@
         let cachedQuestionStartedAt = null; // Cache questionStartedAt to prevent timer jumps
         let cachedQuestionIndex = -1; // Cache question index
         let isUpdatingQuestionControl = false; // Prevent concurrent updates
-        const AUTO_ADVANCE_DELAY = 5000; // Auto-advance after 5 seconds of showing results
+        const AUTO_ADVANCE_DELAY = 10000; // Auto-advance after 10 seconds of showing results
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -221,7 +221,6 @@
                         }
                     }
                     
-                    updateConnectionStatus('connected');
                     retryCount = 0;
                 } else {
                     // No session
@@ -866,15 +865,11 @@
                 return;
             }
             
-            // CRITICAL: Wait longer to ensure stats are fully loaded before advancing
-            // Add extra delay to ensure answer breakdown is displayed
-            const delay = AUTO_ADVANCE_DELAY + 2000; // 5 seconds + 2 seconds buffer
-            
-            // Schedule auto-advance after delay
+            // Schedule auto-advance after delay (10 seconds to ensure stats are fully loaded)
             autoAdvanceTimeout = setTimeout(async () => {
                 console.log(`Auto-advancing from question ${currentIndex + 1} to ${currentIndex + 2}`);
                 await advanceToNextQuestion();
-            }, delay);
+            }, AUTO_ADVANCE_DELAY);
         }
 
         async function advanceToQuestion(questionIndex) {
