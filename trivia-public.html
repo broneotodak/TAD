@@ -74,8 +74,8 @@
                         <button id="startQuestionBtn" onclick="startCurrentQuestion()" class="control-btn btn-start">
                             ▶️ Start Question Timer
                         </button>
-                        <button id="nextQuestionBtn" onclick="advanceToNextQuestion()" class="control-btn btn-next" style="display: none;">
-                            ➡️ Next Question
+                        <button id="showLeaderboardBtn" onclick="showLeaderboard()" class="control-btn btn-show-leaderboard" style="display: none;">
+                            🏆 Show Leaderboard
                         </button>
                     </div>
                 </div>
@@ -583,7 +583,7 @@
                     const currentQuestionTextEl = document.getElementById('currentQuestionText');
                     const questionTimerStatusEl = document.getElementById('questionTimerStatus');
                     const startQuestionBtn = document.getElementById('startQuestionBtn');
-                    const nextQuestionBtn = document.getElementById('nextQuestionBtn');
+                    const showLeaderboardBtn = document.getElementById('showLeaderboardBtn');
                     
                     if (currentQuestionTextEl) {
                         currentQuestionTextEl.innerHTML = `
@@ -742,17 +742,33 @@
                                         `;
                                     }
                                     
+                                    // Add countdown effect classes based on remaining time
+                                    let timerClass = 'timer-running';
+                                    if (remaining <= 3) {
+                                        timerClass = 'timer-running timer-critical';
+                                    } else if (remaining <= 5) {
+                                        timerClass = 'timer-running timer-warning';
+                                    }
+                                    
                                     questionTimerStatusEl.innerHTML = `
-                                        <div class="timer-running">
-                                            ⏱️ Timer: <strong>${remaining}s</strong> remaining
+                                        <div class="${timerClass}" data-remaining="${remaining}">
+                                            ⏱️ Timer: <strong class="timer-value">${remaining}s</strong> remaining
                                         </div>
                                         ${statsHTML}
                                     `;
                                 } catch (error) {
                                     console.error('Error loading question stats:', error);
+                                    // Add countdown effect classes based on remaining time
+                                    let timerClass = 'timer-running';
+                                    if (remaining <= 3) {
+                                        timerClass = 'timer-running timer-critical';
+                                    } else if (remaining <= 5) {
+                                        timerClass = 'timer-running timer-warning';
+                                    }
+                                    
                                     questionTimerStatusEl.innerHTML = `
-                                        <div class="timer-running">
-                                            ⏱️ Timer: <strong>${remaining}s</strong> remaining
+                                        <div class="${timerClass}" data-remaining="${remaining}">
+                                            ⏱️ Timer: <strong class="timer-value">${remaining}s</strong> remaining
                                         </div>
                                     `;
                                 }
@@ -760,23 +776,13 @@
                         }
                         if (startQuestionBtn) startQuestionBtn.style.display = 'none';
                         
-                        // Show "Next Question" or "Show Leaderboard" button only after timer ends
-                        if (nextQuestionBtn) {
-                            if (timerEnded) {
-                                if (currentIndex >= totalQuestions - 1) {
-                                    // Last question - show prominent "Show Leaderboard" button
-                                    nextQuestionBtn.style.display = 'block';
-                                    nextQuestionBtn.textContent = '🏆 Show Leaderboard';
-                                    nextQuestionBtn.className = 'control-btn btn-show-leaderboard';
-                                    nextQuestionBtn.onclick = () => showLeaderboard();
-                                } else {
-                                    nextQuestionBtn.style.display = 'block';
-                                    nextQuestionBtn.textContent = '➡️ Next Question';
-                                    nextQuestionBtn.className = 'control-btn btn-next';
-                                    nextQuestionBtn.onclick = () => advanceToNextQuestion();
-                                }
+                        // Show "Show Leaderboard" button only after timer ends on last question
+                        if (showLeaderboardBtn) {
+                            if (timerEnded && currentIndex >= totalQuestions - 1) {
+                                // Last question - show prominent "Show Leaderboard" button
+                                showLeaderboardBtn.style.display = 'block';
                             } else {
-                                nextQuestionBtn.style.display = 'none';
+                                showLeaderboardBtn.style.display = 'none';
                             }
                         }
                     } else {
@@ -793,7 +799,7 @@
                             startQuestionBtn.style.display = 'block';
                             startQuestionBtn.disabled = false;
                         }
-                        if (nextQuestionBtn) nextQuestionBtn.style.display = 'none';
+                        if (showLeaderboardBtn) showLeaderboardBtn.style.display = 'none';
                     }
                 }
             } catch (error) {
@@ -826,12 +832,9 @@
             // Instead, show prominent "Show Leaderboard" button
             if (currentIndex >= totalQuestions - 1) {
                 // Make sure the button is visible
-                const nextQuestionBtn = document.getElementById('nextQuestionBtn');
-                if (nextQuestionBtn && timerWasEnded) {
-                    nextQuestionBtn.style.display = 'block';
-                    nextQuestionBtn.textContent = '🏆 Show Leaderboard';
-                    nextQuestionBtn.className = 'control-btn btn-show-leaderboard';
-                    nextQuestionBtn.onclick = () => showLeaderboard();
+                const showLeaderboardBtn = document.getElementById('showLeaderboardBtn');
+                if (showLeaderboardBtn && timerWasEnded) {
+                    showLeaderboardBtn.style.display = 'block';
                 }
                 return;
             }
@@ -1286,6 +1289,81 @@
             background: var(--dark-bg);
             border-radius: 10px;
             margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .timer-running .timer-value {
+            display: inline-block;
+            transition: transform 0.3s ease;
+        }
+
+        .timer-running.timer-warning {
+            color: #FF9800;
+            animation: pulse-warning 1s ease-in-out infinite;
+        }
+
+        .timer-running.timer-warning .timer-value {
+            animation: scale-pulse 1s ease-in-out infinite;
+        }
+
+        .timer-running.timer-critical {
+            color: #F44336;
+            animation: pulse-critical 0.5s ease-in-out infinite, shake 0.5s ease-in-out infinite;
+        }
+
+        .timer-running.timer-critical .timer-value {
+            animation: scale-pulse-critical 0.5s ease-in-out infinite;
+            font-size: 1.4rem;
+        }
+
+        @keyframes pulse-warning {
+            0%, 100% {
+                box-shadow: 0 0 10px rgba(255, 152, 0, 0.3);
+            }
+            50% {
+                box-shadow: 0 0 20px rgba(255, 152, 0, 0.6);
+            }
+        }
+
+        @keyframes pulse-critical {
+            0%, 100% {
+                box-shadow: 0 0 15px rgba(244, 67, 54, 0.5);
+                background: rgba(244, 67, 54, 0.1);
+            }
+            50% {
+                box-shadow: 0 0 30px rgba(244, 67, 54, 0.8);
+                background: rgba(244, 67, 54, 0.2);
+            }
+        }
+
+        @keyframes scale-pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        @keyframes scale-pulse-critical {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.2);
+            }
+        }
+
+        @keyframes shake {
+            0%, 100% {
+                transform: translateX(0);
+            }
+            25% {
+                transform: translateX(-3px);
+            }
+            75% {
+                transform: translateX(3px);
+            }
         }
 
         .timer-ended-banner {
@@ -1504,15 +1582,6 @@
             box-shadow: 0 6px 20px rgba(255, 255, 255, 0.3);
         }
 
-        .btn-next {
-            background: #4CAF50;
-            color: white;
-        }
-
-        .btn-next:hover {
-            transform: scale(1.05);
-            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
-        }
 
         .btn-show-leaderboard {
             background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
