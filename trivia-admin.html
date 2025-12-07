@@ -26,8 +26,16 @@
         <div id="adminContent" class="admin-content">
             <!-- Participants Waiting Status (First Position) -->
             <div class="admin-section" id="usersWaitingSection">
-                <h2>Participants waiting: <strong id="waitingUsersCount">0</strong></h2>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                    <h2 style="margin: 0;">Participants waiting: <strong id="waitingUsersCount">0</strong></h2>
+                    <a id="publicDisplayLink" href="#" target="_blank" class="btn-secondary" style="text-decoration: none; padding: 8px 16px; font-size: 0.9rem; display: inline-block;">
+                        📺 Open Public Display
+                    </a>
+                </div>
                 <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 5px;">Number of users currently on the trivia page</p>
+                <div id="waitingParticipantsList" class="waiting-participants-list" style="margin-top: 15px;">
+                    <!-- Participant names will be displayed here -->
+                </div>
             </div>
 
             <!-- Session Selection/Management (Second Position) -->
@@ -69,16 +77,8 @@
                 <div id="questionsList" class="questions-list"></div>
             </div>
             
-            <!-- Start First Question Button (shown when session is activated but no question started) -->
-            <div class="admin-section" id="startFirstQuestionSection" style="display: none;">
-                <div style="text-align: center; padding: 40px;">
-                    <h2 style="margin-bottom: 20px;">Session Activated</h2>
-                    <p style="color: var(--text-secondary); margin-bottom: 30px;">Ready to start the trivia session. Click below to begin the first question.</p>
-                    <button onclick="startFirstQuestion()" class="btn-success btn-large" style="font-size: 1.3rem; padding: 15px 40px;">
-                        ▶️ Start First Question
-                    </button>
-                </div>
-            </div>
+            <!-- Note: Session Activated message and Start First Question button are now on the public display page -->
+            <!-- Use trivia-public.html for the big screen display during events -->
 
             <!-- Question Control (shown when session is active) -->
             <div id="questionControlSection" style="display: none; margin-top: 30px; padding: 20px; background: var(--dark-bg); border-radius: 10px;">
@@ -202,6 +202,12 @@
             // Load waiting users count immediately and set up periodic refresh
             loadWaitingUsersCount();
             startWaitingUsersUpdates();
+            
+            // Update public display link
+            updatePublicDisplayLink();
+            
+            // Update public display link
+            updatePublicDisplayLink();
         });
 
         function loadTheme() {
@@ -351,13 +357,12 @@
                         document.getElementById('sessionsListSection').style.display = 'none';
                         document.getElementById('questionsSection').style.display = 'none';
                         
-                        // Show "Start First Question" button only if no question has been started
+                        // Show question control based on question index
                         if (currentIndex === -1) {
-                            document.getElementById('startFirstQuestionSection').style.display = 'block';
+                            // Session activated but no question started - question control hidden
                             document.getElementById('questionControlSection').style.display = 'none';
                         } else {
                             // Question has been started - show question control
-                            document.getElementById('startFirstQuestionSection').style.display = 'none';
                             document.getElementById('questionControlSection').style.display = 'block';
                         }
                         
@@ -373,7 +378,6 @@
                     } else {
                         // Session ended - show leaderboard with winners
                         document.getElementById('sessionsListSection').style.display = 'block';
-                        document.getElementById('startFirstQuestionSection').style.display = 'none';
                         document.getElementById('leaderboardSection').style.display = 'block'; // Show leaderboard when session ends
                         document.getElementById('questionControlSection').style.display = 'none';
                         document.getElementById('sessionControls').style.display = 'none'; // Hide session controls when ended
@@ -402,7 +406,6 @@
             document.getElementById('questionsSection').style.display = 'none';
             document.getElementById('sessionControls').style.display = 'none';
             document.getElementById('leaderboardSection').style.display = 'none';
-            document.getElementById('startFirstQuestionSection').style.display = 'none';
             document.getElementById('questionControlSection').style.display = 'none';
             const resetBtn = document.getElementById('resetLeaderboardBtnHeader');
             if (resetBtn) resetBtn.style.display = 'none';
@@ -547,7 +550,6 @@
             } else {
                 document.getElementById('endSessionBtn').style.display = 'none';
                 document.getElementById('resetLeaderboardBtn').style.display = 'none';
-                document.getElementById('startFirstQuestionSection').style.display = 'none';
                 document.getElementById('leaderboardSection').style.display = 'none';
                 document.getElementById('questionControlSection').style.display = 'none';
             }
@@ -920,8 +922,7 @@
                     
                     // Reload session to get updated state (this will get the new questionStartedAt)
                     await loadCurrentSession();
-                    // Hide "Start First Question" section and show question control
-                    document.getElementById('startFirstQuestionSection').style.display = 'none';
+                    // Show question control
                     document.getElementById('questionControlSection').style.display = 'block';
                     // CRITICAL: Wait a moment for session state to fully update, then update question control
                     // Also ensure timer flags are reset for the new question
@@ -1176,6 +1177,44 @@
                     if (waitingUsersCountEl) {
                         waitingUsersCountEl.textContent = result.count || 0;
                     }
+                    
+                    // Display participant names list
+                    const participantsListEl = document.getElementById('waitingParticipantsList');
+                    if (participantsListEl && result.participants) {
+                        if (result.participants.length === 0) {
+                            participantsListEl.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 10px;">No participants waiting yet.</p>';
+                        } else {
+                            participantsListEl.innerHTML = `
+                                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 10px;">
+                                    ${result.participants.map(p => `
+                                        <div class="participant-name-badge" style="
+                                            background: var(--card-bg);
+                                            border: 2px solid var(--border-color);
+                                            border-radius: 8px;
+                                            padding: 10px 15px;
+                                            display: flex;
+                                            align-items: center;
+                                            gap: 8px;
+                                        ">
+                                            <span style="
+                                                width: 8px;
+                                                height: 8px;
+                                                background: #4CAF50;
+                                                border-radius: 50%;
+                                                display: inline-block;
+                                            "></span>
+                                            <div style="flex: 1; min-width: 0;">
+                                                <div style="font-weight: 600; color: var(--text-primary); font-size: 0.95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                                    ${p.name}
+                                                </div>
+                                                ${p.company ? `<div style="font-size: 0.8rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${p.company}</div>` : ''}
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            `;
+                        }
+                    }
                 } else {
                     console.error('Failed to load waiting users count:', result.error);
                 }
@@ -1185,6 +1224,10 @@
                 const waitingUsersCountEl = document.getElementById('waitingUsersCount');
                 if (waitingUsersCountEl) {
                     waitingUsersCountEl.textContent = '0';
+                }
+                const participantsListEl = document.getElementById('waitingParticipantsList');
+                if (participantsListEl) {
+                    participantsListEl.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 10px;">Unable to load participants.</p>';
                 }
             }
         }
@@ -1204,6 +1247,13 @@
             if (waitingUsersInterval) {
                 clearInterval(waitingUsersInterval);
                 waitingUsersInterval = null;
+            }
+        }
+
+        function updatePublicDisplayLink() {
+            const publicDisplayLink = document.getElementById('publicDisplayLink');
+            if (publicDisplayLink && currentEventId) {
+                publicDisplayLink.href = `trivia-public.html?event=${currentEventId}`;
             }
         }
 

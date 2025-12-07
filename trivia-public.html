@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TODAK Event Management System - Trivia Lobby</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container-full">
+        <!-- Trivia Lobby Display (Kahoot-style) -->
+        <div class="trivia-lobby-container">
+            <!-- Session Info -->
+            <div id="sessionInfo" class="session-info-section" style="display: none;">
+                <h1 id="sessionTitle" class="session-title">Trivia Session</h1>
+                <div id="sessionStatus" class="session-status-message"></div>
+            </div>
+
+            <!-- Waiting State (No Session) -->
+            <div id="waitingState" class="waiting-state-section">
+                <div class="waiting-icon-large">⏳</div>
+                <h2>Waiting for Trivia Session</h2>
+                <p>The admin will start a trivia session soon.</p>
+            </div>
+
+            <!-- Lobby State (Session Activated, Waiting for Start) -->
+            <div id="lobbyState" class="lobby-state-section" style="display: none;">
+                <div class="lobby-header">
+                    <h2 class="lobby-title">Session Activated</h2>
+                    <p class="lobby-subtitle">Ready to start the trivia session. Click below to begin the first question.</p>
+                </div>
+                
+                <!-- Participants Grid -->
+                <div class="participants-grid-container">
+                    <div class="participants-header">
+                        <span class="participants-count-badge" id="participantsCountBadge">0</span>
+                        <span class="participants-label">Participants</span>
+                    </div>
+                    <div id="participantsGrid" class="participants-grid">
+                        <!-- Participant names will appear here -->
+                    </div>
+                </div>
+
+                <!-- Start Button (for admin) -->
+                <div class="start-button-container">
+                    <button id="startFirstQuestionBtn" onclick="startFirstQuestion()" class="start-button-large">
+                        ▶️ Start First Question
+                    </button>
+                </div>
+            </div>
+
+            <!-- Active Session State (Question Started) -->
+            <div id="activeSessionState" class="active-session-section" style="display: none;">
+                <div class="active-session-message">
+                    <h2>Trivia Session in Progress</h2>
+                    <p>Question <span id="currentQuestionDisplay">-</span> of <span id="totalQuestionsDisplay">-</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/db-api.js"></script>
+    <script>
+        let currentEventId = null;
+        let currentSession = null;
+        let questions = [];
+        let participants = [];
+        let sessionCheckInterval = null;
+        let participantsUpdateInterval = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            currentEventId = urlParams.get('event');
+            
+            if (!currentEventId) {
+                console.error('No event ID provided');
+                return;
+            }
+
+            loadTheme();
+            checkSession();
+            loadParticipants();
+            
+            // Check for session updates every 2 seconds
+            sessionCheckInterval = setInterval(checkSession, 2000);
+            // Update participants every 3 seconds
+            participantsUpdateInterval = setInterval(loadParticipants, 3000);
+        });
+
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        }
+
+        async function checkSession() {
+            try {
+                const response = await fetch(`/api/get-trivia-session?eventId=${currentEventId}`);
+                const result = await response.json();
+
+                if (result.success && result.session) {
+                    currentSession = result.session;
+                    questions = result.questions || [];
+                    
+                    updateDisplay();
+                } else {
+                    // No session
+                    showWaitingState();
+                }
+            } catch (error) {
+                console.error('Error checking session:', error);
+            }
+        }
+
+        function updateDisplay() {
+            if (!currentSession) {
+                showWaitingState();
+                return;
+            }
+
+            const sessionInfoEl = document.getElementById('sessionInfo');
+            const sessionTitleEl = document.getElementById('sessionTitle');
+            const waitingStateEl = document.getElementById('waitingState');
+            const lobbyStateEl = document.getElementById('lobbyState');
+            const activeSessionStateEl = document.getElementById('activeSessionState');
+
+            // Show session title
+            if (sessionInfoEl && sessionTitleEl) {
+                sessionInfoEl.style.display = 'block';
+                sessionTitleEl.textContent = currentSession.title || 'Trivia Session';
+            }
+
+            if (currentSession.isActive) {
+                const currentIndex = currentSession.currentQuestionIndex ?? -1;
+                
+                if (currentIndex === -1) {
+                    // Session activated but no question started - show lobby
+                    showLobbyState();
+                } else {
+                    // Question has been started - show active session
+                    showActiveSessionState();
+                }
+            } else {
+                // Session not activated yet
+                showWaitingState();
+            }
+        }
+
+        function showWaitingState() {
+            document.getElementById('waitingState').style.display = 'block';
+            document.getElementById('lobbyState').style.display = 'none';
+            document.getElementById('activeSessionState').style.display = 'none';
+        }
+
+        function showLobbyState() {
+            document.getElementById('waitingState').style.display = 'none';
+            document.getElementById('lobbyState').style.display = 'block';
+            document.getElementById('activeSessionState').style.display = 'none';
+        }
+
+        function showActiveSessionState() {
+            document.getElementById('waitingState').style.display = 'none';
+            document.getElementById('lobbyState').style.display = 'none';
+            document.getElementById('activeSessionState').style.display = 'block';
+            
+            const currentIndex = currentSession.currentQuestionIndex ?? -1;
+            const currentQuestionEl = document.getElementById('currentQuestionDisplay');
+            const totalQuestionsEl = document.getElementById('totalQuestionsDisplay');
+            
+            if (currentQuestionEl) {
+                currentQuestionEl.textContent = currentIndex >= 0 ? currentIndex + 1 : '-';
+            }
+            if (totalQuestionsEl) {
+                totalQuestionsEl.textContent = questions.length || '-';
+            }
+        }
+
+        async function loadParticipants() {
+            if (!currentEventId) return;
+            
+            try {
+                const eventIdInt = parseInt(currentEventId, 10);
+                const response = await fetch(`/api/get-trivia-waiting-users?eventId=${eventIdInt}`);
+                const result = await response.json();
+                
+                if (result.success && result.participants) {
+                    participants = result.participants || [];
+                    displayParticipants();
+                }
+            } catch (error) {
+                console.error('Error loading participants:', error);
+            }
+        }
+
+        function displayParticipants() {
+            const participantsGridEl = document.getElementById('participantsGrid');
+            const participantsCountBadgeEl = document.getElementById('participantsCountBadge');
+            
+            if (participantsCountBadgeEl) {
+                participantsCountBadgeEl.textContent = participants.length;
+            }
+            
+            if (participantsGridEl) {
+                if (participants.length === 0) {
+                    participantsGridEl.innerHTML = '<div class="no-participants-message">No participants yet. Waiting for players to join...</div>';
+                } else {
+                    participantsGridEl.innerHTML = participants.map(p => `
+                        <div class="participant-card">
+                            <div class="participant-name">${p.name}</div>
+                            ${p.company ? `<div class="participant-company">${p.company}</div>` : ''}
+                        </div>
+                    `).join('');
+                }
+            }
+        }
+
+        async function startFirstQuestion() {
+            if (!currentSession || !currentSession.id) {
+                alert('No active session found');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/advance-trivia-question', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        sessionId: currentSession.id,
+                        questionIndex: 0
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    // Reload session to update display
+                    await checkSession();
+                } else {
+                    alert('Failed to start question: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error starting question:', error);
+                alert('Failed to start question');
+            }
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (sessionCheckInterval) {
+                clearInterval(sessionCheckInterval);
+            }
+            if (participantsUpdateInterval) {
+                clearInterval(participantsUpdateInterval);
+            }
+        });
+    </script>
+
+    <style>
+        .trivia-lobby-container {
+            width: 100%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            box-sizing: border-box;
+        }
+
+        .session-info-section {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .session-title {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+
+        .session-status-message {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+        }
+
+        .waiting-state-section {
+            text-align: center;
+            padding: 60px 40px;
+        }
+
+        .waiting-icon-large {
+            font-size: 6rem;
+            margin-bottom: 30px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.05); }
+        }
+
+        .waiting-state-section h2 {
+            font-size: 2.5rem;
+            color: var(--text-primary);
+            margin-bottom: 15px;
+        }
+
+        .waiting-state-section p {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+        }
+
+        .lobby-state-section {
+            width: 100%;
+            max-width: 1200px;
+            text-align: center;
+        }
+
+        .lobby-header {
+            margin-bottom: 50px;
+        }
+
+        .lobby-title {
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+
+        .lobby-subtitle {
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+        }
+
+        .participants-grid-container {
+            margin-bottom: 50px;
+        }
+
+        .participants-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .participants-count-badge {
+            background: var(--primary-color);
+            color: #000;
+            font-size: 2rem;
+            font-weight: 700;
+            padding: 10px 25px;
+            border-radius: 50px;
+            min-width: 80px;
+            display: inline-block;
+        }
+
+        .participants-label {
+            font-size: 1.5rem;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .participants-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            max-height: 60vh;
+            overflow-y: auto;
+            padding: 20px;
+            background: var(--dark-bg);
+            border-radius: 20px;
+            border: 2px solid var(--border-color);
+        }
+
+        .participant-card {
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            animation: slideIn 0.3s ease;
+            transition: all 0.3s ease;
+        }
+
+        .participant-card:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .participant-name {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .participant-company {
+            font-size: 1rem;
+            color: var(--text-secondary);
+        }
+
+        .no-participants-message {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+        }
+
+        .start-button-container {
+            margin-top: 40px;
+        }
+
+        .start-button-large {
+            background: var(--primary-color);
+            color: #000;
+            border: none;
+            border-radius: 15px;
+            padding: 20px 60px;
+            font-size: 1.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
+        }
+
+        .start-button-large:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(255, 255, 255, 0.3);
+        }
+
+        .start-button-large:active {
+            transform: scale(0.98);
+        }
+
+        .active-session-section {
+            text-align: center;
+            padding: 60px 40px;
+        }
+
+        .active-session-message h2 {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+
+        .active-session-message p {
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .session-title {
+                font-size: 2rem;
+            }
+
+            .lobby-title {
+                font-size: 2.5rem;
+            }
+
+            .lobby-subtitle {
+                font-size: 1.2rem;
+            }
+
+            .participants-grid {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                gap: 15px;
+            }
+
+            .start-button-large {
+                font-size: 1.4rem;
+                padding: 15px 40px;
+            }
+        }
+    </style>
+</body>
+</html>

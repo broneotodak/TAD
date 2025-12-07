@@ -30,8 +30,7 @@ export default async (req, context) => {
       });
     }
 
-    // Count users who sent heartbeat in last 30 seconds
-    // Using a simple approach: count records in trivia_active_users table
+    // Get users who sent heartbeat in last 30 seconds with their participant names
     // If table doesn't exist, create it first
     try {
       // Try to create table if it doesn't exist (ignore error if exists)
@@ -40,29 +39,65 @@ export default async (req, context) => {
           id SERIAL PRIMARY KEY,
           event_id INTEGER NOT NULL,
           session_id TEXT NOT NULL,
+          participant_id INTEGER REFERENCES participants(id) ON DELETE CASCADE,
           last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           UNIQUE(event_id, session_id)
         )
       `;
+      
+      // Add participant_id column if it doesn't exist (for existing tables)
+      try {
+        await sql`
+          ALTER TABLE trivia_active_users 
+          ADD COLUMN IF NOT EXISTS participant_id INTEGER REFERENCES participants(id) ON DELETE CASCADE
+        `;
+      } catch (e) {
+        // Column might already exist, continue
+      }
     } catch (e) {
-      // Table might already exist, continue
+      // Table might already exist, try to add column
+      try {
+        await sql`
+          ALTER TABLE trivia_active_users 
+          ADD COLUMN IF NOT EXISTS participant_id INTEGER REFERENCES participants(id) ON DELETE CASCADE
+        `;
+      } catch (e2) {
+        // Column might already exist, continue
+      }
     }
 
-    // Count active users (last seen within last 30 seconds)
+    // Get active users with participant names (last seen within last 30 seconds)
     const activeUsers = await sql`
-      SELECT COUNT(*) as count
-      FROM trivia_active_users
-      WHERE event_id = ${eventId}
-        AND last_seen > CURRENT_TIMESTAMP - INTERVAL '30 seconds'
+      SELECT 
+        tau.id,
+        tau.session_id,
+        tau.participant_id,
+        p.name,
+        p.company,
+        tau.last_seen
+      FROM trivia_active_users tau
+      LEFT JOIN participants p ON p.id = tau.participant_id
+      WHERE tau.event_id = ${eventId}
+        AND tau.last_seen > CURRENT_TIMESTAMP - INTERVAL '30 seconds'
+      ORDER BY tau.last_seen DESC
     `;
 
-    const count = parseInt(activeUsers[0]?.count || 0);
+    const participants = activeUsers.map(user => ({
+      sessionId: user.session_id,
+      participantId: user.participant_id,
+      name: user.name || 'Anonymous',
+      company: user.company || null,
+      lastSeen: user.last_seen
+    }));
+
+    const count = participants.length;
     
-    console.log(`Waiting users count for eventId=${eventId}: ${count}`);
+    console.log(`Waiting users for eventId=${eventId}: ${count} participants`);
     
     return new Response(JSON.stringify({
       success: true,
-      count: count
+      count: count,
+      participants: participants
     }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }

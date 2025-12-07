@@ -206,11 +206,20 @@
                 localStorage.setItem(sessionKey, sessionId);
             }
             
+            // Get participant ID if available (from check-in)
+            const participantIdKey = `userCheckedInId_event_${currentEventId}`;
+            const participantIdStr = localStorage.getItem(participantIdKey);
+            const participantId = participantIdStr ? parseInt(participantIdStr, 10) : null;
+            
             try {
                 const response = await fetch('/api/track-trivia-user', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ eventId: currentEventId, sessionId: sessionId })
+                    body: JSON.stringify({ 
+                        eventId: currentEventId, 
+                        sessionId: sessionId,
+                        participantId: participantId
+                    })
                 });
                 const result = await response.json();
                 if (!result.success) {
