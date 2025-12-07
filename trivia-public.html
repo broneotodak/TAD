@@ -75,21 +75,8 @@
                         <button id="startQuestionBtn" onclick="startCurrentQuestion()" class="control-btn btn-start">
                             ▶️ Start Question Timer
                         </button>
-                        <button id="previousQuestionBtn" onclick="goToPreviousQuestion()" class="control-btn btn-previous">
-                            ⬅️ Previous Question
-                        </button>
                         <button id="nextQuestionBtn" onclick="advanceToNextQuestion()" class="control-btn btn-next" style="display: none;">
                             ➡️ Next Question
-                        </button>
-                    </div>
-                    
-                    <!-- Session Controls -->
-                    <div class="session-controls-section">
-                        <button onclick="endSession()" class="control-btn btn-end-session">
-                            ⏹️ End Session
-                        </button>
-                        <button onclick="resetLeaderboard()" class="control-btn btn-reset">
-                            🔄 Reset Leaderboard
                         </button>
                     </div>
                 </div>
@@ -598,7 +585,6 @@
                     const questionTimerStatusEl = document.getElementById('questionTimerStatus');
                     const startQuestionBtn = document.getElementById('startQuestionBtn');
                     const nextQuestionBtn = document.getElementById('nextQuestionBtn');
-                    const previousQuestionBtn = document.getElementById('previousQuestionBtn');
                     
                     if (currentQuestionTextEl) {
                         currentQuestionTextEl.innerHTML = `
@@ -813,11 +799,6 @@
                         }
                         if (nextQuestionBtn) nextQuestionBtn.style.display = 'none';
                     }
-                    
-                    // Update previous button state
-                    if (previousQuestionBtn) {
-                        previousQuestionBtn.disabled = currentIndex <= 0;
-                    }
                 }
             } catch (error) {
                 console.error('Error updating question control:', error);
@@ -838,12 +819,6 @@
             }
         }
 
-        async function goToPreviousQuestion() {
-            const currentIndex = (currentSession.currentQuestionIndex ?? 0) - 1;
-            if (currentIndex >= 0) {
-                await advanceToQuestion(currentIndex);
-            }
-        }
 
         function scheduleAutoAdvance(currentIndex, totalQuestions) {
             // Clear any existing timeout
@@ -977,63 +952,6 @@
             await showLeaderboard();
         }
 
-        async function endSession() {
-            if (!confirm('End this trivia session? Participants will no longer be able to answer.')) {
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/end-trivia-session', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sessionId: currentSession.id })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-
-                const result = await response.json();
-                if (result.success) {
-                    await checkSession();
-                } else {
-                    alert('Failed to end session: ' + (result.error || 'Unknown error'));
-                }
-            } catch (error) {
-                console.error('Error ending session:', error);
-                handleConnectionError();
-                alert('Failed to end session. Please check your connection and try again.');
-            }
-        }
-
-        async function resetLeaderboard() {
-            if (!confirm('Are you sure you want to reset the leaderboard? This will clear all answers for this session. This cannot be undone.')) {
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/reset-trivia-leaderboard', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sessionId: currentSession.id })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-
-                const result = await response.json();
-                if (result.success) {
-                    await checkSession();
-                } else {
-                    alert('Failed to reset leaderboard: ' + (result.error || 'Unknown error'));
-                }
-            } catch (error) {
-                console.error('Error resetting leaderboard:', error);
-                handleConnectionError();
-                alert('Failed to reset leaderboard. Please check your connection and try again.');
-            }
-        }
 
             // Cleanup on page unload
         window.addEventListener('beforeunload', () => {
@@ -1573,16 +1491,6 @@
             flex-shrink: 0;
         }
 
-        .session-controls-section {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            flex-wrap: wrap;
-            padding-top: 20px;
-            border-top: 2px solid var(--border-color);
-            flex-shrink: 0;
-        }
-
         .control-btn {
             padding: 18px 40px;
             font-size: 1.3rem;
@@ -1609,21 +1517,6 @@
             box-shadow: 0 6px 20px rgba(255, 255, 255, 0.3);
         }
 
-        .btn-previous {
-            background: var(--text-secondary);
-            color: var(--text-primary);
-        }
-
-        .btn-previous:hover:not(:disabled) {
-            transform: scale(1.05);
-            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
-        }
-
-        .btn-previous:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
         .btn-next {
             background: #4CAF50;
             color: white;
@@ -1632,26 +1525,6 @@
         .btn-next:hover {
             transform: scale(1.05);
             box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
-        }
-
-        .btn-end-session {
-            background: #f44336;
-            color: white;
-        }
-
-        .btn-end-session:hover {
-            transform: scale(1.05);
-            box-shadow: 0 6px 20px rgba(244, 67, 54, 0.4);
-        }
-
-        .btn-reset {
-            background: #FF9800;
-            color: #000;
-        }
-
-        .btn-reset:hover {
-            transform: scale(1.05);
-            box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4);
         }
 
         .btn-show-leaderboard {
