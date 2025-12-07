@@ -121,6 +121,8 @@
         let questionCheckInterval = null; // Interval for checking question updates
         let autoAdvanceTimeout = null; // Timeout for auto-advancing to next question
         let timerWasEnded = false; // Track if timer has ended to prevent duplicate auto-advance
+        let previousQuestionIndex = -1; // Track previous question index to detect changes
+        let timerEndedForQuestion = -1; // Track which question the timer ended for
         const AUTO_ADVANCE_DELAY = 5000; // Auto-advance after 5 seconds of showing results
 
         // Initialize
@@ -667,16 +669,28 @@
                     const now = Date.now();
                     const elapsed = Math.floor((now - startedAt.getTime()) / 1000);
                     const remaining = Math.max(0, question.timeLimitSeconds - elapsed);
-                    const timerEnded = remaining <= 0;
                     
-                    // Track timer end state for auto-advance
-                    if (timerEnded && !timerWasEnded) {
+                    // CRITICAL: Once timer ends for a question, keep it ended (prevent flickering)
+                    // Only reset if we're on a different question
+                    if (previousQuestionIndex !== currentIndex) {
+                        timerEndedForQuestion = -1;
+                        timerWasEnded = false;
+                        previousQuestionIndex = currentIndex;
+                    }
+                    
+                    // Check if timer has ended (with small buffer to prevent flickering at boundary)
+                    const timerEnded = remaining <= 0 || timerEndedForQuestion === currentIndex;
+                    
+                    // Once timer ends, mark it as ended for this question
+                    if (remaining <= 0 && timerEndedForQuestion !== currentIndex) {
+                        timerEndedForQuestion = currentIndex;
                         timerWasEnded = true;
                         // Schedule auto-advance after showing results
                         scheduleAutoAdvance(currentIndex, totalQuestions);
-                    } else if (!timerEnded) {
+                    } else if (remaining > 0 && timerEndedForQuestion === currentIndex) {
+                        // Timer restarted for same question (shouldn't happen, but handle it)
+                        timerEndedForQuestion = -1;
                         timerWasEnded = false;
-                        // Clear auto-advance if timer is running again
                         if (autoAdvanceTimeout) {
                             clearTimeout(autoAdvanceTimeout);
                             autoAdvanceTimeout = null;
