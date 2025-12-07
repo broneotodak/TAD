@@ -105,6 +105,8 @@
         let cachedQuestionIndex = -1; // Cache question index
         let isUpdatingQuestionControl = false; // Prevent concurrent updates
         const AUTO_ADVANCE_DELAY = 10000; // Auto-advance after 10 seconds of showing results
+        let lastPlayedSecond = -1; // Track last second sound was played to prevent duplicate sounds
+        let audioContext = null; // Web Audio API context for countdown sounds
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -748,6 +750,14 @@
                                         timerClass = 'timer-running timer-warning';
                                     }
                                     
+                                    // Play countdown sound (especially in last 5 seconds)
+                                    if (remaining <= 5 && remaining > 0 && lastPlayedSecond !== remaining) {
+                                        playCountdownSound(remaining);
+                                        lastPlayedSecond = remaining;
+                                    } else if (remaining > 5) {
+                                        lastPlayedSecond = -1; // Reset when timer goes above 5
+                                    }
+                                    
                                     questionTimerStatusEl.innerHTML = `
                                         <div class="${timerClass}" data-remaining="${remaining}">
                                             ⏱️ Timer: <strong class="timer-value">${remaining}s</strong> remaining
@@ -762,6 +772,14 @@
                                         timerClass = 'timer-running timer-critical';
                                     } else if (remaining <= 5) {
                                         timerClass = 'timer-running timer-warning';
+                                    }
+                                    
+                                    // Play countdown sound (especially in last 5 seconds)
+                                    if (remaining <= 5 && remaining > 0 && lastPlayedSecond !== remaining) {
+                                        playCountdownSound(remaining);
+                                        lastPlayedSecond = remaining;
+                                    } else if (remaining > 5) {
+                                        lastPlayedSecond = -1; // Reset when timer goes above 5
                                     }
                                     
                                     questionTimerStatusEl.innerHTML = `
@@ -895,6 +913,53 @@
                 console.error('Error advancing question:', error);
                 handleConnectionError();
                 alert('Failed to advance question. Please check your connection and try again.');
+            }
+        }
+
+        // Play countdown sound using Web Audio API
+        function playCountdownSound(remaining) {
+            try {
+                // Initialize audio context if needed
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                
+                // Create oscillator for beep sound
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                // Different frequencies for different seconds
+                if (remaining <= 1) {
+                    // Final beep - higher pitch
+                    oscillator.frequency.value = 800;
+                    oscillator.type = 'sine';
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.2);
+                } else if (remaining <= 3) {
+                    // Critical countdown - medium pitch
+                    oscillator.frequency.value = 600;
+                    oscillator.type = 'sine';
+                    gainNode.gain.setValueAtTime(0.25, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.15);
+                } else {
+                    // Warning countdown - lower pitch
+                    oscillator.frequency.value = 400;
+                    oscillator.type = 'sine';
+                    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.1);
+                }
+            } catch (error) {
+                // Silently fail if audio context is not available (e.g., user hasn't interacted)
+                console.log('Could not play countdown sound:', error);
             }
         }
 

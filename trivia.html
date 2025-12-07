@@ -843,20 +843,21 @@
                 const elapsed = Math.floor((Date.now() - startedAt.getTime()) / 1000);
                 timeRemaining = Math.max(0, question.timeLimitSeconds - elapsed);
                 
-                if (timeRemaining > 0) {
+                    if (timeRemaining > 0) {
                     // Timer still running - hide stats and show question with timer
+                    // NOTE: Timer display removed from user page (admin big screen shows it)
                     if (!isInWaitPeriodFromTimer) {
                         hideStatsDisplay();
                     }
                     if (waitingEl) waitingEl.style.display = 'none';
-                    if (timerDisplayEl) timerDisplayEl.style.display = 'flex';
+                    if (timerDisplayEl) timerDisplayEl.style.display = 'none'; // Keep hidden - timer removed from user page
                     // CRITICAL: Clear any existing timer before starting new one
                     clearTimer();
                     startTimer();
                 } else {
                     // Time already expired - show stats (wait period)
                     if (waitingEl) waitingEl.style.display = 'none';
-                    if (timerDisplayEl) timerDisplayEl.style.display = 'none';
+                    if (timerDisplayEl) timerDisplayEl.style.display = 'none'; // Keep hidden
                     document.querySelectorAll('.option-button-kahoot').forEach(btn => {
                         btn.disabled = true;
                     });
@@ -1063,6 +1064,12 @@
                 return;
             }
             
+            // If countdown is already running (between 1 and 10), don't reset it - just update display
+            if (nextQuestionCountdown > 0 && nextQuestionCountdown <= 10 && lastQuestionStatsShown === currentIndex) {
+                console.log('Countdown already running for question', currentIndex, '- not resetting, current countdown:', nextQuestionCountdown);
+                // Don't return - still need to update the HTML display with current countdown
+            }
+            
             // Track that we're showing stats for this question
             lastQuestionStatsShown = currentIndex;
             statsShownAt = Date.now();
@@ -1100,9 +1107,11 @@
             statsContent.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">Loading results...</div>';
             
             // Start countdown immediately (don't wait for API) - only if not already counting down
+            // Set to 10 seconds and prevent resetting if already counting
             if (nextQuestionCountdown <= 0) {
-                nextQuestionCountdown = 5;
+                nextQuestionCountdown = 10;
             }
+            // Don't reset if countdown is already running (prevents refreshing/resetting)
             
             try {
                 // Fetch answer breakdown
@@ -1357,7 +1366,8 @@
             const display = document.getElementById('timerDisplay');
             const timerValue = document.getElementById('timerValue');
             
-            if (display) display.style.display = 'flex';
+            // Timer display removed from user page - keep it hidden
+            if (display) display.style.display = 'none';
             if (timerValue) {
                 // Format as MM:SS or just seconds if < 60
                 if (timeRemaining >= 60) {
