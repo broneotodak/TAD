@@ -48,13 +48,6 @@
                         ▶️ Start First Question
                     </button>
                 </div>
-
-                <!-- Debug Button (for testing) -->
-                <div class="debug-button-container" style="margin-top: 20px;">
-                    <button id="debugToggleBtn" onclick="toggleDebugMode()" class="debug-button" title="Toggle debug mode to simulate 300 participants">
-                        🐛 Debug: Show 300 Participants
-                    </button>
-                </div>
             </div>
 
             <!-- Active Session State (Question Started) -->
@@ -117,7 +110,6 @@
         let retryCount = 0;
         const MAX_RETRIES = 5;
         const MAX_VISIBLE_PARTICIPANTS = 50; // Limit visible participants for performance
-        let debugMode = false; // Debug mode for testing with dummy data
         let questionCheckInterval = null; // Interval for checking question updates
         let autoAdvanceTimeout = null; // Timeout for auto-advancing to next question
         let timerWasEnded = false; // Track if timer has ended to prevent duplicate auto-advance
@@ -430,13 +422,6 @@
         async function loadParticipants() {
             if (!currentEventId) return;
             
-            // If debug mode is active, use dummy data instead
-            if (debugMode) {
-                participants = generateDummyParticipants(300);
-                displayParticipants();
-                return;
-            }
-            
             return await retryApiCall(async () => {
                 const eventIdInt = parseInt(currentEventId, 10);
                 const response = await fetch(`/api/get-trivia-waiting-users?eventId=${eventIdInt}`);
@@ -459,79 +444,6 @@
             }, 'loadParticipants');
         }
 
-        function generateDummyParticipants(count) {
-            const firstNames = [
-                'Ahmad', 'Siti', 'Mohammad', 'Fatimah', 'Ali', 'Aisyah', 'Hassan', 'Zainab',
-                'Ibrahim', 'Khadijah', 'Yusuf', 'Mariam', 'Omar', 'Aminah', 'Khalid', 'Hafizah',
-                'Rashid', 'Nurul', 'Zulkifli', 'Salmah', 'Firdaus', 'Norazlina', 'Hakim', 'Rashidah',
-                'Azlan', 'Nurul', 'Tariq', 'Siti', 'Fadli', 'Aishah', 'Zaid', 'Maryam',
-                'Khairul', 'Nur', 'Ariffin', 'Hylen', 'Shamirah', 'Nasharuddin', 'Bushinta', 'Zainal'
-            ];
-            
-            const lastNames = [
-                'Bin Zainal Ariffin', 'Binti Nasharuddin', 'Bin Ahmad', 'Binti Ali',
-                'Sdn Bhd', 'Enterprise', 'Corporation', 'Group', 'Holdings', 'Berhad',
-                'Trading', 'Services', 'Industries', 'Solutions', 'Technologies', 'Systems'
-            ];
-            
-            const companies = [
-                'TODAK', 'THSB', 'HSB', 'TSSB', '10CAMP', 'Tech Solutions', 'Global Industries',
-                'Digital Ventures', 'Innovation Labs', 'Future Systems', 'Smart Technologies',
-                'Advanced Solutions', 'Creative Works', 'Dynamic Enterprises', 'Prime Corporation'
-            ];
-            
-            const participants = [];
-            
-            for (let i = 0; i < count; i++) {
-                const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
-                const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
-                const company = companies[Math.floor(Math.random() * companies.length)];
-                
-                // Create realistic Malaysian names
-                let name;
-                if (Math.random() > 0.5) {
-                    // Full name with bin/binti
-                    name = `${firstName} ${lastName}`;
-                } else {
-                    // Sometimes just first name + last name
-                    name = `${firstName} ${lastNames[Math.floor(Math.random() * lastNames.length)]}`;
-                }
-                
-                // Add some variety - some with very long names
-                if (i % 10 === 0) {
-                    name = `${firstName} Bin ${lastName} ${lastNames[Math.floor(Math.random() * lastNames.length)]}`;
-                }
-                
-                participants.push({
-                    sessionId: `debug-session-${i}`,
-                    participantId: 1000 + i,
-                    name: name,
-                    company: company,
-                    lastSeen: new Date().toISOString()
-                });
-            }
-            
-            return participants;
-        }
-
-        function toggleDebugMode() {
-            debugMode = !debugMode;
-            const debugBtn = document.getElementById('debugToggleBtn');
-            
-            if (debugMode) {
-                debugBtn.textContent = '🐛 Debug: Show Real Participants';
-                debugBtn.style.background = '#4CAF50';
-                debugBtn.style.color = '#000';
-                // Load dummy data immediately
-                loadParticipants();
-            } else {
-                debugBtn.textContent = '🐛 Debug: Show 300 Participants';
-                debugBtn.style.background = '#FF9800';
-                debugBtn.style.color = '#000';
-                // Load real data
-                loadParticipants();
-            }
-        }
 
         function displayParticipants() {
             const participantsGridEl = document.getElementById('participantsGrid');
@@ -609,6 +521,14 @@
                     // Reload session to update display
                     await checkSession();
                     updateConnectionStatus('connected');
+                    
+                    // Auto-scroll to question control when starting first question
+                    setTimeout(() => {
+                        const questionControlSection = document.getElementById('questionControlSection');
+                        if (questionControlSection) {
+                            questionControlSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                    }, 500);
                 } else {
                     alert('Failed to start question: ' + (result.error || 'Unknown error'));
                 }
@@ -1042,6 +962,14 @@
                     setTimeout(async () => {
                         await checkSession();
                         updateQuestionControl();
+                        
+                        // Auto-scroll to question control after advancing
+                        setTimeout(() => {
+                            const questionControlSection = document.getElementById('questionControlSection');
+                            if (questionControlSection) {
+                                questionControlSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
+                        }, 100);
                     }, 500);
                     updateConnectionStatus('connected');
                 } else {
@@ -1430,31 +1358,6 @@
             transform: scale(0.98);
         }
 
-        .debug-button-container {
-            text-align: center;
-        }
-
-        .debug-button {
-            background: #FF9800;
-            color: #000;
-            border: none;
-            border-radius: 10px;
-            padding: 12px 24px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
-        }
-
-        .debug-button:hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 12px rgba(255, 152, 0, 0.4);
-        }
-
-        .debug-button:active {
-            transform: scale(0.98);
-        }
 
         .active-session-section {
             width: 100%;
