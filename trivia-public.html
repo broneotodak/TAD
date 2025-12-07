@@ -1255,6 +1255,11 @@
             display: inline-block;
         }
 
+        /* Light theme: white text on black background */
+        [data-theme="light"] .participants-count-badge {
+            color: #ffffff;
+        }
+
         .participants-label {
             font-size: 1.5rem;
             color: var(--text-primary);
@@ -1379,6 +1384,11 @@
             cursor: pointer;
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
+        }
+
+        /* Light theme: white text on black background */
+        [data-theme="light"] .start-button-large {
+            color: #ffffff;
         }
 
         .start-button-large:hover {
@@ -1713,6 +1723,11 @@
         .btn-start {
             background: var(--primary-color);
             color: #000;
+        }
+
+        /* Light theme: white text on black background */
+        [data-theme="light"] .btn-start {
+            color: #ffffff;
         }
 
         .btn-start:hover {
