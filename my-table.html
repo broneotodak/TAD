@@ -6,6 +6,7 @@
     <title>TODAK Event Management System - My Table</title>
     <link rel="stylesheet" href="css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="js/checkin-status.js"></script>
 </head>
 <body>
     <div class="container-full">
@@ -102,44 +103,28 @@
         });
 
         async function checkCheckInStatus() {
-            // Check localStorage for check-in session
-            const sessionKey = `userCheckedInId_event_${currentEventId}`;
-            const participantId = localStorage.getItem(sessionKey);
+            // Use the shared utility function which handles Safari localStorage blocking
+            const checkInStatus = await checkUserCheckedIn(currentEventId);
             
-            if (!participantId) {
+            if (!checkInStatus.isCheckedIn || !checkInStatus.participant) {
                 // Not checked in
                 document.getElementById('notCheckedIn').style.display = 'block';
                 document.getElementById('tableInfo').style.display = 'none';
+                
+                // Update check-in link with event ID
+                const checkinLink = document.getElementById('checkinLink');
+                if (checkinLink && currentEventId) {
+                    checkinLink.href = `checkin.html?event=${currentEventId}`;
+                }
                 return;
             }
 
-            currentParticipantId = parseInt(participantId);
+            currentParticipantId = checkInStatus.participantId;
+            participant = checkInStatus.participant;
             
-            // Load participant data
-            try {
-                const response = await fetch(`/api/get-participants?eventId=${currentEventId}`);
-                const result = await response.json();
-
-                if (result.success && result.participants) {
-                    participant = result.participants.find(p => p.id === currentParticipantId);
-                    
-                    if (participant && participant.checkedIn) {
-                        // User is checked in, show table info
-                        displayTableInfo();
-                        loadTablemates();
-                    } else {
-                        // Session invalid or not checked in
-                        localStorage.removeItem(sessionKey);
-                        document.getElementById('notCheckedIn').style.display = 'block';
-                        document.getElementById('tableInfo').style.display = 'none';
-                    }
-                } else {
-                    showError('Failed to load your information');
-                }
-            } catch (error) {
-                console.error('Error checking status:', error);
-                showError('Failed to load your information');
-            }
+            // User is checked in, show table info
+            displayTableInfo();
+            loadTablemates();
         }
 
         function displayTableInfo() {

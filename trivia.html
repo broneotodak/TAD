@@ -6,6 +6,7 @@
     <title>TODAK Event Management System - Trivia</title>
     <link rel="stylesheet" href="css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="js/checkin-status.js"></script>
 </head>
 <body>
     <div class="container-full">
@@ -131,13 +132,23 @@
         let statsShownAt = null; // Track when stats were shown
 
         // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             const urlParams = new URLSearchParams(window.location.search);
             currentEventId = urlParams.get('event');
             
             if (!currentEventId) {
                 alert('No event ID provided');
                 window.location.href = 'index.html';
+                return;
+            }
+
+            // Check if user is checked in (with Safari fallback)
+            const checkInStatus = await checkUserCheckedIn(currentEventId);
+            
+            if (!checkInStatus.isCheckedIn) {
+                // User not checked in, redirect to check-in page
+                alert('Please check in first to participate in trivia.');
+                window.location.href = `checkin.html?event=${currentEventId}`;
                 return;
             }
 

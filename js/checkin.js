@@ -372,9 +372,19 @@ async function confirmCheckin() {
     }
     
     // Save user session to remember they checked in (event-specific)
-    const sessionKey = `userCheckedInId_event_${currentEventId}`;
-    localStorage.setItem(sessionKey, selectedParticipant.id.toString());
-    console.log('Session saved for user:', selectedParticipant.id, 'for event:', currentEventId);
+    // Use the shared utility function which handles Safari localStorage blocking
+    if (typeof saveCheckInSession === 'function') {
+        saveCheckInSession(currentEventId, selectedParticipant.id);
+    } else {
+        // Fallback if script not loaded
+        const sessionKey = `userCheckedInId_event_${currentEventId}`;
+        try {
+            localStorage.setItem(sessionKey, selectedParticipant.id.toString());
+            console.log('Session saved for user:', selectedParticipant.id, 'for event:', currentEventId);
+        } catch (error) {
+            console.warn('Failed to save session (possibly Safari private mode):', error);
+        }
+    }
     
     // Save locally as backup
     saveData();

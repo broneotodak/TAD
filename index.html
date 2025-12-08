@@ -7,6 +7,7 @@
     <title>TODAK Event Management System</title>
     <link rel="stylesheet" href="css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="js/checkin-status.js"></script>
 </head>
 
 <body>
@@ -108,10 +109,10 @@
                         showNoEvents();
                     } else if (activeEvents.length === 1) {
                         // If only one active event, show it prominently
-                        displaySingleEvent(activeEvents[0]);
+                        await displaySingleEvent(activeEvents[0]);
                     } else {
                         // Multiple events, show grid
-                        displayMultipleEvents(activeEvents);
+                        await displayMultipleEvents(activeEvents);
                     }
                 } else {
                     showError();
@@ -156,12 +157,16 @@
             return event.cardBackgroundUrl ? 'event-card has-background' : 'event-card';
         }
 
-        function displaySingleEvent(event) {
+        async function displaySingleEvent(event) {
             const container = document.getElementById('eventsContainer');
             const features = event.features || {};
             const showLuckyDraw = features.lucky_draw === true || features.luckyDraw === true;
             const showTrivia = features.trivia === true;
             const showTables = features.tables === true;
+            
+            // Check if user is checked in
+            const checkInStatus = await checkUserCheckedIn(event.id);
+            const isCheckedIn = checkInStatus.isCheckedIn;
             
             container.innerHTML = `
                 <div class="events-grid">
@@ -178,22 +183,35 @@
                         </div>
                         <div class="event-actions" onclick="event.stopPropagation()">
                             ${features.attendance !== false ? `<a href="checkin.html?event=${event.id}" class="event-btn btn-primary-action">📱 Check-in</a>` : ''}
-                            ${showLuckyDraw ? `<a href="lucky-draw-public.html?event=${event.id}" class="event-btn btn-secondary-action">🎰 Lucky Draw</a>` : ''}
-                            ${showTrivia ? `<a href="trivia.html?event=${event.id}" class="event-btn btn-secondary-action">🧠 Trivia</a>` : ''}
-                            ${showTables ? `<a href="my-table.html?event=${event.id}" class="event-btn btn-secondary-action">🪑 My Table</a>` : ''}
+                            ${showLuckyDraw ? (isCheckedIn ? 
+                                `<a href="lucky-draw-public.html?event=${event.id}" class="event-btn btn-secondary-action">🎰 Lucky Draw</a>` : 
+                                `<span class="event-btn btn-secondary-action disabled" title="Please check in first">🎰 Lucky Draw</span>`) : ''}
+                            ${showTrivia ? (isCheckedIn ? 
+                                `<a href="trivia.html?event=${event.id}" class="event-btn btn-secondary-action">🧠 Trivia</a>` : 
+                                `<span class="event-btn btn-secondary-action disabled" title="Please check in first">🧠 Trivia</span>`) : ''}
+                            ${showTables ? (isCheckedIn ? 
+                                `<a href="my-table.html?event=${event.id}" class="event-btn btn-secondary-action">🪑 My Table</a>` : 
+                                `<span class="event-btn btn-secondary-action disabled" title="Please check in first">🪑 My Table</span>`) : ''}
                         </div>
                     </div>
                 </div>
             `;
         }
 
-        function displayMultipleEvents(events) {
+        async function displayMultipleEvents(events) {
             const container = document.getElementById('eventsContainer');
-            const eventsHTML = events.map(event => {
+            
+            // Check check-in status for all events in parallel
+            const checkInStatuses = await Promise.all(
+                events.map(event => checkUserCheckedIn(event.id))
+            );
+            
+            const eventsHTML = events.map((event, index) => {
                 const features = event.features || {};
                 const showLuckyDraw = features.lucky_draw === true || features.luckyDraw === true;
                 const showTrivia = features.trivia === true;
                 const showTables = features.tables === true;
+                const isCheckedIn = checkInStatuses[index].isCheckedIn;
                 
                 return `
                 <div class="${getCardClass(event)}" style="${getCardStyle(event)}" onclick="showEventDetails(${event.id})">
@@ -209,9 +227,15 @@
                     </div>
                     <div class="event-actions" onclick="event.stopPropagation()">
                         ${features.attendance !== false ? `<a href="checkin.html?event=${event.id}" class="event-btn btn-primary-action">📱 Check-in</a>` : ''}
-                        ${showLuckyDraw ? `<a href="lucky-draw-public.html?event=${event.id}" class="event-btn btn-secondary-action">🎰 Lucky Draw</a>` : ''}
-                        ${showTrivia ? `<a href="trivia.html?event=${event.id}" class="event-btn btn-secondary-action">🧠 Trivia</a>` : ''}
-                        ${showTables ? `<a href="my-table.html?event=${event.id}" class="event-btn btn-secondary-action">🪑 My Table</a>` : ''}
+                        ${showLuckyDraw ? (isCheckedIn ? 
+                            `<a href="lucky-draw-public.html?event=${event.id}" class="event-btn btn-secondary-action">🎰 Lucky Draw</a>` : 
+                            `<span class="event-btn btn-secondary-action disabled" title="Please check in first">🎰 Lucky Draw</span>`) : ''}
+                        ${showTrivia ? (isCheckedIn ? 
+                            `<a href="trivia.html?event=${event.id}" class="event-btn btn-secondary-action">🧠 Trivia</a>` : 
+                            `<span class="event-btn btn-secondary-action disabled" title="Please check in first">🧠 Trivia</span>`) : ''}
+                        ${showTables ? (isCheckedIn ? 
+                            `<a href="my-table.html?event=${event.id}" class="event-btn btn-secondary-action">🪑 My Table</a>` : 
+                            `<span class="event-btn btn-secondary-action disabled" title="Please check in first">🪑 My Table</span>`) : ''}
                     </div>
                 </div>
             `}).join('');
@@ -567,6 +591,16 @@
                 height: 32px;
                 font-size: 16px;
             }
+        }
+
+        /* Disabled button styles */
+        .event-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+            background: var(--dark-bg);
+            color: var(--text-secondary);
+            border-color: var(--border-color);
         }
     </style>
 </body>
