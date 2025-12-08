@@ -1011,6 +1011,84 @@ body {
     box-shadow: 0 0 20px rgba(255, 255, 0, 0.5);
 }
 
+/* Full Name Reminder - More detailed and prominent */
+.full-name-reminder {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
+    border: 3px solid #ffc107;
+    padding: 25px;
+    border-radius: 15px;
+    margin-top: 25px;
+    margin-bottom: 20px;
+    color: #000000;
+    text-align: left;
+    box-shadow: 0 4px 15px rgba(255, 193, 7, 0.4);
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.reminder-icon {
+    font-size: 3rem;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.reminder-content {
+    flex: 1;
+}
+
+.reminder-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 15px;
+    color: #856404;
+    text-align: center;
+}
+
+.reminder-details {
+    font-size: 1rem;
+    line-height: 1.8;
+}
+
+.reminder-details p {
+    margin-bottom: 12px;
+    padding-left: 10px;
+}
+
+.reminder-details p:last-child {
+    margin-bottom: 0;
+}
+
+.reminder-details strong {
+    color: #856404;
+    font-weight: 700;
+}
+
+@media (max-width: 768px) {
+    .full-name-reminder {
+        flex-direction: column;
+        text-align: center;
+        padding: 20px;
+    }
+    
+    .reminder-icon {
+        font-size: 2.5rem;
+        margin: 0 auto;
+    }
+    
+    .reminder-title {
+        font-size: 1.1rem;
+    }
+    
+    .reminder-details {
+        font-size: 0.95rem;
+    }
+    
+    .reminder-details p {
+        text-align: left;
+    }
+}
+
 .search-section {
     margin-bottom: 20px;
 }

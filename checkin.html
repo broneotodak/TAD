@@ -32,8 +32,16 @@
                     <p id="eventDateTime" style="margin-bottom: 5px;"></p>
                     <p id="eventVenue" style="margin-bottom: 15px;"></p>
                     <p>Please search and select your name to check in</p>
-                    <div class="search-reminder">
-                        ⚠️ <strong>IMPORTANT:</strong> Search for your <strong>NAME</strong> only (not company name)
+                    <div class="search-reminder full-name-reminder">
+                        <div class="reminder-icon">📝</div>
+                        <div class="reminder-content">
+                            <div class="reminder-title">⚠️ IMPORTANT: Search for your FULL NAME</div>
+                            <div class="reminder-details">
+                                <p><strong>✓ DO:</strong> Type your <strong>complete full name</strong> as registered (e.g., "John Michael Smith" or "Ahmad bin Abdullah")</p>
+                                <p><strong>✗ DON'T:</strong> Search by company name, nickname, or partial name</p>
+                                <p><strong>💡 Tip:</strong> If you can't find your name, try typing just your first name or last name</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -41,7 +49,7 @@
                     <input type="text" 
                            id="participantSearch" 
                            class="search-input" 
-                           placeholder="Enter your name here..."
+                           placeholder="Enter your FULL NAME here (e.g., John Michael Smith)..."
                            onkeyup="searchParticipants()"
                            autofocus>
                 </div>

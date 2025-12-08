@@ -270,7 +270,7 @@ function searchParticipants() {
     const resultsContainer = document.getElementById('searchResults');
     
     if (searchTerm.length < 2) {
-        resultsContainer.innerHTML = '<p class="search-hint">Type at least 2 characters to search...</p>';
+        resultsContainer.innerHTML = '<p class="search-hint">📝 Type at least 2 characters of your <strong>FULL NAME</strong> to search...</p>';
         return;
     }
     
