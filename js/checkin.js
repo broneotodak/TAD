@@ -94,17 +94,33 @@ if (window.dbAPI) {
                 // Always update stats first, even if showing checked-in view
                 updateStats();
                 
-                // Check for existing session
-                const sessionId = checkExistingSession();
-                if (sessionId) {
-                    const participant = participants.find(p => p.id === sessionId);
-                    if (participant && participant.checkedIn) {
-                        console.log('Restoring session for:', participant.name);
-                        showCheckedInView(participant);
-                        return;
-                    } else {
-                        // Session invalid, clear it
-                        localStorage.removeItem(`userCheckedInId_event_${currentEventId}`);
+                // Check for existing session using the shared utility (Safari-compatible)
+                if (typeof checkUserCheckedIn === 'function') {
+                    checkUserCheckedIn(currentEventId).then(checkInStatus => {
+                        if (checkInStatus.isCheckedIn && checkInStatus.participant) {
+                            console.log('Restoring session for:', checkInStatus.participant.name);
+                            showCheckedInView(checkInStatus.participant);
+                        }
+                    }).catch(error => {
+                        console.error('Error checking check-in status:', error);
+                    });
+                } else {
+                    // Fallback to old method if utility not loaded
+                    const sessionId = checkExistingSession();
+                    if (sessionId) {
+                        const participant = participants.find(p => p.id === sessionId);
+                        if (participant && participant.checkedIn) {
+                            console.log('Restoring session for:', participant.name);
+                            showCheckedInView(participant);
+                            return;
+                        } else {
+                            // Session invalid, clear it
+                            try {
+                                localStorage.removeItem(`userCheckedInId_event_${currentEventId}`);
+                            } catch (e) {
+                                // Ignore localStorage errors
+                            }
+                        }
                     }
                 }
             } else {

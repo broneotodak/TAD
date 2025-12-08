@@ -182,7 +182,9 @@
                             </div>
                         </div>
                         <div class="event-actions" onclick="event.stopPropagation()">
-                            ${features.attendance !== false ? `<a href="checkin.html?event=${event.id}" class="event-btn btn-primary-action">📱 Check-in</a>` : ''}
+                            ${features.attendance !== false ? (isCheckedIn ? 
+                                `<span class="event-btn btn-primary-action disabled" title="Already checked in">✓ Checked In</span>` : 
+                                `<a href="checkin.html?event=${event.id}" class="event-btn btn-primary-action">📱 Check-in</a>`) : ''}
                             ${showLuckyDraw ? (isCheckedIn ? 
                                 `<a href="lucky-draw-public.html?event=${event.id}" class="event-btn btn-secondary-action">🎰 Lucky Draw</a>` : 
                                 `<span class="event-btn btn-secondary-action disabled" title="Please check in first">🎰 Lucky Draw</span>`) : ''}
@@ -226,7 +228,9 @@
                         </div>
                     </div>
                     <div class="event-actions" onclick="event.stopPropagation()">
-                        ${features.attendance !== false ? `<a href="checkin.html?event=${event.id}" class="event-btn btn-primary-action">📱 Check-in</a>` : ''}
+                        ${features.attendance !== false ? (isCheckedIn ? 
+                            `<span class="event-btn btn-primary-action disabled" title="Already checked in">✓ Checked In</span>` : 
+                            `<a href="checkin.html?event=${event.id}" class="event-btn btn-primary-action">📱 Check-in</a>`) : ''}
                         ${showLuckyDraw ? (isCheckedIn ? 
                             `<a href="lucky-draw-public.html?event=${event.id}" class="event-btn btn-secondary-action">🎰 Lucky Draw</a>` : 
                             `<span class="event-btn btn-secondary-action disabled" title="Please check in first">🎰 Lucky Draw</span>`) : ''}
@@ -595,12 +599,20 @@
 
         /* Disabled button styles */
         .event-btn.disabled {
-            opacity: 0.5;
+            opacity: 0.6;
             cursor: not-allowed;
             pointer-events: none;
             background: var(--dark-bg);
             color: var(--text-secondary);
             border-color: var(--border-color);
+        }
+
+        /* Checked-in button style (disabled but with success color) */
+        .event-btn.btn-primary-action.disabled {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4caf50;
+            border-color: rgba(76, 175, 80, 0.4);
+            opacity: 0.8;
         }
     </style>
 </body>
