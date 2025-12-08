@@ -293,8 +293,17 @@ function startDraw() {
     
     const startTime = Date.now();
     const totalDuration = 10000; // Exactly 10 seconds
+    const fastDelay = 50; // Fast phase delay (50ms)
+    const slowDelay = 800; // Slow phase delay (800ms)
+    
+    // Calculate time needed to show all participants at fast speed
+    // Add some buffer to ensure we complete at least one full cycle
+    const timeForFullCycle = shuffledParticipants.length * fastDelay;
+    const fastPhaseDuration = Math.min(timeForFullCycle + 500, totalDuration * 0.4); // Use up to 40% of total time for fast phase
+    
     let currentIndex = 0;
     let hasShownWinner = false;
+    let hasCompletedFastPhase = false;
     
     function updateName() {
         if (!isDrawing) return;
@@ -303,14 +312,26 @@ function startDraw() {
         const remaining = totalDuration - elapsed;
         const progress = elapsed / totalDuration;
         
-        // Calculate delay based on progress - smooth deceleration curve
+        // Calculate delay based on progress
         let currentDelay;
         
-        // Use exponential easing for smooth deceleration
-        // Fast at start (50ms), gradually slowing down to very slow at end (800ms)
-        // Using ease-out cubic curve: 1 - (1 - t)^3
-        const easedProgress = 1 - Math.pow(1 - progress, 3);
-        currentDelay = 50 + (easedProgress * 750); // Range: 50ms to 800ms
+        // Fast phase: show all participants at fast speed
+        if (elapsed < fastPhaseDuration && !hasCompletedFastPhase) {
+            currentDelay = fastDelay;
+            
+            // Check if we've completed at least one full cycle
+            if (currentIndex >= shuffledParticipants.length) {
+                hasCompletedFastPhase = true;
+            }
+        } else {
+            // Slow phase: gradually slow down
+            hasCompletedFastPhase = true;
+            
+            // Calculate progress within slow phase (from fastPhaseDuration to totalDuration)
+            const slowPhaseProgress = (elapsed - fastPhaseDuration) / (totalDuration - fastPhaseDuration);
+            const easedProgress = 1 - Math.pow(1 - slowPhaseProgress, 3);
+            currentDelay = fastDelay + (easedProgress * (slowDelay - fastDelay));
+        }
         
         // When we're very close to the end (last 100ms), show the winner directly
         if (remaining <= 100 && !hasShownWinner) {
