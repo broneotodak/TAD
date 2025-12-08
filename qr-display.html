@@ -311,8 +311,9 @@
             <div class="instruction-steps">
                 <div>1. Open your phone camera</div>
                 <div>2. Scan the QR code</div>
-                <div>3. Search for your name</div>
-                <div>4. Confirm check-in</div>
+                <div>3. Click the "Check-in" button</div>
+                <div>4. Search for your name</div>
+                <div>5. Confirm check-in</div>
             </div>
 
             <div class="url-display" id="urlDisplay" style="display: none;"></div>
@@ -426,8 +427,12 @@
             // Clear previous QR code
             qrcodeDiv.innerHTML = '';
             
-            // Generate redirect URL to events.todak.io main page
-            const redirectUrl = 'https://events.todak.io';
+            // Generate redirect URL to events.todak.io main page with event ID
+            // Users will land on the main page and click the check-in button
+            const baseUrl = window.location.origin;
+            const redirectUrl = currentEventId ? 
+                `${baseUrl}/index.html?event=${currentEventId}` : 
+                `${baseUrl}/index.html`;
             
             // Display URL
             document.getElementById('urlDisplay').textContent = redirectUrl;

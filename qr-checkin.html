@@ -24,21 +24,29 @@
             <div class="qr-instructions">
                 <div class="instruction-item">
                     <span class="instruction-number">1</span>
-                    <p>Scan the QR code with your phone camera</p>
+                    <p>Open your phone camera</p>
                 </div>
                 <div class="instruction-item">
                     <span class="instruction-number">2</span>
-                    <p>Search and select your name</p>
+                    <p>Scan the QR code</p>
                 </div>
                 <div class="instruction-item">
                     <span class="instruction-number">3</span>
-                    <p>View your table assignment</p>
+                    <p>Click the "Check-in" button</p>
+                </div>
+                <div class="instruction-item">
+                    <span class="instruction-number">4</span>
+                    <p>Search for your name</p>
+                </div>
+                <div class="instruction-item">
+                    <span class="instruction-number">5</span>
+                    <p>Confirm check-in</p>
                 </div>
             </div>
 
             <div class="qr-url-display">
                 <p>Or visit directly:</p>
-                <a href="checkin.html" id="checkinUrl" class="url-link" target="_blank"></a>
+                <a href="index.html" id="checkinUrl" class="url-link" target="_blank"></a>
             </div>
 
             <div class="qr-actions">
@@ -51,19 +59,23 @@
     <script>
         // Generate QR code on page load
         window.addEventListener('DOMContentLoaded', function() {
-            // Build the check-in URL
+            // Get event ID from URL if available
+            const urlParams = new URLSearchParams(window.location.search);
+            const eventId = urlParams.get('event');
+            
+            // Build the main page URL (users will click check-in button from there)
             const baseURL = window.location.origin;
-            const pathParts = window.location.pathname.split('/');
-            pathParts[pathParts.length - 1] = 'checkin.html';
-            const checkinURL = baseURL + pathParts.join('/');
+            const mainPageURL = eventId ? 
+                `${baseURL}/index.html?event=${eventId}` : 
+                `${baseURL}/index.html`;
             
             // Display URL
-            document.getElementById('checkinUrl').href = checkinURL;
-            document.getElementById('checkinUrl').textContent = checkinURL;
+            document.getElementById('checkinUrl').href = mainPageURL;
+            document.getElementById('checkinUrl').textContent = mainPageURL;
             
             // Generate QR Code
             new QRCode(document.getElementById('qrcode'), {
-                text: checkinURL,
+                text: mainPageURL,
                 width: 400,
                 height: 400,
                 colorDark: "#0A0E27",
@@ -71,7 +83,7 @@
                 correctLevel: QRCode.CorrectLevel.H
             });
             
-            console.log('QR Code generated for:', checkinURL);
+            console.log('QR Code generated for:', mainPageURL);
         });
     </script>
 </body>
