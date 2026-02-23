@@ -229,7 +229,10 @@ async function processFile(file) {
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     ];
 
-    if (!allowedTypes.includes(file.type)) {
+    // Also allow files with .csv extension (some browsers report different MIME types)
+    const isCSV = file.name.toLowerCase().endsWith('.csv') || file.type === 'text/csv';
+
+    if (!isCSV && !allowedTypes.includes(file.type)) {
         alert('Please upload a PDF, CSV, or Excel file');
         return;
     }
@@ -242,8 +245,11 @@ async function processFile(file) {
         // Read file content
         const fileContent = await readFileContent(file);
 
-        // Call AI extraction API
-        const response = await fetch('/api/upload-participants-ai', {
+        // Use non-AI CSV parser for CSV files (faster, no token limits, handles all rows)
+        // Only use AI for non-CSV files (PDF, Excel) that need intelligent extraction
+        const apiEndpoint = isCSV ? '/api/parse-todak-csv' : '/api/upload-participants-ai';
+
+        const response = await fetch(apiEndpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

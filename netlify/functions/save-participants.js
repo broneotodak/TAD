@@ -21,15 +21,34 @@ export default async (req, context) => {
 
     const sql = neon(process.env.NETLIFY_DATABASE_URL);
 
-    // Begin transaction-like operations
+    // Fix tables_config unique constraint for multi-event support
+    // The old constraint was on table_number alone, needs to be (table_number, event_id)
+    try {
+      await sql`ALTER TABLE tables_config DROP CONSTRAINT IF EXISTS tables_config_table_number_key`;
+      await sql`
+        DO $$
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint
+            WHERE conname = 'tables_config_table_number_event_id_key'
+          ) THEN
+            ALTER TABLE tables_config
+              ADD CONSTRAINT tables_config_table_number_event_id_key
+              UNIQUE (table_number, event_id);
+          END IF;
+        END $$
+      `;
+    } catch (constraintError) {
+      console.log('Constraint migration note:', constraintError.message);
+    }
 
     // 1. Upsert participants
     for (const p of participants) {
       await sql`
         INSERT INTO participants (id, name, company, vip, table_number, checked_in, checked_in_at, event_id)
         VALUES (${p.id}, ${p.name}, ${p.company}, ${p.vip}, ${p.table}, ${p.checkedIn}, ${p.checkedInAt || null}, ${eventId})
-        ON CONFLICT (id) 
-        DO UPDATE SET 
+        ON CONFLICT (id)
+        DO UPDATE SET
           name = EXCLUDED.name,
           company = EXCLUDED.company,
           vip = EXCLUDED.vip,
