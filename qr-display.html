@@ -309,54 +309,6 @@
             border-color: var(--primary-color);
         }
 
-        /* Landscape optimization - side by side layout */
-        @media (min-aspect-ratio: 4/3) and (min-width: 768px) {
-            .qr-container {
-                flex-direction: row;
-                gap: 3vw;
-                padding: 2vh 3vw;
-                max-width: 95vw;
-                text-align: left;
-            }
-
-            .qr-left {
-                flex: 0 0 auto;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-            }
-
-            .qr-right {
-                flex: 1;
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                min-width: 0;
-            }
-
-            .qr-wrapper {
-                margin: 0;
-                max-height: 80vh;
-            }
-
-            #qrcode canvas,
-            #qrcode img {
-                max-height: 70vh;
-            }
-
-            .event-logo {
-                margin: 0 auto 1vh;
-            }
-
-            .instruction-text {
-                text-align: left;
-            }
-
-            .instruction-steps {
-                padding: 0;
-            }
-        }
     </style>
 </head>
 <body>
