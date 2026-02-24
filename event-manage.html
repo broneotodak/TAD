@@ -1912,6 +1912,37 @@ Dessert: Chocolate Mousse
 Beverages: Coffee, Tea, Soft Drinks"></textarea>
                 </div>
                 
+                <hr style="margin: 25px 0; border: 1px solid var(--border-color);">
+
+                <h3 style="margin-bottom: 15px;">QR Page Notes</h3>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 20px;">Customize the instructions and notes shown on the QR code display page</p>
+
+                <div class="form-group">
+                    <label for="editQrNoteTop">
+                        Instructions (Top Section)
+                        <span style="color: var(--text-secondary); font-size: 0.85rem;">(Shown below QR code - one step per line)</span>
+                    </label>
+                    <textarea id="editQrNoteTop" rows="6" placeholder="1. Open your phone camera
+2. Scan the QR code
+3. Click the &quot;Check-in&quot; button
+4. Search for your FULL NAME (as registered)
+5. Confirm check-in"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="editQrNoteBottom">
+                        Important Note (Bottom Section)
+                        <span style="color: var(--text-secondary); font-size: 0.85rem;">(Yellow highlighted note below instructions)</span>
+                    </label>
+                    <textarea id="editQrNoteBottom" rows="3" placeholder='Type your complete full name (e.g., "John Michael Smith"). Do not search by company name or nickname.'></textarea>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <button type="button" onclick="resetQrNotesToDefault()" class="btn-secondary" style="font-size: 0.85rem;">
+                        ↺ Reset to Default Notes
+                    </button>
+                </div>
+
                 <div class="modal-buttons">
                     <button type="button" onclick="closeEditEventModal()" class="btn-secondary">Cancel</button>
                     <button type="submit" class="btn-primary">Save Changes</button>
@@ -1933,6 +1964,10 @@ Beverages: Coffee, Tea, Soft Drinks"></textarea>
             document.getElementById('editEventTheme').value = currentEvent.theme || '';
             document.getElementById('editEventTentative').value = currentEvent.tentative || '';
             document.getElementById('editEventMenu').value = currentEvent.menu || '';
+
+            // QR page notes
+            document.getElementById('editQrNoteTop').value = currentEvent.qrNoteTop || '';
+            document.getElementById('editQrNoteBottom').value = currentEvent.qrNoteBottom || '';
             
             // Card appearance fields
             document.getElementById('editCardIconUrl').value = currentEvent.cardIconUrl || '';
@@ -2013,6 +2048,11 @@ Beverages: Coffee, Tea, Soft Drinks"></textarea>
             menuGroup.style.display = (hasMenu || isDiningEvent) ? 'block' : 'block'; // Always show, let admin decide
         }
         
+        function resetQrNotesToDefault() {
+            document.getElementById('editQrNoteTop').value = '1. Open your phone camera\n2. Scan the QR code\n3. Click the "Check-in" button\n4. Search for your FULL NAME (as registered)\n5. Confirm check-in';
+            document.getElementById('editQrNoteBottom').value = 'Type your complete full name (e.g., "John Michael Smith"). Do not search by company name or nickname.';
+        }
+
         async function saveEventDetails(event) {
             event.preventDefault();
             
@@ -2029,6 +2069,8 @@ Beverages: Coffee, Tea, Soft Drinks"></textarea>
                     menu: document.getElementById('editEventMenu').value || null,
                     cardIconUrl: document.getElementById('editCardIconUrl').value || null,
                     cardBackgroundUrl: document.getElementById('editCardBackgroundUrl').value || null,
+                    qrNoteTop: document.getElementById('editQrNoteTop').value || null,
+                    qrNoteBottom: document.getElementById('editQrNoteBottom').value || null,
                     features: {
                         tables: document.getElementById('editFeatureTables').checked,
                         lucky_draw: document.getElementById('editFeatureLuckyDraw').checked,

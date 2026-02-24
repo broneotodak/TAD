@@ -307,16 +307,16 @@
             </div>
 
             <div class="instruction-text">Scan to Check-In</div>
-            
-            <div class="instruction-steps">
+
+            <div class="instruction-steps" id="instructionSteps">
                 <div>1. Open your phone camera</div>
                 <div>2. Scan the QR code</div>
                 <div>3. Click the "Check-in" button</div>
                 <div>4. Search for your <strong>FULL NAME</strong> (as registered)</div>
                 <div>5. Confirm check-in</div>
             </div>
-            
-            <div style="margin-top: 20px; padding: 15px; background: rgba(255, 193, 7, 0.2); border-radius: 10px; border: 2px solid #ffc107; color: var(--text-primary); font-size: 0.95rem;">
+
+            <div id="bottomNote" style="margin-top: 20px; padding: 15px; background: rgba(255, 193, 7, 0.2); border-radius: 10px; border: 2px solid #ffc107; color: var(--text-primary); font-size: 0.95rem;">
                 <strong>📝 Important:</strong> Type your complete full name (e.g., "John Michael Smith"). Do not search by company name or nickname.
             </div>
 
@@ -422,6 +422,22 @@
                 'Other': '🎭'
             };
             logoElement.textContent = eventTypeIcons[currentEvent.eventType] || '🎯';
+
+            // Custom QR page notes (top instructions)
+            if (currentEvent.qrNoteTop) {
+                const stepsEl = document.getElementById('instructionSteps');
+                stepsEl.innerHTML = currentEvent.qrNoteTop
+                    .split('\n')
+                    .filter(line => line.trim())
+                    .map(line => `<div>${line}</div>`)
+                    .join('');
+            }
+
+            // Custom QR page notes (bottom note)
+            if (currentEvent.qrNoteBottom) {
+                const noteEl = document.getElementById('bottomNote');
+                noteEl.innerHTML = `<strong>📝 Important:</strong> ${currentEvent.qrNoteBottom}`;
+            }
         }
 
         // Generate QR Code

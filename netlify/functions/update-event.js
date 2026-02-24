@@ -38,7 +38,9 @@ exports.handler = async (event) => {
             menu, 
             features,
             cardIconUrl,
-            cardBackgroundUrl
+            cardBackgroundUrl,
+            qrNoteTop,
+            qrNoteBottom
         } = JSON.parse(event.body);
 
         // Normalize features to use snake_case
@@ -97,6 +99,8 @@ exports.handler = async (event) => {
                 features = ${JSON.stringify(features)},
                 card_icon_url = ${cardIconUrl || null},
                 card_background_url = ${cardBackgroundUrl || null},
+                qr_note_top = ${qrNoteTop || null},
+                qr_note_bottom = ${qrNoteBottom || null},
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = ${eventId}
             RETURNING *
